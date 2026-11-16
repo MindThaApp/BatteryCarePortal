@@ -61,12 +61,12 @@ public sealed partial class OverviewPage : Page
 
         string key = support.State.ToString();
         StateText.Text = Strings.Get("SupportState" + key);
-        SentenceText.Text = string.Format(Strings.Get("SupportText" + key), Brand(support.Device));
+        SentenceText.Text = string.Format(Strings.Get(support.BetaActive ? "SupportTextOnTestListBeta" : "SupportText" + key), Brand(support.Device));
         DeviceText.Text = string.Join(" ", new[] { support.Device.Manufacturer, support.Device.Family.Length > 0 ? support.Device.Family : support.Device.Model }
             .Where(t => !string.IsNullOrWhiteSpace(t))).Trim();
         DeviceText.Visibility = DeviceText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Read only: the app shows the limit it found and changes nothing in this step.
+        // Read only here: changes happen on the Charging page.
         if (support.ChargeLimitAvailable && support.CurrentLimit is int limit)
         {
             LimitText.Text = limit >= 100 ? Strings.Get("SupportLimitNone") : string.Format(Strings.Get("SupportLimitValue"), limit);

@@ -3,7 +3,20 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Padding="32,24">
-        <TextBlock x:Uid="TitleSettings" Style="{StaticResource TitleTextBlockStyle}" />
-    </Grid>
+    <ScrollViewer>
+        <StackPanel Padding="32,24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock x:Uid="TitleSettings" Style="{StaticResource TitleTextBlockStyle}" />
+
+            <Border Padding="20" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="SettingsDeviceSupportTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <ToggleSwitch x:Name="BetaSwitch" x:Uid="SettingsBetaSwitch" Toggled="OnBetaToggled" />
+                    <TextBlock x:Uid="SettingsBetaWarning" TextWrapping="Wrap" />
+                    <TextBlock x:Uid="SettingsBetaReadOnly" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
 </Page>

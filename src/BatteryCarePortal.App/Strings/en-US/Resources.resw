@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -44,10 +44,61 @@
   <data name="SupportTextOneStepMissing" xml:space="preserve"><value>Your laptop supports a charge limit, but the maker&#8217;s energy-management driver is not installed. Install it from the maker&#8217;s support site, then check again.</value></data>
   <data name="SupportTextNoBattery" xml:space="preserve"><value>This PC has no battery. Battery Care is for laptops.</value></data>
   <data name="SupportBrandFallback" xml:space="preserve"><value>laptop</value></data>
-  <data name="SupportLimitValue" xml:space="preserve"><value>Current charge limit: {0}% (read only)</value></data>
-  <data name="SupportLimitNone" xml:space="preserve"><value>No charge limit is set right now (read only)</value></data>
+  <data name="SupportLimitValue" xml:space="preserve"><value>Current charge limit: {0}%</value></data>
+  <data name="SupportLimitNone" xml:space="preserve"><value>No charge limit is set right now</value></data>
   <data name="SupportReportCopied" xml:space="preserve"><value>Diagnostics report copied. It was read-only; nothing was changed on your laptop.</value></data>
   <data name="SupportReportSaved" xml:space="preserve"><value>Diagnostics report saved to {0}</value></data>
   <data name="SupportReportFailed" xml:space="preserve"><value>Could not create the report: {0}</value></data>
+  <data name="SupportTextOnTestListBeta" xml:space="preserve"><value>Beta testing is on. Your {0} is not verified yet, so treat the charge limit as a test: check that charging stops where you expect, and use Restore laptop defaults if anything looks wrong.</value></data>
+  <data name="DialogCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="ChargeLimitTitle.Text" xml:space="preserve"><value>Charge limit</value></data>
+  <data name="ChargeBetaChip.Text" xml:space="preserve"><value>Beta</value></data>
+  <data name="ChargeLimitSwitch.Header" xml:space="preserve"><value>Limit charging</value></data>
+  <data name="ChargeLimitSwitch.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="ChargeLimitSwitch.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="ChargeApplyValue.Content" xml:space="preserve"><value>Apply</value></data>
+  <data name="ChargeCapConservation" xml:space="preserve"><value>Your laptop's conservation mode holds the battery near {0}%. It is either on or off; the firmware sets the level.</value></data>
+  <data name="ChargeCapRange" xml:space="preserve"><value>Your laptop can stop charging at any level from {0}% to {1}%.</value></data>
+  <data name="ChargeCapFixed" xml:space="preserve"><value>Your laptop offers these charge limits.</value></data>
+  <data name="ChargeReadBackOn" xml:space="preserve"><value>Your laptop reports: charging stops at {0}%.</value></data>
+  <data name="ChargeReadBackConservationOn" xml:space="preserve"><value>Your laptop reports: conservation mode is on (holds near {0}%).</value></data>
+  <data name="ChargeReadBackOff" xml:space="preserve"><value>Your laptop reports: no charge limit.</value></data>
+  <data name="ChargeReadBackUnknown" xml:space="preserve"><value>The app could not read the current setting. {0}</value></data>
+  <data name="ChargeRestoreTitle.Text" xml:space="preserve"><value>Restore laptop defaults</value></data>
+  <data name="ChargeRestoreText.Text" xml:space="preserve"><value>Puts back the charge settings your laptop had before this app first changed them, then reads them back. Do this before you uninstall the app.</value></data>
+  <data name="ChargeRestoreButton.Content" xml:space="preserve"><value>Restore laptop defaults</value></data>
+  <data name="ChargeRestoreConfirmTitle" xml:space="preserve"><value>Restore laptop defaults?</value></data>
+  <data name="ChargeRestoreConfirmText" xml:space="preserve"><value>The charge settings go back to what your laptop had before this app first changed them. The app then stops managing the charge limit until you turn it on again.</value></data>
+  <data name="ChargeRestoreConfirmYes" xml:space="preserve"><value>Restore</value></data>
+  <data name="ChargeStatusBetaOff" xml:space="preserve"><value>This laptop model is not verified yet, and beta testing is off, so the app does not change the charge limit. To help test it, turn on beta testing in Settings.</value></data>
+  <data name="ChargeStatusNotVerified" xml:space="preserve"><value>This laptop model is not verified, and the app cannot read its charge limit back, so the charge limit stays read-only even with beta testing on.</value></data>
+  <data name="ChargeStatusNotDetected" xml:space="preserve"><value>The charge-limit interface for this laptop was not found, so nothing can be changed.</value></data>
+  <data name="ChargeStatusPpmOwns" xml:space="preserve"><value>Power Plan Manager manages the charge limit on this PC, so this app does not change it. Only one app should control the limit: turn off battery care in Power Plan Manager, or keep using it there.</value></data>
+  <data name="ChargeResultApplied" xml:space="preserve"><value>Done. Your laptop reports the new setting.</value></data>
+  <data name="ChargeResultNotConfirmed" xml:space="preserve"><value>The change was made and checked with administrator rights, but the app could not read it back itself.</value></data>
+  <data name="ChargeResultNeedsElevation" xml:space="preserve"><value>This change needs administrator approval. Nothing was changed.</value></data>
+  <data name="ChargeResultCancelled" xml:space="preserve"><value>The administrator prompt was cancelled. Nothing was changed.</value></data>
+  <data name="ChargeResultMismatch" xml:space="preserve"><value>Your laptop did not report the new setting after the change, so it may not have worked. The app did not retry. {0}</value></data>
+  <data name="ChargeResultBusy" xml:space="preserve"><value>Another change is still running.</value></data>
+  <data name="ChargeResultNothingToRestore" xml:space="preserve"><value>This app has not changed your laptop's charge settings, so there is nothing to restore.</value></data>
+  <data name="ChargeResultFailed" xml:space="preserve"><value>The change did not go through. {0}</value></data>
+  <data name="ChargeNoticeReapplyTitle" xml:space="preserve"><value>The charge limit is not back yet</value></data>
+  <data name="ChargeNoticeReapplyText" xml:space="preserve"><value>The app could not put your charge limit back on by itself. It may need administrator approval.</value></data>
+  <data name="ChargeNoticePutBack" xml:space="preserve"><value>Put it back</value></data>
+  <data name="ChargeNoticeChangedTitle" xml:space="preserve"><value>The charge limit was changed outside this app</value></data>
+  <data name="ChargeNoticeUseApp" xml:space="preserve"><value>Use the app's setting</value></data>
+  <data name="ChargeNoticeKeepLaptop" xml:space="preserve"><value>Keep the laptop's setting</value></data>
+  <data name="SettingsDeviceSupportTitle.Text" xml:space="preserve"><value>Device support</value></data>
+  <data name="SettingsBetaSwitch.Header" xml:space="preserve"><value>Help test charge limit on other brands (beta)</value></data>
+  <data name="SettingsBetaSwitch.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsBetaSwitch.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsBetaWarning.Text" xml:space="preserve"><value>Beta testing lets the app change the charge limit on laptops that are not verified yet. It uses the maker's own firmware settings, reads every change back, and refuses a change it cannot read back. A firmware password stops it. Undo a change with Restore laptop defaults, or in your laptop's firmware setup.</value></data>
+  <data name="SettingsBetaReadOnly.Text" xml:space="preserve"><value>ASUS laptops stay read-only even in beta, because their firmware cannot report the current limit.</value></data>
+  <data name="SettingsBetaConfirmTitle" xml:space="preserve"><value>Turn on beta testing?</value></data>
+  <data name="SettingsBetaConfirmText" xml:space="preserve"><value>Your laptop model has not been verified with this app. Turning this on lets the app change a firmware charge setting that has only been checked on other models. The app saves the original values first, reads every change back and never retries a failed change. If anything looks wrong, use Restore laptop defaults or your laptop's firmware setup.</value></data>
+  <data name="SettingsBetaConfirmYes" xml:space="preserve"><value>Turn on beta testing</value></data>
+  <data name="SettingsBetaOffTitle" xml:space="preserve"><value>Turn off beta testing?</value></data>
+  <data name="SettingsBetaOffText" xml:space="preserve"><value>Changes the app made during beta testing stay on your laptop. To undo them, use Restore laptop defaults on the Charging page before you turn beta testing off.</value></data>
+  <data name="SettingsBetaOffYes" xml:space="preserve"><value>Turn off</value></data>
 </root>
 

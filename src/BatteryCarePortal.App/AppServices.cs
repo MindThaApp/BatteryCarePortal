@@ -81,6 +81,8 @@ internal static class AppServices
         finally { _checking = false; }
     }
 
+    public static void ClearReapplyNotice() => LastReapply = null;
+
     public static void SetBetaOptIn(bool on)
     {
         Settings.Update(s =>
