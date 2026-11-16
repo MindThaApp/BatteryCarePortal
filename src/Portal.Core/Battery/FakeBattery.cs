@@ -216,25 +216,27 @@ public sealed class FakeChargeLimitBackend : IChargeLimitBackend
 /// <summary>Picks the backend for this device. Returns null when only software reminders are possible.</summary>
 public static class ChargeLimitBackendRegistry
 {
-    public static IReadOnlyList<IChargeLimitBackend> CreateCandidates(IWmiReader? wmi = null, IBatteryWriteExecutor? executor = null)
+    public static IReadOnlyList<IChargeLimitBackend> CreateCandidates(IWmiReader? wmi = null, IBatteryWriteExecutor? executor = null,
+        WriteGateContext? gate = null)
     {
         wmi ??= new SystemManagementWmiReader();
         executor ??= new ElevatedBatteryWriteExecutor();
+        gate ??= WriteGateContext.Default;
         return new IChargeLimitBackend[]
         {
-            new Backends.LenovoConservationBackend(wmi, executor),
-            new Backends.LenovoThinkPadThresholdBackend(wmi, executor),
-            new Backends.AsusChargeLimitBackend(wmi, executor),
-            new Backends.DellChargeLimitBackend(wmi, executor),
-            new Backends.HpChargeLimitBackend(wmi, executor),
+            new Backends.LenovoConservationBackend(wmi, executor) { GateContext = gate },
+            new Backends.LenovoThinkPadThresholdBackend(wmi, executor) { GateContext = gate },
+            new Backends.AsusChargeLimitBackend(wmi, executor) { GateContext = gate },
+            new Backends.DellChargeLimitBackend(wmi, executor) { GateContext = gate },
+            new Backends.HpChargeLimitBackend(wmi, executor) { GateContext = gate },
         };
     }
 
     /// <summary>Read-only. The fake backend wins when PBC_FAKE_BATTERY=1 or PPM_FAKE_BATTERY=1.</summary>
-    public static IChargeLimitBackend? Detect(IWmiReader? wmi = null, IBatteryWriteExecutor? executor = null)
+    public static IChargeLimitBackend? Detect(IWmiReader? wmi = null, IBatteryWriteExecutor? executor = null, WriteGateContext? gate = null)
     {
         if (BatteryEnvironment.IsFakeBatteryEnabled) return FakeBattery.Shared.Backend;
-        foreach (IChargeLimitBackend backend in CreateCandidates(wmi, executor))
+        foreach (IChargeLimitBackend backend in CreateCandidates(wmi, executor, gate))
         {
             try { if (backend.Detect()) return backend; }
             catch (Exception) { }

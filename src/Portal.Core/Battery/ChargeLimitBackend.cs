@@ -113,11 +113,18 @@ public sealed record BackendWriteResult
     public string Message { get; init; } = string.Empty;
     /// <summary>State read back after the write, when the backend could read it.</summary>
     public ChargeLimitState? ReadBack { get; init; }
+    /// <summary>Set when the <see cref="WriteGate"/> refused the write. Nothing was written.</summary>
+    public WriteRefusal Refusal { get; init; }
+    /// <summary>The app's own read-back comparison after the write.</summary>
+    public ReadBackCheck ReadBackCheck { get; init; }
 
     public static BackendWriteResult Ok(string message = "OK", ChargeLimitState? readBack = null) =>
         new() { Success = true, Message = message, ReadBack = readBack };
 
     public static BackendWriteResult Fail(string message) => new() { Success = false, Message = message };
+
+    public static BackendWriteResult Refused(WriteGateResult gate) =>
+        new() { Success = false, Refusal = gate.Refusal, Message = gate.Message };
 
     public static BackendWriteResult ElevationNeeded() =>
         new() { Success = false, NeedsElevation = true, Message = "This change needs administrator approval." };
@@ -132,7 +139,7 @@ public enum BackendConfidence
     Simulated,
     /// <summary>Interface matches the vendor's own tooling; enabled when detection succeeds.</summary>
     Verified,
-    /// <summary>Plausible but not checked on a real device; never writes unless the device is on the verified-models list (see VerifiedModels).</summary>
+    /// <summary>Plausible but not checked on a real device; writes only on a verified model or with the user's beta opt-in (see <see cref="WriteGate"/>).</summary>
     Unverified,
 }
 
@@ -160,6 +167,13 @@ public interface IChargeLimitBackend
 
     /// <summary>Reads the firmware values that a later restore should put back.</summary>
     BackendOriginalState CaptureOriginal();
+
+    /// <summary>The state a restore of <paramref name="original"/> must read back, or null when the original cannot be restored.</summary>
+    ChargeLimitState? ExpectedStateAfterRestore(BackendOriginalState original) =>
+        original.BackendId == Id && int.TryParse(original.Values.GetValueOrDefault("Limit"), System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out int limit)
+            ? new ChargeLimitState { Limit = limit }
+            : null;
 
     /// <summary>Applies all fields of the request in one operation (one administrator prompt at most).</summary>
     Task<BackendWriteResult> ApplyAsync(ChargeLimitRequest request, CancellationToken cancellationToken = default);

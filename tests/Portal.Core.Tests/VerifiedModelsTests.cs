@@ -75,7 +75,7 @@ public class VerifiedModelsTests
         public override BackendConfidence Confidence => BackendConfidence.Verified;
         protected override bool DetectCore() { Capabilities = new ChargeLimitCapabilities { Kind = ChargeLimitKind.OnOffConservation }; return true; }
         protected override ChargeLimitState GetStateCore() => new() { Limit = 100 };
-        public override BackendOriginalState CaptureOriginal() => NewOriginal(new());
+        public override BackendOriginalState CaptureOriginal() => NewOriginal(new()); protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) => new() { Limit = 100 };
         protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error) { error = null; return plan; }
         protected override BatteryWritePlan? BuildRestorePlan(BackendOriginalState original, ChargeLimitState current, out string? error) { error = null; return plan; }
     }

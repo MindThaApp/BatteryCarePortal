@@ -1,6 +1,6 @@
 namespace Portal.Core.Battery;
 
-/// <summary>Persisted battery-care settings (one JSON value in LocalSettings).</summary>
+/// <summary>Persisted battery-care settings (the app's own settings file, see <see cref="BatterySettingsStore"/>).</summary>
 public sealed class BatterySettings
 {
     public const int MinLimit = 50;
@@ -50,10 +50,27 @@ public sealed class BatterySettings
     public DateTimeOffset? LastCalibrationReminderUtc { get; set; }
 
     /// <summary>
-    /// Stub for "Help test charge limit on other brands". Always off: <see cref="Normalize"/> resets it, and no write path reads
-    /// it. The verified-models list is the only thing that allows a write.
+    /// "Help test charge limit on other brands". Off by default. It counts only together with
+    /// <see cref="BetaOptInConfirmedUtc"/>, which is set when the user accepts the warning; <see cref="Normalize"/> turns it
+    /// off otherwise. <see cref="WriteGate"/> reads it; it never changes the verified-models list.
     /// </summary>
     public bool BetaOtherBrandsOptIn { get; set; }
+
+    /// <summary>When the user confirmed the beta warning. Null means never confirmed.</summary>
+    public DateTimeOffset? BetaOptInConfirmedUtc { get; set; }
+
+    /// <summary>Turns the beta opt-in on. Call only after the user accepted the warning.</summary>
+    public void ConfirmBetaOptIn(DateTimeOffset nowUtc)
+    {
+        BetaOtherBrandsOptIn = true;
+        BetaOptInConfirmedUtc = nowUtc;
+    }
+
+    public void TurnOffBetaOptIn()
+    {
+        BetaOtherBrandsOptIn = false;
+        BetaOptInConfirmedUtc = null;
+    }
 
     /// <summary>Firmware values found before the first write, for "Restore defaults".</summary>
     public BackendOriginalState? OriginalHardwareState { get; set; }
@@ -61,7 +78,8 @@ public sealed class BatterySettings
     /// <summary>Clamps every value into its valid range.</summary>
     public BatterySettings Normalize()
     {
-        BetaOtherBrandsOptIn = false;
+        if (BetaOptInConfirmedUtc is null) BetaOtherBrandsOptIn = false;
+        if (!BetaOtherBrandsOptIn) BetaOptInConfirmedUtc = null;
         Limit = Math.Clamp(Limit, MinLimit, MaxLimit);
         SailingRange = Math.Clamp(SailingRange, SailingMath.MinRange, SailingMath.MaxRange);
         LowReminderPercent = Math.Clamp(LowReminderPercent, 5, 50);

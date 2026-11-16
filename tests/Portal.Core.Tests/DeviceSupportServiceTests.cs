@@ -64,7 +64,7 @@ public class DeviceSupportServiceTests
     [InlineData(false, false, true)]
     [InlineData(true, false, false)]
     [InlineData(true, true, true)]
-    public void BetaOptIn_NeverChangesStateOrEnablesWrites(bool verified, bool detected, bool probed)
+    public void BetaFlagAlone_NeverChangesStateOrEnablesWrites(bool verified, bool detected, bool probed)
     {
         BackendProbe p = Probe(verified, detected, probed);
         DeviceSupport off = Classify(true, Dell, false, p);
@@ -75,12 +75,49 @@ public class DeviceSupportServiceTests
     }
 
     [Fact]
-    public void BetaSetting_IsOffByDefault_AndNormalizeResetsIt()
+    public void BetaDetectedBackend_StaysOnTestList_ButIsAvailable()
+    {
+        BackendProbe beta = Probe(false, true, true) with { Beta = true };
+        DeviceSupport s = Classify(true, Dell, true, beta);
+        Assert.Equal(DeviceSupportState.OnTestList, s.State);
+        Assert.True(s.BetaActive);
+        Assert.True(s.ChargeLimitAvailable);
+        Assert.Same(beta, s.Backend);
+    }
+
+    [Fact]
+    public void BetaSetting_IsOffByDefault_AndNormalizeResetsAnUnconfirmedOptIn()
     {
         var settings = new BatterySettings();
         Assert.False(settings.BetaOtherBrandsOptIn);
         settings.BetaOtherBrandsOptIn = true;
         Assert.False(settings.Normalize().BetaOtherBrandsOptIn);
+    }
+
+    [Fact]
+    public void BetaSetting_ConfirmedOptIn_SurvivesNormalize_AndTurnsOffCleanly()
+    {
+        var settings = new BatterySettings();
+        settings.ConfirmBetaOptIn(DateTimeOffset.UnixEpoch);
+        Assert.True(settings.Normalize().BetaOtherBrandsOptIn);
+        settings.TurnOffBetaOptIn();
+        Assert.False(settings.Normalize().BetaOtherBrandsOptIn);
+        Assert.Null(settings.BetaOptInConfirmedUtc);
+    }
+
+    [Fact]
+    public void Gather_UnverifiedDell_WithBetaOptIn_DetectsAsBeta()
+    {
+        var backend = new StubBackend("dell-bios-custom-charge", BackendConfidence.Unverified, Wmi(Dell), detectCore: true)
+        {
+            GateContext = new WriteGateContext { BetaOptIn = () => true },
+        };
+        IReadOnlyList<BackendProbe> probes = DeviceSupportService.Gather([backend], Dell);
+        Assert.True(probes[0].Detected);
+        Assert.True(probes[0].Beta);
+        DeviceSupport s = DeviceSupportService.Classify(new(true, Dell, probes), betaOptIn: true);
+        Assert.Equal(DeviceSupportState.OnTestList, s.State);
+        Assert.True(s.ChargeLimitAvailable);
     }
 
     [Fact]
@@ -137,7 +174,7 @@ public class DeviceSupportServiceTests
         public override BackendConfidence Confidence => confidence;
         protected override bool DetectCore() { Capabilities = new ChargeLimitCapabilities { Kind = ChargeLimitKind.OnOffConservation }; return detectCore; }
         protected override ChargeLimitState GetStateCore() => new() { Limit = 100 };
-        public override BackendOriginalState CaptureOriginal() => NewOriginal(new());
+        public override BackendOriginalState CaptureOriginal() => NewOriginal(new()); protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) => new() { Limit = 100 };
         protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error) { error = "stub"; return null; }
         protected override BatteryWritePlan? BuildRestorePlan(BackendOriginalState original, ChargeLimitState current, out string? error) { error = "stub"; return null; }
     }

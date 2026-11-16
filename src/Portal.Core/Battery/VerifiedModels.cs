@@ -20,9 +20,9 @@ public sealed record DeviceIdentity(string Manufacturer, string Model, string Fa
 public sealed record VerifiedModelRule(string BackendId, string Manufacturer, IReadOnlyList<string> ModelPrefixes);
 
 /// <summary>
-/// The single place that decides which laptops may be written to. A backend writes only when the device matches a
-/// rule here. To enable a model after it has been verified on real hardware, add a rule to <see cref="Rules"/>.
-/// Dell, HP and ASUS backends are compiled but have no rule, so they never write.
+/// The single source of "verified" models. To enable a model after it has been verified on real hardware, add a rule
+/// to <see cref="Rules"/>. Dell, HP and ASUS backends have no rule: they write only through the user's beta opt-in,
+/// which <see cref="WriteGate"/> decides separately without ever editing this list.
 /// </summary>
 public static class VerifiedModels
 {

@@ -153,6 +153,11 @@ public sealed class LenovoConservationBackend : ChargeLimitBackendBase
         return NewOriginal(values);
     }
 
+    protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) =>
+        original.Values.TryGetValue(OriginalKey, out string? value) && value is "On" or "Off"
+            ? new ChargeLimitState { Limit = value == "On" ? _conservationPercent : 100 }
+            : null;
+
     // Access denied on the read is acceptable: the elevated helper then reads back itself.
     protected override bool AllowWriteWithoutReadBack => true;
 
@@ -240,6 +245,7 @@ public sealed class LenovoThinkPadThresholdBackend : ChargeLimitBackendBase
     protected override bool DetectCore() => false;
     protected override ChargeLimitState GetStateCore() => new() { Message = "Not available." };
     public override BackendOriginalState CaptureOriginal() => NewOriginal(new());
+    protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) => null;
 
     protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error)
     { error = "ThinkPad thresholds are not supported yet."; return null; }

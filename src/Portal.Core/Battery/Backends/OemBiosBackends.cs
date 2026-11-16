@@ -63,6 +63,16 @@ public sealed class DellChargeLimitBackend : ChargeLimitBackendBase
         return NewOriginal(values);
     }
 
+    protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original)
+    {
+        if (!original.Values.TryGetValue(ModeAttribute, out string? mode) ||
+            !int.TryParse(original.Values.GetValueOrDefault(StartAttribute), NumberStyles.Integer, CultureInfo.InvariantCulture, out int start) ||
+            !int.TryParse(original.Values.GetValueOrDefault(StopAttribute), NumberStyles.Integer, CultureInfo.InvariantCulture, out int stop))
+            return null;
+        bool custom = string.Equals(mode, "Custom", StringComparison.OrdinalIgnoreCase);
+        return new ChargeLimitState { Limit = custom ? stop : 100, StartThreshold = custom ? start : null };
+    }
+
     protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error)
     {
         error = null;
@@ -219,6 +229,14 @@ public sealed class HpChargeLimitBackend : ChargeLimitBackendBase
         return NewOriginal(values);
     }
 
+    protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original)
+    {
+        if (_setting is null || !original.Values.TryGetValue(_setting, out string? value)) return null;
+        foreach (KeyValuePair<int, string> kv in _valueByPercent)
+            if (kv.Value == value) return new ChargeLimitState { Limit = kv.Key };
+        return null;
+    }
+
     protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error)
     {
         error = null;
@@ -287,6 +305,9 @@ public sealed class AsusChargeLimitBackend : ChargeLimitBackendBase
     public override string Name => "ASUS battery charge limit";
     public override BackendConfidence Confidence => BackendConfidence.Unverified;
     protected override bool AllowWriteWithoutReadBack => true;
+    /// <summary>The firmware cannot report the limit, so the write gate refuses every ASUS write, beta included.</summary>
+    public override bool FirmwareReportsState => false;
+    protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) => null;
 
     protected override bool DetectCore()
     {
