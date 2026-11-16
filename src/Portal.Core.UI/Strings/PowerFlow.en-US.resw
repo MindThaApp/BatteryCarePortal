@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="PowerFlowCharger" xml:space="preserve"><value>Charger</value></data>
+  <data name="PowerFlowSystem" xml:space="preserve"><value>System</value></data>
+  <data name="PowerFlowBattery" xml:space="preserve"><value>Battery</value></data>
+  <data name="PowerFlowWatts" xml:space="preserve"><value>{0:0.0} W</value></data>
+  <data name="PowerFlowWattsEstimated" xml:space="preserve"><value>≈ {0:0.0} W</value></data>
+  <data name="PowerFlowNoValue" xml:space="preserve"><value>—</value></data>
+  <data name="PowerFlowAdapterRated" xml:space="preserve"><value>{0:0} W charger</value></data>
+  <data name="PowerFlowLineFormat" xml:space="preserve"><value>{0} → {1}: {2} ({3})</value></data>
+  <data name="PowerFlowQualityMeasured" xml:space="preserve"><value>measured</value></data>
+  <data name="PowerFlowQualityEstimated" xml:space="preserve"><value>estimated</value></data>
+  <data name="PowerFlowQualityUnavailable" xml:space="preserve"><value>not reported by this PC</value></data>
+  <data name="PowerFlowLegend" xml:space="preserve"><value>Measured values come straight from the battery or the PC&apos;s energy meter. ≈ marks an estimate worked out from other readings. — means this PC doesn&apos;t report the value.</value></data>
+  <data name="PowerWattsWhole" xml:space="preserve"><value>{0:0} W</value></data>
+  <data name="PowerSharePercent" xml:space="preserve"><value>{0:0}%</value></data>
+  <data name="PowerQualityMeasured" xml:space="preserve"><value>Measured</value></data>
+  <data name="PowerQualityEstimated" xml:space="preserve"><value>Estimated</value></data>
+  <data name="PowerQualityCalibrated" xml:space="preserve"><value>Calibrated</value></data>
+  <data name="PowerQualityUnavailable" xml:space="preserve"><value>Not available</value></data>
+  <data name="PowerCategoryTotal" xml:space="preserve"><value>Whole PC</value></data>
+  <data name="PowerCategoryCpu" xml:space="preserve"><value>CPU</value></data>
+  <data name="PowerCategoryGpu" xml:space="preserve"><value>Graphics</value></data>
+  <data name="PowerCategoryMemory" xml:space="preserve"><value>Memory</value></data>
+  <data name="PowerCategoryStorage" xml:space="preserve"><value>Storage</value></data>
+  <data name="PowerCategoryFans" xml:space="preserve"><value>Fans</value></data>
+  <data name="PowerCategoryMotherboard" xml:space="preserve"><value>Motherboard</value></data>
+  <data name="PowerCategoryPeripherals" xml:space="preserve"><value>Peripherals</value></data>
+  <data name="PowerCategoryPsuLoss" xml:space="preserve"><value>Power supply loss</value></data>
+  <data name="PowerCategoryUnaccounted" xml:space="preserve"><value>Unaccounted</value></data>
+  <data name="PowerRowCollapsed" xml:space="preserve"><value>collapsed</value></data>
+  <data name="PowerRowExpanded" xml:space="preserve"><value>expanded</value></data>
+  <data name="PowerPartWholePc" xml:space="preserve"><value>Whole PC</value></data>
+  <data name="PowerPartCores" xml:space="preserve"><value>Cores</value></data>
+  <data name="PowerPartCore" xml:space="preserve"><value>Core</value></data>
+  <data name="PowerPartSoc" xml:space="preserve"><value>SoC</value></data>
+  <data name="PowerPartMemoryController" xml:space="preserve"><value>Memory controller</value></data>
+  <data name="PowerPartIntegratedGraphics" xml:space="preserve"><value>Integrated graphics</value></data>
+  <data name="PowerPartOtherCpu" xml:space="preserve"><value>Other CPU</value></data>
+  <data name="PowerPartOtherGpu" xml:space="preserve"><value>Other graphics</value></data>
+  <data name="PowerPartGpuMemory" xml:space="preserve"><value>Graphics memory</value></data>
+  <data name="PowerPartUsbDevices" xml:space="preserve"><value>USB devices</value></data>
+  <data name="PowerPartChipset" xml:space="preserve"><value>Chipset and board</value></data>
+  <data name="PowerPartWiredNetwork" xml:space="preserve"><value>Wired network</value></data>
+  <data name="PowerPartWifi" xml:space="preserve"><value>Wi-Fi and Bluetooth</value></data>
+  <data name="PowerPartAudio" xml:space="preserve"><value>Audio</value></data>
+  <data name="PowerFlowLockedComponents" xml:space="preserve"><value>Components</value></data>
+  <data name="PowerFlowListLocked" xml:space="preserve"><value>The exact numbers for each part are part of Pro.</value></data>
+  <data name="PowerFlowListUnlock" xml:space="preserve"><value>Unlock with Pro</value></data>
+  <data name="TipPowerQualityChip" xml:space="preserve"><value>Whether the total is read from a meter or worked out by the app.</value></data>
+  <data name="TipPowerQualityMeasured" xml:space="preserve"><value>Read from a sensor or meter, so it is a real reading.</value></data>
+  <data name="TipPowerQualityEstimated" xml:space="preserve"><value>Worked out by the app from the type of part and how busy it is. Not read from a sensor.</value></data>
+  <data name="TipPowerQualityCalibrated" xml:space="preserve"><value>An estimate that was corrected using readings from your wall meter, so it should be closer to real.</value></data>
+  <data name="TipPowerQualityUnavailable" xml:space="preserve"><value>This PC does not give a reading for this part.</value></data>
+  <data name="PowerRiverTitle" xml:space="preserve"><value>Where the power flows</value></data>
+  <data name="PowerRiverHint" xml:space="preserve"><value>Each stream is as wide as the power it carries. Select a stream to see what it splits into, and select it again to close it. Paler water with a dashed edge is an estimate.</value></data>
+  <data name="PowerRiverSourceWall" xml:space="preserve"><value>Wall</value></data>
+  <data name="PowerRiverSourceEstimated" xml:space="preserve"><value>Total (estimated)</value></data>
+  <data name="PowerRiverSourceLabel" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="PowerRiverLabel" xml:space="preserve"><value>{0} {1} · {2}</value></data>
+  <data name="PowerRiverEmpty" xml:space="preserve"><value>Waiting for the first power readings.</value></data>
+  <data name="PowerRiverListHeader" xml:space="preserve"><value>Show as a list</value></data>
+  <data name="PowerRiverAutomation" xml:space="preserve"><value>Power flow diagram</value></data>
+  <data name="PowerRiverTipOpen" xml:space="preserve"><value>Select to see what it splits into.</value></data>
+  <data name="PowerRiverTipClose" xml:space="preserve"><value>Select to close.</value></data>
+  <data name="PowerCategoryBattery" xml:space="preserve"><value>Battery</value></data>
+  <data name="PowerRiverSourceBattery" xml:space="preserve"><value>Battery</value></data>
+  <data name="PowerRiverBatterySourceLabel" xml:space="preserve"><value>Battery −{0:0} W</value></data>
+  <data name="PowerRiverFold" xml:space="preserve"><value>Fold the diagram</value></data>
+  <data name="PowerRiverUnfold" xml:space="preserve"><value>Show the diagram</value></data>
+  <data name="TrayPowerFlowOther" xml:space="preserve"><value>Other</value></data>
+  <data name="TrayPowerFlowStream" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="TrayPowerFlowOpen" xml:space="preserve"><value>Open the Power page</value></data>
+  <data name="PowerFlowMains" xml:space="preserve"><value>Mains</value></data>
+  <data name="PowerFlowIncoming" xml:space="preserve"><value>Incoming</value></data>
+  <data name="PowerFlowDevicePc" xml:space="preserve"><value>PC</value></data>
+  <data name="PowerFlowDeviceLaptop" xml:space="preserve"><value>Laptop</value></data>
+  <data name="PowerFlowPsuLoss" xml:space="preserve"><value>PSU loss</value></data>
+  <data name="PowerFlowAdapterLoss" xml:space="preserve"><value>Adapter loss</value></data>
+  <data name="PowerFlowCharging" xml:space="preserve"><value>Charging</value></data>
+  <data name="PowerRiverHintColumns" xml:space="preserve"><value>Power comes in on the left and flows through your PC to its parts on the right. Each ribbon is as wide as the power it carries. Select a part to see what it is made of, and select it again to close it. Paler ribbons are estimates.</value></data>
+  <data name="PowerFlowChargingEndpoint" xml:space="preserve"><value>Battery charging</value></data>
+  <data name="PowerRiverTipBattery" xml:space="preserve"><value>Select to see the battery details.</value></data>
+  <data name="PowerRiverHintContinuous" xml:space="preserve"><value>Power comes in on the left, runs through your PC and splits into its parts on the right. Each stream is as wide as the power it carries. Select a part to see what it is made of, and select it again to close it. Select the battery to see its details. Paler streams are estimates.</value></data>
+</root>
+
