@@ -99,15 +99,24 @@ public sealed class ElevatedBatteryWriteExecutor : IBatteryWriteExecutor
         _elevation.RunBatteryWritePlanAsync(plan, cancellationToken);
 }
 
-/// <summary>Builds the Windows PowerShell script the elevated helper runs. The plan is embedded as Base64 JSON, never as code.</summary>
+/// <summary>
+/// Builds the Windows PowerShell script the elevated helper runs. The plan and the result pipe name are embedded as
+/// Base64 data, never as code. The helper compiles its DeviceIoControl shim only inside a fresh folder under
+/// ProgramData that only SYSTEM and Administrators can write, and reports its result over the app's own named pipe,
+/// so the elevated process never loads or writes anything in a folder the user can change.
+/// </summary>
 public static class BatteryWritePlanScript
 {
-    public static string Build(BatteryWritePlan plan, string resultPath)
+    /// <summary>Exit codes: 0 done; 1 failed after a write step started; 2 failed before any write; 3 a check refused; 10 + n step n failed.</summary>
+    public const int ExitFailedBeforeWrite = 2;
+    public const int ExitCheckFailed = 3;
+
+    public static string Build(BatteryWritePlan plan, string pipeName)
     {
         string planB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(plan)));
-        string resultB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(resultPath));
+        string pipeB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(pipeName));
         return Template.Replace("{PLAN}", planB64, StringComparison.Ordinal)
-                       .Replace("{RESULT}", resultB64, StringComparison.Ordinal);
+                       .Replace("{PIPE}", pipeB64, StringComparison.Ordinal);
     }
 
     public static string EncodeForCommandLine(string script) =>
@@ -116,11 +125,34 @@ public static class BatteryWritePlanScript
     private const string Template = """
 $ErrorActionPreference = 'Stop'
 $plan = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{PLAN}')) | ConvertFrom-Json
-$resultPath = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{RESULT}'))
+$pipeName = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{PIPE}'))
 $script:readBack = $null
+$script:wrote = $false
+$script:n = -1
+$script:work = $null
 function Save([bool]$ok, [int]$step, [string]$msg) {
-  [pscustomobject]@{ Ok = $ok; FailedStep = $step; Message = $msg; ReadBackRaw = $script:readBack } |
-    ConvertTo-Json -Compress | Set-Content -LiteralPath $resultPath -Encoding UTF8
+  try {
+    $json = [pscustomobject]@{ Ok = $ok; FailedStep = $step; Message = $msg; ReadBackRaw = $script:readBack; WritesAttempted = $script:wrote } | ConvertTo-Json -Compress
+    $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+    $pipe = New-Object System.IO.Pipes.NamedPipeClientStream('.', $pipeName, [System.IO.Pipes.PipeDirection]::Out, [System.IO.Pipes.PipeOptions]::None, [System.Security.Principal.TokenImpersonationLevel]::Identification)
+    try { $pipe.Connect(5000); $pipe.Write($bytes, 0, $bytes.Length); $pipe.Flush() } finally { $pipe.Dispose() }
+  } catch { }
+}
+function New-AdminOnlyAcl {
+  $acl = New-Object System.Security.AccessControl.DirectorySecurity
+  $admins = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')
+  $acl.SetOwner($admins)
+  $acl.SetAccessRuleProtection($true, $false)
+  foreach ($sid in @((New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')), $admins)) {
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit', [System.Security.AccessControl.PropagationFlags]::None, [System.Security.AccessControl.AccessControlType]::Allow)))
+  }
+  return $acl
+}
+function Assert-AdminFolder([string]$path) {
+  $item = Get-Item -LiteralPath $path -Force
+  if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "The helper folder is not a plain folder." }
+  $owner = $item.GetAccessControl().GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+  if ($owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw "The helper folder is not owned by the administrators." }
 }
 function Use-Ioctl {
   if (-not ('PbcBatteryIoctl' -as [type])) {
@@ -146,20 +178,20 @@ public static class PbcBatteryIoctl {
 '@
   }
 }
-$n = -1
-try {
+function Invoke-Plan {
   foreach ($c in @($plan.Checks)) {
     $rows = @(Get-CimInstance -Namespace $c.Namespace -Query $c.Query -ErrorAction SilentlyContinue)
     if ($rows.Count -eq 0) {
-      if ($c.MissingIsFailure) { Save $false -1 $c.FailMessage; exit 3 }
+      if ($c.MissingIsFailure) { Save $false -1 $c.FailMessage; return 3 }
       continue
     }
     foreach ($r in $rows) {
-      if ([string]$r.($c.Property) -ne [string]$c.ExpectedValue) { Save $false -1 $c.FailMessage; exit 3 }
+      if ([string]$r.($c.Property) -ne [string]$c.ExpectedValue) { Save $false -1 $c.FailMessage; return 3 }
     }
   }
   $steps = @($plan.Steps)
-  for ($n = 0; $n -lt $steps.Count; $n++) {
+  for ($script:n = 0; $script:n -lt $steps.Count; $script:n++) {
+    $n = $script:n
     $s = $steps[$n]
     switch ([string]$s.Kind) {
       'WmiMethod' {
@@ -173,18 +205,21 @@ try {
         }
         if ($s.OnInstance) {
           $inst = @(Get-CimInstance -Namespace $s.Namespace -ClassName $s.ClassName) | Select-Object -First 1
-          if ($null -eq $inst) { Save $false $n "$($s.ClassName) was not found."; exit (10 + $n) }
+          if ($null -eq $inst) { Save $false $n "$($s.ClassName) was not found."; return (10 + $n) }
+          $script:wrote = $true
           $r = Invoke-CimMethod -InputObject $inst -MethodName $s.MethodName -Arguments $a
         } else {
+          $script:wrote = $true
           $r = Invoke-CimMethod -Namespace $s.Namespace -ClassName $s.ClassName -MethodName $s.MethodName -Arguments $a
         }
         if ($s.SuccessProperty) {
           $v = [string]$r.($s.SuccessProperty)
-          if (@($s.SuccessValues) -notcontains $v) { Save $false $n "$($s.Label) returned '$v'."; exit (10 + $n) }
+          if (@($s.SuccessValues) -notcontains $v) { Save $false $n "$($s.Label) returned '$v'."; return (10 + $n) }
         }
       }
       'DeviceIoControl' {
         Use-Ioctl
+        $script:wrote = $true
         [void][PbcBatteryIoctl]::Send([string]$s.DevicePath, [uint32]$s.IoControlCode, [uint32]$s.InputValue)
       }
       'VerifyDeviceIoControlBit' {
@@ -193,23 +228,51 @@ try {
         $out = [PbcBatteryIoctl]::Send([string]$s.DevicePath, [uint32]$s.IoControlCode, [uint32]$s.InputValue)
         $script:readBack = ('0x{0:X8}' -f $out)
         $bit = (($out -shr [int]$s.Bit) -band 1) -eq 1
-        if ($bit -ne [bool]$s.ExpectedBitValue) { Save $false $n "$($s.Label): read-back $($script:readBack) does not show the new state."; exit (10 + $n) }
+        if ($bit -ne [bool]$s.ExpectedBitValue) { Save $false $n "$($s.Label): read-back $($script:readBack) does not show the new state."; return (10 + $n) }
       }
       'VerifyWmiProperty' {
         if ($s.DelayMs -gt 0) { Start-Sleep -Milliseconds ([int]$s.DelayMs) }
         $row = @(Get-CimInstance -Namespace $s.Namespace -Query $s.Query) | Select-Object -First 1
         $v = if ($null -eq $row) { $null } else { [string]$row.($s.Property) }
         $script:readBack = $v
-        if ($v -ne [string]$s.ExpectedValue) { Save $false $n "$($s.Label): read-back '$v' does not show the new state."; exit (10 + $n) }
+        if ($v -ne [string]$s.ExpectedValue) { Save $false $n "$($s.Label): read-back '$v' does not show the new state."; return (10 + $n) }
       }
-      default { Save $false $n "Unknown step kind."; exit (10 + $n) }
+      default { Save $false $n "Unknown step kind."; return (10 + $n) }
     }
   }
   Save $true -1 'OK'
-  exit 0
-} catch {
-  Save $false $n $_.Exception.Message
-  exit 1
+  return 0
 }
+$code = 2
+try {
+  # Add-Type compiles through the TEMP folder and the elevated process loads the result, so TEMP must be a folder
+  # only administrators can write: a fresh one under ProgramData, never the user's own TEMP.
+  $root = Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) 'BatteryCarePortal'
+  if (-not (Test-Path -LiteralPath $root)) { [void][System.IO.Directory]::CreateDirectory($root, (New-AdminOnlyAcl)) }
+  Assert-AdminFolder $root
+  [System.IO.Directory]::SetAccessControl($root, (New-AdminOnlyAcl))
+  $cutoff = (Get-Date).ToUniversalTime().AddHours(-1)
+  foreach ($old in @(Get-ChildItem -LiteralPath $root -Directory -Force)) {
+    if ($old.Name -match '^helper-[0-9a-f]{32}$' -and -not ($old.Attributes -band [IO.FileAttributes]::ReparsePoint) -and $old.CreationTimeUtc -lt $cutoff) {
+      Remove-Item -LiteralPath $old.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+  $work = Join-Path $root ('helper-' + [guid]::NewGuid().ToString('N'))
+  if (Test-Path -LiteralPath $work) { throw "The helper folder already exists." }
+  [void][System.IO.Directory]::CreateDirectory($work, (New-AdminOnlyAcl))
+  $script:work = $work
+  Assert-AdminFolder $work
+  $env:TEMP = $work
+  $env:TMP = $work
+  $code = [int](@(Invoke-Plan) | Select-Object -Last 1)
+} catch {
+  Save $false $script:n $_.Exception.Message
+  $code = if ($script:wrote) { 1 } else { 2 }
+} finally {
+  # Only the one folder this run created.
+  if ($script:work) { Remove-Item -LiteralPath $script:work -Recurse -Force -ErrorAction SilentlyContinue }
+}
+exit $code
 """;
 }
+

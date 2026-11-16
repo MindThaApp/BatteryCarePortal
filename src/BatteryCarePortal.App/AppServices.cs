@@ -14,6 +14,7 @@ internal static class AppServices
     private static DispatcherQueue? _dispatcher;
     private static bool _startupReapplyDone;
     private static bool _checking;
+    private static bool _stopping;
 
     public static BatteryInfoService Battery { get; } = BatteryInfoService.CreateDefault();
 
@@ -43,6 +44,9 @@ internal static class AppServices
     /// <summary>Raised on the UI thread after an unattended re-apply.</summary>
     public static event Action? ChargeStateChanged;
 
+    /// <summary>Raised on the UI thread when an unattended re-apply left the limit off and the user has to put it back.</summary>
+    public static event Action<ChargeActionResult>? ReapplyNeedsUser;
+
     public static PowerPlanManagerStatus CheckPowerPlanManager() =>
         BatteryEnvironment.IsFakeBatteryEnabled ? PowerPlanManagerStatus.None : Ppm.Check();
 
@@ -51,13 +55,48 @@ internal static class AppServices
         _dispatcher = DispatcherQueue.GetForCurrentThread();
         Battery.Start();
         try { SystemEvents.PowerModeChanged += OnPowerModeChanged; } catch (Exception) { }
-        _ = CheckDeviceAsync();
+        _ = StartupCheckAsync();
+    }
+
+    /// <summary>
+    /// The first device check. When it finds no controller (at logon the driver may not be ready yet) and the saved
+    /// intent has an unfinished top-up or a pending re-apply, the check is tried again with growing pauses, then stops.
+    /// </summary>
+    private static async Task StartupCheckAsync()
+    {
+        if (await TryCheckDeviceAsync()) return;
+        foreach (TimeSpan delay in StartupRecovery.RetryDelays)
+        {
+            if (!SafeShouldRetry()) return;
+            await Task.Delay(delay);
+            if (_stopping) return;
+            if (await TryCheckDeviceAsync()) return;
+        }
+    }
+
+    private static bool SafeShouldRetry()
+    {
+        try { return StartupRecovery.ShouldRetryCheck(new ChargeIntentStore(StateFolder)); }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>True when the check finished with a controller.</summary>
+    private static async Task<bool> TryCheckDeviceAsync()
+    {
+        try
+        {
+            await CheckDeviceAsync();
+            return Charge is not null;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     public static async Task CheckDeviceAsync()
     {
-        // A new controller while a write is in flight could allow a second write; the pages disable "Check again" meanwhile.
-        if (_checking || Charge is { IsBusy: true }) return;
+        if (_checking) return;
         _checking = true;
         try
         {
@@ -67,15 +106,22 @@ internal static class AppServices
                 return (support, backend is null ? null
                     : new ChargeLimitController(backend, new OriginalStateStore(StateFolder), new ChargeIntentStore(StateFolder)));
             });
-            Support = result;
-            Charge = controller;
+
+            // Every controller shares the process write lock; holding it here means the swap never happens mid-write.
+            await ChargeWriteLock.Process.EnterAsync();
+            try
+            {
+                Support = result;
+                Charge = controller;
+            }
+            finally { ChargeWriteLock.Process.Exit(); }
             SupportChanged?.Invoke();
 
             if (!_startupReapplyDone && controller is not null)
             {
                 _startupReapplyDone = true;
-                LastReapply = await Task.Run(() => controller.ReapplyAsync(ReapplyReason.Startup));
-                ChargeStateChanged?.Invoke();
+                ChargeActionResult reapply = await Task.Run(() => controller.ReapplyAsync(ReapplyReason.Startup));
+                ReportReapply(reapply);
             }
         }
         finally { _checking = false; }
@@ -92,6 +138,14 @@ internal static class AppServices
         });
     }
 
+    /// <summary>On the UI thread.</summary>
+    private static void ReportReapply(ChargeActionResult result)
+    {
+        LastReapply = result;
+        ChargeStateChanged?.Invoke();
+        if (StartupRecovery.NeedsUserNotice(result)) ReapplyNeedsUser?.Invoke(result);
+    }
+
     private static void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
     {
         if (e.Mode != PowerModes.Resume || Charge is not { } controller) return;
@@ -99,18 +153,17 @@ internal static class AppServices
         {
             // Give the firmware and drivers a moment after wake before reading.
             await Task.Delay(TimeSpan.FromSeconds(3));
-            ChargeActionResult result = await controller.ReapplyAsync(ReapplyReason.Resume);
-            _dispatcher?.TryEnqueue(() =>
-            {
-                LastReapply = result;
-                ChargeStateChanged?.Invoke();
-            });
+            ChargeActionResult result;
+            try { result = await controller.ReapplyAsync(ReapplyReason.Resume); }
+            catch (Exception ex) { result = new ChargeActionResult(ChargeActionStatus.Failed, ex.Message); }
+            _dispatcher?.TryEnqueue(() => ReportReapply(result));
         });
     }
 
     /// <summary>Runs once on quit, on the UI thread. Bounded: never holds up the exit for longer than the budget.</summary>
     public static void OnExit()
     {
+        _stopping = true;
         try { SystemEvents.PowerModeChanged -= OnPowerModeChanged; } catch (Exception) { }
         try { Charge?.ReapplyOnExit(ChargeLimitController.DefaultExitBudget); } catch (Exception) { }
     }

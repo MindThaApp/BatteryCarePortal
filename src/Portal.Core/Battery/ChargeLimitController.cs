@@ -64,14 +64,16 @@ public sealed class ChargeLimitController
 {
     public static readonly TimeSpan DefaultExitBudget = TimeSpan.FromSeconds(3);
 
-    private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly ChargeWriteLock _writeLock;
     private readonly OriginalStateStore _originals;
     private readonly ChargeIntentStore _intents;
     private readonly TimeProvider _time;
 
-    public ChargeLimitController(IChargeLimitBackend backend, OriginalStateStore originals, ChargeIntentStore intents, TimeProvider? time = null)
+    public ChargeLimitController(IChargeLimitBackend backend, OriginalStateStore originals, ChargeIntentStore intents, TimeProvider? time = null,
+        ChargeWriteLock? writeLock = null)
     {
         Backend = backend;
+        _writeLock = writeLock ?? ChargeWriteLock.Process;
         _originals = originals;
         _intents = intents;
         _time = time ?? TimeProvider.System;
@@ -79,7 +81,7 @@ public sealed class ChargeLimitController
 
     public IChargeLimitBackend Backend { get; }
 
-    public bool IsBusy => _writeLock.CurrentCount == 0;
+    public bool IsBusy => _writeLock.IsHeld;
 
     public ChargeLimitCapabilities Capabilities => Backend.Capabilities;
 
@@ -122,7 +124,7 @@ public sealed class ChargeLimitController
     {
         if (TargetLimit(on, value) is not int target)
             return new(ChargeActionStatus.Failed, "This laptop does not support a charge limit.") { NotAttempted = true };
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             WriteGateResult gate = EvaluateGate();
@@ -137,7 +139,7 @@ public sealed class ChargeLimitController
             if (!WriteMayHaveHappened(result)) RevertIntent(previous);
             return result;
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>
@@ -146,7 +148,7 @@ public sealed class ChargeLimitController
     /// </summary>
     public async Task<ChargeActionResult> StartTopUpAsync(TimeSpan duration, bool allowPrompt = true, CancellationToken cancellationToken = default)
     {
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             if (!TryLoadIntent(out ChargeIntent? previous)) return StateFileUnavailable();
@@ -162,20 +164,20 @@ public sealed class ChargeLimitController
             if (!WriteMayHaveHappened(result)) RevertIntent(previous);
             return result;
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>Ends a top-up by putting the steady-state limit back.</summary>
     public async Task<ChargeActionResult> EndTopUpAsync(bool allowPrompt = true, CancellationToken cancellationToken = default)
     {
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             if (!TryLoadIntent(out ChargeIntent? intent)) return StateFileUnavailable();
             if (intent is not { Managed: true, LimitOn: true, TopUpActive: true }) return new(ChargeActionStatus.NothingToDo, "No top-up is running.");
             return await PutSteadyLimitBackAsync(intent, allowPrompt, cancellationToken).ConfigureAwait(false);
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>
@@ -185,7 +187,7 @@ public sealed class ChargeLimitController
     /// </summary>
     public async Task<ChargeActionResult> RestoreDefaultsAsync(CancellationToken cancellationToken = default)
     {
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             BackendOriginalState? original = _originals.Get(Backend.Id, out bool unreadable);
@@ -217,7 +219,7 @@ public sealed class ChargeLimitController
             if (intentFileUsable && !WriteMayHaveHappened(result)) RevertIntent(previous);
             return result;
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>
@@ -226,7 +228,7 @@ public sealed class ChargeLimitController
     /// </summary>
     public ChargeActionResult ResetAppState()
     {
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             string? moved;
@@ -241,7 +243,7 @@ public sealed class ChargeLimitController
                     $"The unreadable state file was kept as {Path.GetFileName(moved)}. The app does not manage the charge limit until you turn it on again.")
                     { NotAttempted = true };
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>
@@ -251,7 +253,7 @@ public sealed class ChargeLimitController
     /// </summary>
     public async Task<ChargeActionResult> ReapplyAsync(ReapplyReason reason, CancellationToken cancellationToken = default)
     {
-        if (!_writeLock.Wait(0))
+        if (!_writeLock.TryEnter())
         {
             if (reason == ReapplyReason.Exit) MarkNeedsReapply();
             return Busy();
@@ -304,7 +306,7 @@ public sealed class ChargeLimitController
             MarkReapplyFailed();
             return new(ChargeActionStatus.Failed, ex.Message);
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     /// <summary>
@@ -327,7 +329,7 @@ public sealed class ChargeLimitController
     /// <summary>User choice after <see cref="ChargeActionStatus.ChangedElsewhere"/>: keep what the firmware shows. No firmware write.</summary>
     public ChargeActionResult KeepFirmwareValue()
     {
-        if (!_writeLock.Wait(0)) return Busy();
+        if (!_writeLock.TryEnter()) return Busy();
         try
         {
             if (!TryLoadIntent(out _)) return StateFileUnavailable();
@@ -338,7 +340,7 @@ public sealed class ChargeLimitController
                 return new(ChargeActionStatus.Failed, $"The laptop reports {limit} %, which the app cannot manage, so nothing was saved.", state) { NotAttempted = true };
             return _intents.TrySave(intent) ? new(ChargeActionStatus.Applied, "Kept the laptop's current value.", state) : StateFileUnavailable();
         }
-        finally { _writeLock.Release(); }
+        finally { _writeLock.Exit(); }
     }
 
     private async Task<ChargeActionResult> PutSteadyLimitBackAsync(ChargeIntent intent, bool allowPrompt, CancellationToken cancellationToken)

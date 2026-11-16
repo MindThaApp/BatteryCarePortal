@@ -32,8 +32,34 @@ public class ChargeLimitControllerTests : IDisposable
 
     private string OriginalsPath => Path.Combine(_folder, OriginalStateStore.FileName);
 
+    private readonly ChargeWriteLock _lock = new();
+
     private ChargeLimitController New(IChargeLimitBackend backend) =>
-        new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder));
+        new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder), writeLock: _lock);
+
+    [Fact]
+    public async Task Two_controllers_never_write_at_the_same_time()
+    {
+        var backend = new BlockingBackend();
+        // No lock passed: both use the process-wide one, as in the app when the device check swaps controllers.
+        var first = new ChargeLimitController(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder));
+        var second = new ChargeLimitController(new BlockingBackend(), new OriginalStateStore(_folder), new ChargeIntentStore(_folder));
+        Task<ChargeActionResult> running = first.SetLimitAsync(true, 80);
+        Assert.True(second.IsBusy);
+        Assert.True(ChargeWriteLock.Process.IsHeld);
+        Assert.Equal(ChargeActionStatus.Busy, (await second.SetLimitAsync(true, 70)).Status);
+        Assert.Equal(ChargeActionStatus.Busy, (await second.ReapplyAsync(ReapplyReason.Resume)).Status);
+        backend.Release.SetResult();
+        Assert.True((await running).Succeeded);
+        Assert.False(ChargeWriteLock.Process.IsHeld);
+    }
+
+    [Fact]
+    public void Store_instances_on_one_file_share_one_lock()
+    {
+        Assert.Same(AppStateFileLock.For(Path.Combine(_folder, "a.json")), AppStateFileLock.For(Path.Combine(_folder, ".", "A.json")));
+        Assert.NotSame(AppStateFileLock.For(Path.Combine(_folder, "a.json")), AppStateFileLock.For(Path.Combine(_folder, "b.json")));
+    }
 
     private const uint On = 1u << LenovoConservationBackend.ConservationBit;
 

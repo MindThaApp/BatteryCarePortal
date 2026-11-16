@@ -7,6 +7,8 @@
   <data name="AppName" xml:space="preserve"><value>Battery Care Portal</value></data>
   <data name="TrayOpen" xml:space="preserve"><value>Open Battery Care</value></data>
   <data name="TrayQuit" xml:space="preserve"><value>Quit</value></data>
+  <data name="NotifyLimitOffTitle" xml:space="preserve"><value>Charge limit is off — click to put it back</value></data>
+  <data name="NotifyLimitOffText" xml:space="preserve"><value>Battery Care could not put your charge limit back by itself. Click to open the Charging page.</value></data>
   <data name="NavOverview.Content" xml:space="preserve"><value>Overview</value></data>
   <data name="NavCharging.Content" xml:space="preserve"><value>Charging</value></data>
   <data name="NavHeat.Content" xml:space="preserve"><value>Heat protection</value></data>

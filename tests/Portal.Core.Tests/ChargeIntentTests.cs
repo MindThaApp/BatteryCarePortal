@@ -18,8 +18,11 @@ public class ChargeIntentTests : IDisposable
         try { Directory.Delete(_folder, recursive: true); } catch { }
     }
 
+    // One lock per test, like the one process-wide lock in the app; tests run in parallel.
+    private readonly ChargeWriteLock _lock = new();
+
     private ChargeLimitController New(IChargeLimitBackend backend) =>
-        new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder), _time);
+        new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder), _time, _lock);
 
     private ChargeIntent? Intent() => new ChargeIntentStore(_folder).Load(out ChargeIntent? i) == AtomicJsonFile.ReadStatus.Ok ? i : null;
 

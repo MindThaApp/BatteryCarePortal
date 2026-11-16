@@ -161,10 +161,11 @@ public class SnapshotMappingTests
     [Fact]
     public void Write_plan_travels_as_base64_data_not_code()
     {
-        var plan = new BatteryWritePlan { BackendId = "x", Steps = { new BatteryWriteStep { Label = "Set'; Remove-Item", Kind = BatteryWriteStepKind.WmiMethod } } };
-        string script = BatteryWritePlanScript.Build(plan, @"C:\Temp\r.json");
-        Assert.DoesNotContain("Remove-Item", script);
+        var plan = new BatteryWritePlan { BackendId = "x", Steps = { new BatteryWriteStep { Label = "Set'; Format-Volume", Kind = BatteryWriteStepKind.WmiMethod } } };
+        string script = BatteryWritePlanScript.Build(plan, "pipe'; Format-Volume");
+        Assert.DoesNotContain("Format-Volume", script);
         Assert.DoesNotContain("{PLAN}", script);
+        Assert.DoesNotContain("{PIPE}", script);
         string encoded = BatteryWritePlanScript.EncodeForCommandLine(script);
         Assert.Equal(script, Encoding.Unicode.GetString(Convert.FromBase64String(encoded)));
     }

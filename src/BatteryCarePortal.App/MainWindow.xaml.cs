@@ -41,6 +41,13 @@ public sealed partial class MainWindow : Window
         Activate();
     }
 
+    public void ShowPage(string tag)
+    {
+        ShowAndActivate();
+        if (Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<NavigationViewItem>().FirstOrDefault(i => (i.Tag as string) == tag) is { } item)
+            Nav.SelectedItem = item;
+    }
+
     private void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.SelectedItemContainer?.Tag is string tag && PageTypes.TryGetValue(tag, out Type? page))

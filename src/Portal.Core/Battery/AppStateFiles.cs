@@ -1,6 +1,34 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Portal.Core.Battery;
+
+/// <summary>One lock object per state-file path for the whole process, so every store instance on a file serializes with the others.</summary>
+public static class AppStateFileLock
+{
+    private static readonly ConcurrentDictionary<string, object> Locks = new(StringComparer.OrdinalIgnoreCase);
+
+    public static object For(string path) => Locks.GetOrAdd(System.IO.Path.GetFullPath(path), _ => new object());
+}
+
+/// <summary>
+/// The one lock every firmware write in the process takes. Every <see cref="ChargeLimitController"/> uses
+/// <see cref="Process"/> unless a test passes its own, so two controllers can never write at the same time.
+/// </summary>
+public sealed class ChargeWriteLock
+{
+    public static ChargeWriteLock Process { get; } = new();
+
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    public bool IsHeld => _semaphore.CurrentCount == 0;
+
+    public bool TryEnter() => _semaphore.Wait(0);
+
+    public Task EnterAsync(CancellationToken cancellationToken = default) => _semaphore.WaitAsync(cancellationToken);
+
+    public void Exit() => _semaphore.Release();
+}
 
 /// <summary>
 /// Reads and writes the app's own small JSON state files. A write goes to a uniquely named temp file in the same
@@ -72,9 +100,13 @@ public enum OriginalCaptureResult
 public sealed class OriginalStateStore
 {
     public const string FileName = "charge-originals.json";
-    private readonly object _gate = new();
+    private readonly object _gate;
 
-    public OriginalStateStore(string folder) => Path = System.IO.Path.Combine(folder, FileName);
+    public OriginalStateStore(string folder)
+    {
+        Path = System.IO.Path.Combine(folder, FileName);
+        _gate = AppStateFileLock.For(Path);
+    }
 
     public string Path { get; }
 
@@ -146,9 +178,13 @@ public sealed record ChargeIntent
 public sealed class ChargeIntentStore
 {
     public const string FileName = "charge-intent.json";
-    private readonly object _gate = new();
+    private readonly object _gate;
 
-    public ChargeIntentStore(string folder) => Path = System.IO.Path.Combine(folder, FileName);
+    public ChargeIntentStore(string folder)
+    {
+        Path = System.IO.Path.Combine(folder, FileName);
+        _gate = AppStateFileLock.For(Path);
+    }
 
     public string Path { get; }
 
@@ -194,9 +230,13 @@ public sealed class ChargeIntentStore
 public sealed class BatterySettingsStore
 {
     public const string FileName = "battery-settings.json";
-    private readonly object _gate = new();
+    private readonly object _gate;
 
-    public BatterySettingsStore(string folder) => Path = System.IO.Path.Combine(folder, FileName);
+    public BatterySettingsStore(string folder)
+    {
+        Path = System.IO.Path.Combine(folder, FileName);
+        _gate = AppStateFileLock.For(Path);
+    }
 
     public string Path { get; }
 

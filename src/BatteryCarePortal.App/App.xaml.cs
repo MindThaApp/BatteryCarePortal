@@ -15,6 +15,7 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private TrayFlyoutWindow? _flyout;
     private bool _exiting;
+    private bool _limitOffNoticeShown;
 
     public static App? Instance { get; private set; }
 
@@ -31,6 +32,7 @@ public partial class App : Application
         CreateTrayIcon();
         AppServices.Battery.SnapshotChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray);
         AppServices.SupportChanged += UpdateTray;
+        AppServices.ReapplyNeedsUser += ShowLimitOffNotification;
         AppServices.Start();
 
         // A login start (StartupTask) lives in the tray; any other launch shows the window.
@@ -61,8 +63,25 @@ public partial class App : Application
         {
             if (e.MouseEvent == MouseEvent.IconLeftMouseUp) _flyout?.Toggle();
             else if (e.MouseEvent == MouseEvent.IconLeftDoubleClick) ShowMainWindow();
+            else if (e.MouseEvent == MouseEvent.BalloonToolTipClicked && _limitOffNoticeShown)
+            {
+                _limitOffNoticeShown = false;
+                _mainWindow?.DispatcherQueue.TryEnqueue(() => _mainWindow?.ShowPage("Charging"));
+            }
         };
         _trayIcon.ForceCreate();
+    }
+
+    // The user puts the limit back from the Charging page; the app never raises an administrator prompt by itself.
+    private void ShowLimitOffNotification(ChargeActionResult result)
+    {
+        if (_exiting || _trayIcon is null) return;
+        try
+        {
+            _trayIcon.ShowNotification(Strings.Get("NotifyLimitOffTitle"), Strings.Get("NotifyLimitOffText"));
+            _limitOffNoticeShown = true;
+        }
+        catch (Exception) { }
     }
 
     // Level from the battery reader; the tick is the read-only charge limit, drawn only when the device has one set.
