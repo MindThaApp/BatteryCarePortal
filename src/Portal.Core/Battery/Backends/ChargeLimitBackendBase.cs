@@ -204,11 +204,14 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
         ChargeLimitState readBack = GetState();
         if (!result.Ok)
         {
+            bool verifyFailed = result.FailedStep >= 0 && result.FailedStep < plan.Steps.Count &&
+                plan.Steps[result.FailedStep].Kind is BatteryWriteStepKind.VerifyDeviceIoControlBit or BatteryWriteStepKind.VerifyWmiProperty;
             return new BackendWriteResult
             {
                 Success = false,
                 Message = result.Message ?? "The firmware rejected the change.",
                 ReadBack = readBack,
+                ReadBackCheck = verifyFailed ? ReadBackCheck.Mismatch : ReadBackCheck.NotChecked,
             };
         }
         return BackendWriteResult.Ok("Applied.", readBack);

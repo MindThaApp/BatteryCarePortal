@@ -224,7 +224,13 @@ public sealed class LenovoConservationBackend : ChargeLimitBackendBase
         var state = new ChargeLimitState { Limit = IsConservationOn(readBack.Output) ? _conservationPercent : 100, RawValue = LastRawValue };
         return IsConservationOn(readBack.Output) == verify.ExpectedBitValue
             ? BackendWriteResult.Ok("Applied and read back.", state)
-            : new BackendWriteResult { Success = false, Message = $"The firmware did not take the change (read back {LastRawValue}).", ReadBack = state };
+            : new BackendWriteResult
+            {
+                Success = false,
+                Message = $"The firmware did not take the change (read back {LastRawValue}).",
+                ReadBack = state,
+                ReadBackCheck = ReadBackCheck.Mismatch,
+            };
     }
 }
 

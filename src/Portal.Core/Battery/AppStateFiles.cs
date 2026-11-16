@@ -51,6 +51,74 @@ public static class AtomicJsonFile
     }
 }
 
+public enum OriginalCaptureResult
+{
+    /// <summary>The captured values were saved now (the first write on this device).</summary>
+    Saved,
+    /// <summary>Originals for this backend already existed and were kept as they are.</summary>
+    AlreadyCaptured,
+    /// <summary>The originals file exists but cannot be read. It is left untouched and writes are refused.</summary>
+    FileUnreadable,
+    /// <summary>The captured values are incomplete (for example the firmware could not be read).</summary>
+    Incomplete,
+    /// <summary>The file could not be written.</summary>
+    WriteFailed,
+}
+
+/// <summary>
+/// The firmware values found before the app's first write on this device, per backend, in an app-owned file.
+/// An entry is written once and never overwritten; "Restore laptop defaults" puts these values back.
+/// </summary>
+public sealed class OriginalStateStore
+{
+    public const string FileName = "charge-originals.json";
+    private readonly object _gate = new();
+
+    public OriginalStateStore(string folder) => Path = System.IO.Path.Combine(folder, FileName);
+
+    public string Path { get; }
+
+    public sealed class OriginalsFile
+    {
+        public int Version { get; set; } = 1;
+        public List<BackendOriginalState> Originals { get; set; } = new();
+    }
+
+    /// <summary>Returns the saved originals for a backend, or null. <paramref name="unreadable"/> is true when the file exists but cannot be read.</summary>
+    public BackendOriginalState? Get(string backendId, out bool unreadable)
+    {
+        lock (_gate)
+        {
+            AtomicJsonFile.ReadStatus status = AtomicJsonFile.TryRead(Path, out OriginalsFile? file);
+            unreadable = status == AtomicJsonFile.ReadStatus.Unreadable;
+            return status == AtomicJsonFile.ReadStatus.Ok
+                ? file!.Originals?.FirstOrDefault(o => o.BackendId == backendId)
+                : null;
+        }
+    }
+
+    /// <summary>Saves <paramref name="captured"/> only when nothing is stored yet for its backend.</summary>
+    /// <param name="isComplete">Whether the captured values are enough to restore from.</param>
+    public OriginalCaptureResult SaveIfAbsent(BackendOriginalState captured, Func<BackendOriginalState, bool> isComplete)
+    {
+        lock (_gate)
+        {
+            AtomicJsonFile.ReadStatus status = AtomicJsonFile.TryRead(Path, out OriginalsFile? file);
+            if (status == AtomicJsonFile.ReadStatus.Unreadable) return OriginalCaptureResult.FileUnreadable;
+            file ??= new OriginalsFile();
+            file.Originals ??= new();
+            if (file.Originals.Any(o => o.BackendId == captured.BackendId)) return OriginalCaptureResult.AlreadyCaptured;
+            if (string.IsNullOrEmpty(captured.BackendId) || captured.Values.Count == 0 || !isComplete(captured))
+                return OriginalCaptureResult.Incomplete;
+
+            file.Originals.Add(captured);
+            try { AtomicJsonFile.Write(Path, file); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return OriginalCaptureResult.WriteFailed; }
+            return OriginalCaptureResult.Saved;
+        }
+    }
+}
+
 /// <summary>Loads and saves <see cref="BatterySettings"/> in the app's own settings file.</summary>
 public sealed class BatterySettingsStore
 {
