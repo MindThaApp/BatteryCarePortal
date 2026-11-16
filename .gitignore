@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+builds/
+artifacts/
+TestResults/
+AppPackages/
+*.pfx
+*.snk
