@@ -1,0 +1,23 @@
+<Window
+    x:Class="PortalBatteryCare.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <NavigationView x:Name="Nav"
+                    PaneDisplayMode="Left"
+                    IsSettingsVisible="False"
+                    IsBackButtonVisible="Collapsed"
+                    SelectionChanged="OnSelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem x:Uid="NavOverview" Tag="Overview" Icon="Home" />
+            <NavigationViewItem x:Uid="NavCharging" Tag="Charging" Icon="Calendar" />
+            <NavigationViewItem x:Uid="NavHeat" Tag="HeatProtection" Icon="Remote" />
+            <NavigationViewItem x:Uid="NavPowerFlow" Tag="PowerFlow" Icon="Sync" />
+            <NavigationViewItem x:Uid="NavHistory" Tag="History" Icon="Clock" />
+        </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Uid="NavSettings" Tag="Settings" Icon="Setting" />
+        </NavigationView.FooterMenuItems>
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Window>
