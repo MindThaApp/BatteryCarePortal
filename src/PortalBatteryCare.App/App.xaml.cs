@@ -4,15 +4,12 @@ using H.NotifyIcon.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
+using Portal.Core.Battery;
 
 namespace PortalBatteryCare;
 
 public partial class App : Application
 {
-    // Fake values until the battery layer is wired in.
-    private const int PlaceholderLevel = 60;
-    private const int PlaceholderLimit = 80;
-
     private TaskbarIcon? _trayIcon;
     private Icon? _trayGlyph;
     private MainWindow? _mainWindow;
@@ -32,6 +29,9 @@ public partial class App : Application
         _mainWindow = new MainWindow();
         _flyout = new TrayFlyoutWindow();
         CreateTrayIcon();
+        AppServices.Battery.SnapshotChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray);
+        AppServices.SupportChanged += UpdateTray;
+        AppServices.Start();
 
         // A login start (StartupTask) lives in the tray; any other launch shows the window.
         bool startHidden = AppInstance.GetCurrent().GetActivatedEventArgs().Kind == ExtendedActivationKind.StartupTask;
@@ -48,7 +48,7 @@ public partial class App : Application
         menu.Items.Add(open);
         menu.Items.Add(quit);
 
-        _trayGlyph = BatteryTrayIconRenderer.Render(PlaceholderLevel, PlaceholderLimit, 32, lightTaskbar: false);
+        _trayGlyph = BatteryTrayIconRenderer.Render(0, null, 32, lightTaskbar: false);
         _trayIcon = new TaskbarIcon
         {
             ToolTipText = Strings.Get("AppName"),
@@ -63,6 +63,22 @@ public partial class App : Application
             else if (e.MouseEvent == MouseEvent.IconLeftDoubleClick) ShowMainWindow();
         };
         _trayIcon.ForceCreate();
+    }
+
+    // Level from the battery reader; the tick is the read-only charge limit, drawn only when the device has one set.
+    private void UpdateTray()
+    {
+        if (_exiting || _trayIcon is null) return;
+        BatterySnapshot snapshot = AppServices.Battery.Current;
+        int? limit = AppServices.Support is { ChargeLimitAvailable: true } support ? support.CurrentLimit : null;
+        Icon glyph = BatteryTrayIconRenderer.Render(snapshot.Percent ?? 0, limit, 32, lightTaskbar: false);
+        Icon? old = _trayGlyph;
+        _trayGlyph = glyph;
+        _trayIcon.Icon = glyph;
+        old?.Dispose();
+        _trayIcon.ToolTipText = !snapshot.Present || snapshot.Percent is not int percent
+            ? Strings.Get("AppName")
+            : string.Format(Strings.Get(snapshot.IsCharging ? "TrayTipCharging" : "TrayTipLevel"), percent);
     }
 
     public void ShowMainWindow() => _mainWindow?.ShowAndActivate();
@@ -92,3 +108,4 @@ public partial class App : Application
         Exit();
     }
 }
+

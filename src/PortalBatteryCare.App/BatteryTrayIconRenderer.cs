@@ -4,10 +4,10 @@ using System.Runtime.InteropServices;
 
 namespace PortalBatteryCare;
 
-/// <summary>Draws the tray battery glyph at the tray's pixel size: outline, fill to the level, and a tick at the charge limit.</summary>
+/// <summary>Draws the tray battery glyph at the tray's pixel size: outline, fill to the level, and a tick at the charge limit when one is set.</summary>
 internal static class BatteryTrayIconRenderer
 {
-    public static Icon Render(int levelPercent, int limitPercent, int size, bool lightTaskbar)
+    public static Icon Render(int levelPercent, int? limitPercent, int size, bool lightTaskbar)
     {
         using var bitmap = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using (Graphics g = Graphics.FromImage(bitmap))
@@ -35,9 +35,12 @@ internal static class BatteryTrayIconRenderer
                 g.FillRectangle(fillBrush, well.X, well.Y, well.Width * level, well.Height);
 
             // The limit tick sticks out above and below the glyph so it stays visible over the fill.
-            float tickX = well.X + well.Width * Math.Clamp(limitPercent, 0, 100) / 100f;
-            using var tickPen = new Pen(Color.FromArgb(255, 255, 176, 0), Math.Max(1f, size / 16f));
-            g.DrawLine(tickPen, tickX, body.Y - size * 0.12f, tickX, body.Bottom + size * 0.12f);
+            if (limitPercent is int limit and < 100)
+            {
+                float tickX = well.X + well.Width * Math.Clamp(limit, 0, 100) / 100f;
+                using var tickPen = new Pen(Color.FromArgb(255, 255, 176, 0), Math.Max(1f, size / 16f));
+                g.DrawLine(tickPen, tickX, body.Y - size * 0.12f, tickX, body.Bottom + size * 0.12f);
+            }
         }
 
         IntPtr handle = bitmap.GetHicon();
@@ -52,3 +55,4 @@ internal static class BatteryTrayIconRenderer
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr handle);
 }
+
