@@ -7,27 +7,6 @@ public sealed class StoreLicenseProvider(StoreContext storeContext) : IStoreLice
 {
     private static readonly TimeSpan QueryTimeout = TimeSpan.FromSeconds(8);
 
-    public async Task<IReadOnlyList<StoreSkuInfo>> GetCurrentAppSkusAsync()
-    {
-        StoreProductResult result = await storeContext.GetStoreProductForCurrentAppAsync().AsTask().WaitAsync(QueryTimeout);
-        if (result.ExtendedError is not null)
-            throw new InvalidOperationException($"Store product query failed (0x{result.ExtendedError.HResult:X8}).", result.ExtendedError);
-        StoreProduct product = result.Product ?? throw new InvalidOperationException("Store returned no product for the current app.");
-
-        var skus = new List<StoreSkuInfo>();
-        foreach (StoreSku sku in product.Skus)
-        {
-            StoreCollectionData? collection = sku.CollectionData;
-            skus.Add(new StoreSkuInfo(
-                sku.ExtendedJsonData,
-                sku.IsInUserCollection,
-                sku.IsTrial,
-                collection?.AcquiredDate,
-                collection?.IsTrial));
-        }
-        return skus;
-    }
-
     public async Task<bool> IsDurableAddOnOwnedAsync(string addOnStoreId)
     {
         // AddOnLicenses is keyed by the SKU Store ID ("<product>/<sku>") on some systems and by the product ID on others.
@@ -48,3 +27,4 @@ public sealed class StoreLicenseProvider(StoreContext storeContext) : IStoreLice
         id is not null && (id.Equals(addOnStoreId, StringComparison.OrdinalIgnoreCase) ||
             id.StartsWith(addOnStoreId + "/", StringComparison.OrdinalIgnoreCase));
 }
+

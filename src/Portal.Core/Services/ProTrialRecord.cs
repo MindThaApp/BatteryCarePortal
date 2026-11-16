@@ -22,58 +22,24 @@ public readonly record struct ProTrialTerms(DateTimeOffset? StartUtc, TimeSpan D
 
 /// <summary>
 /// Keeps the Pro trial in the app's local settings. The 14-day trial starts the first time a Pro feature is used, not at
-/// the first launch. Installs from before this rule keep their old terms: 30 days from the first launch, settled once by
-/// <see cref="Migrate"/>. All keys contain "Trial", so profiles never carry them.
+/// the first launch. All keys contain "Trial", so profiles never carry them.
 /// </summary>
 public sealed class ProTrialRecord
 {
     public const string StartKey = "ProTrialStartUtc";
-    public const string LegacyTermsKey = "ProTrialLegacyTerms";
-    public const string MigratedKey = "ProTrialTermsMigrated";
 
     public static readonly TimeSpan Duration = TimeSpan.FromDays(14);
-    public static readonly TimeSpan LegacyDuration = TimeSpan.FromDays(30);
 
     private readonly IDictionary<string, object> _values;
     private readonly object _gate = new();
 
     public ProTrialRecord(IDictionary<string, object> values) => _values = values;
 
-    public bool IsMigrated
-    {
-        get { lock (_gate) return _values.TryGetValue(MigratedKey, out object? done) && done is true; }
-    }
-
-    /// <summary>
-    /// Settles the terms once. <paramref name="firstLaunchUtcBeforeThisVersion"/> is the first-launch time that was already
-    /// stored when this version first ran (an existing install), or null on a new install. An existing install keeps the
-    /// trial it had: 30 days from its first launch, so a running trial is not shortened and an ended one stays ended.
-    /// Later calls change nothing. Returns true when it wrote anything.
-    /// </summary>
-    public bool Migrate(DateTimeOffset? firstLaunchUtcBeforeThisVersion)
-    {
-        lock (_gate)
-        {
-            if (_values.TryGetValue(MigratedKey, out object? done) && done is true) return false;
-            if (firstLaunchUtcBeforeThisVersion is { } firstLaunch && ReadStart() is null)
-            {
-                _values[StartKey] = Format(firstLaunch);
-                _values[LegacyTermsKey] = true;
-            }
-            _values[MigratedKey] = true;
-            return true;
-        }
-    }
-
     public ProTrialTerms Terms
     {
         get
         {
-            lock (_gate)
-            {
-                bool legacy = _values.TryGetValue(LegacyTermsKey, out object? flag) && flag is true;
-                return new ProTrialTerms(ReadStart(), legacy ? LegacyDuration : Duration);
-            }
+            lock (_gate) return new ProTrialTerms(ReadStart(), Duration);
         }
     }
 
@@ -82,7 +48,6 @@ public sealed class ProTrialRecord
     {
         lock (_gate)
         {
-            if (!(_values.TryGetValue(MigratedKey, out object? done) && done is true)) return false;
             if (ReadStart() is not null) return false;
             _values[StartKey] = Format(nowUtc);
             return true;

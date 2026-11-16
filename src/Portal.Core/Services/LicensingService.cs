@@ -35,8 +35,6 @@ public sealed class LicensingService
         _entitlement = new ProEntitlementService(
             _storeContext is null ? null : new StoreLicenseProvider(_storeContext),
             () => EffectiveTrial,
-            () => _appSettingsService.LegacyProPurchaseConfirmed,
-            () => _appSettingsService.LegacyProPurchaseConfirmed = true,
             log);
     }
 
@@ -49,7 +47,7 @@ public sealed class LicensingService
     /// <summary>Time left in the trial; its full length while it has not started.</summary>
     public TimeSpan TrialRemaining => _entitlement.TrialRemaining;
 
-    /// <summary>Length of this install's trial: 14 days, or 30 for installs from before the on-use trial.</summary>
+    /// <summary>Length of this install's trial: 14 days.</summary>
     public TimeSpan TrialLength => EffectiveTrial.Duration;
 
     /// <summary>Whole days left in a running trial (rounded up), or null when no trial is running.</summary>
@@ -95,7 +93,7 @@ public sealed class LicensingService
     private volatile bool _ownsPermanentAccess;
 
     /// <summary>
-    /// Asks the Store (or the remembered purchase) whether Pro is owned for good and remembers the answer, so
+    /// Asks the Store  whether Pro is owned for good and remembers the answer, so
     /// <see cref="TrialDaysLeft"/> stays empty for an owner. Call once the window or the app starts.
     /// </summary>
     public async Task<bool> RefreshOwnershipAsync(bool forceRefresh = false)
@@ -212,3 +210,4 @@ public sealed class LicensingService
         }
     }
 }
+
