@@ -119,6 +119,53 @@ public sealed class OriginalStateStore
     }
 }
 
+/// <summary>
+/// What the app means the charge limit to be. Saved before every change, so a quit, crash or sleep can be followed by
+/// putting the steady-state limit back.
+/// </summary>
+public sealed record ChargeIntent
+{
+    public int Version { get; init; } = 1;
+    public string BackendId { get; init; } = string.Empty;
+    /// <summary>The app set the limit and owns it. False after Restore laptop defaults.</summary>
+    public bool Managed { get; init; }
+    /// <summary>The steady-state limit is on.</summary>
+    public bool LimitOn { get; init; }
+    /// <summary>The steady-state limit value (100 when off).</summary>
+    public int Limit { get; init; } = 100;
+    /// <summary>A temporary top-up has the limit off on purpose; the steady-state limit must come back after it.</summary>
+    public bool TopUpActive { get; init; }
+    public DateTimeOffset? TopUpUntil { get; init; }
+    /// <summary>An unattended re-apply could not run (elevation needed, timed out, refused). The next start or the user fixes it.</summary>
+    public bool NeedsReapply { get; init; }
+    public DateTimeOffset UpdatedUtc { get; init; }
+}
+
+public sealed class ChargeIntentStore
+{
+    public const string FileName = "charge-intent.json";
+    private readonly object _gate = new();
+
+    public ChargeIntentStore(string folder) => Path = System.IO.Path.Combine(folder, FileName);
+
+    public string Path { get; }
+
+    public AtomicJsonFile.ReadStatus Load(out ChargeIntent? intent)
+    {
+        lock (_gate) return AtomicJsonFile.TryRead(Path, out intent);
+    }
+
+    /// <summary>False when the file could not be written.</summary>
+    public bool TrySave(ChargeIntent intent)
+    {
+        lock (_gate)
+        {
+            try { AtomicJsonFile.Write(Path, intent); return true; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+        }
+    }
+}
+
 /// <summary>Loads and saves <see cref="BatterySettings"/> in the app's own settings file.</summary>
 public sealed class BatterySettingsStore
 {

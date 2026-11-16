@@ -27,10 +27,13 @@ public class ChargeLimitControllerTests : IDisposable
         var executor = new RecordingExecutor();
         var backend = new LenovoConservationBackend(LenovoWmi(family), executor, driver) { GateContext = gate ?? WriteGateContext.Default };
         Assert.True(backend.Detect());
-        return (new ChargeLimitController(backend, new OriginalStateStore(_folder)), driver, executor);
+        return (New(backend), driver, executor);
     }
 
     private string OriginalsPath => Path.Combine(_folder, OriginalStateStore.FileName);
+
+    private ChargeLimitController New(IChargeLimitBackend backend) =>
+        new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder));
 
     private const uint On = 1u << LenovoConservationBackend.ConservationBit;
 
@@ -50,7 +53,8 @@ public class ChargeLimitControllerTests : IDisposable
         Assert.True((await controller.SetLimitAsync(false)).Succeeded);
         Assert.True((await controller.SetLimitAsync(true)).Succeeded);
         Assert.Equal(before, File.ReadAllText(OriginalsPath));
-        Assert.Single(Directory.GetFiles(_folder));
+        Assert.Equal(2, Directory.GetFiles(_folder).Length);
+        Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
     }
 
     [Fact]
@@ -125,7 +129,7 @@ public class ChargeLimitControllerTests : IDisposable
         var driver = new FakeEnergyDriver();
         var backend = new LenovoConservationBackend(LenovoWmi("ThinkPad T14"), new RecordingExecutor(), driver);
         backend.ProbeForDiagnostics();
-        var controller = new ChargeLimitController(backend, new OriginalStateStore(_folder));
+        var controller = New(backend);
 
         ChargeActionResult result = await controller.SetLimitAsync(true);
         Assert.Equal(ChargeActionStatus.Refused, result.Status);
@@ -147,7 +151,7 @@ public class ChargeLimitControllerTests : IDisposable
     public async Task Second_write_while_one_is_in_flight_is_rejected()
     {
         var backend = new BlockingBackend();
-        var controller = new ChargeLimitController(backend, new OriginalStateStore(_folder));
+        var controller = New(backend);
         Task<ChargeActionResult> first = controller.SetLimitAsync(true, 80);
         Assert.True(controller.IsBusy);
         Assert.Equal(ChargeActionStatus.Busy, (await controller.SetLimitAsync(false)).Status);
@@ -162,7 +166,7 @@ public class ChargeLimitControllerTests : IDisposable
     public async Task Fake_battery_round_trip_never_needs_real_hardware()
     {
         var battery = new FakeBattery();
-        var controller = new ChargeLimitController(battery.Backend, new OriginalStateStore(_folder));
+        var controller = New(battery.Backend);
         Assert.Equal(WriteGateDecision.Simulated, controller.EvaluateGate().Decision);
         Assert.True((await controller.SetLimitAsync(true, 75)).Succeeded);
         Assert.Equal(75, battery.Limit);

@@ -91,9 +91,10 @@ public partial class App : Application
         _mainWindow?.DispatcherQueue.TryEnqueue(ShowMainWindow);
     }
 
-    // Runs once when the user quits: the later step that restores the charge limit hooks in here.
+    // Runs once when the user quits: puts the steady-state charge limit back if a top-up had it off (bounded in time).
     private void OnAppExiting()
     {
+        AppServices.OnExit();
     }
 
     public void ExitApplication()
