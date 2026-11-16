@@ -49,12 +49,19 @@ public sealed class BatterySettings
 
     public DateTimeOffset? LastCalibrationReminderUtc { get; set; }
 
+    /// <summary>
+    /// Stub for "Help test charge limit on other brands". Always off: <see cref="Normalize"/> resets it, and no write path reads
+    /// it. The verified-models list is the only thing that allows a write.
+    /// </summary>
+    public bool BetaOtherBrandsOptIn { get; set; }
+
     /// <summary>Firmware values found before the first write, for "Restore defaults".</summary>
     public BackendOriginalState? OriginalHardwareState { get; set; }
 
     /// <summary>Clamps every value into its valid range.</summary>
     public BatterySettings Normalize()
     {
+        BetaOtherBrandsOptIn = false;
         Limit = Math.Clamp(Limit, MinLimit, MaxLimit);
         SailingRange = Math.Clamp(SailingRange, SailingMath.MinRange, SailingMath.MaxRange);
         LowReminderPercent = Math.Clamp(LowReminderPercent, 5, 50);
@@ -105,3 +112,4 @@ public sealed class ScheduledTopUpSettings
     /// <summary>When the schedule last started a top-up, so a cancelled top-up is not restarted in the same window.</summary>
     public DateTimeOffset? LastTriggeredUtc { get; set; }
 }
+
