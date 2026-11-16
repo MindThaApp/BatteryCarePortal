@@ -74,6 +74,7 @@
   <data name="ChargeStatusNotVerified" xml:space="preserve"><value>This laptop model is not verified, and the app cannot read its charge limit back, so the charge limit stays read-only even with beta testing on.</value></data>
   <data name="ChargeStatusNotDetected" xml:space="preserve"><value>The charge-limit interface for this laptop was not found, so nothing can be changed.</value></data>
   <data name="ChargeStatusPpmOwns" xml:space="preserve"><value>Power Plan Manager manages the charge limit on this PC, so this app does not change it. Only one app should control the limit: turn off battery care in Power Plan Manager, or keep using it there.</value></data>
+  <data name="ChargeStatusPpmUnconfirmed" xml:space="preserve"><value>Couldn't confirm Power Plan Manager has charge control off, so this app does not change the limit. Open Power Plan Manager and check that its battery care is turned off, then try again.</value></data>
   <data name="ChargeResultApplied" xml:space="preserve"><value>Done. Your laptop reports the new setting.</value></data>
   <data name="ChargeResultNotConfirmed" xml:space="preserve"><value>The change was made and checked with administrator rights, but the app could not read it back itself.</value></data>
   <data name="ChargeResultNeedsElevation" xml:space="preserve"><value>This change needs administrator approval. Nothing was changed.</value></data>

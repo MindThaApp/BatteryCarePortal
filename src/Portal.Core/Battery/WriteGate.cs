@@ -23,7 +23,13 @@ public enum WriteRefusal
     BetaOff,
     /// <summary>Another app (Power Plan Manager) manages the charge limit on this PC.</summary>
     OtherOwner,
+    /// <summary>Another app that can manage the limit is installed, and its charge control could not be confirmed off.</summary>
+    OtherOwnerUnconfirmed,
 }
+
+/// <summary>Another app that manages, or may manage, the charge limit.</summary>
+/// <param name="Confirmed">True when its charge control is known to be on; false when it could not be confirmed off.</param>
+public sealed record OtherOwnerClaim(string Name, bool Confirmed = true);
 
 /// <param name="Confidence">The backend's own confidence.</param>
 /// <param name="ModelVerified">The device matches a <see cref="VerifiedModels"/> rule for this backend.</param>
@@ -31,7 +37,8 @@ public enum WriteRefusal
 /// <param name="Detected">The backend's read-only probe found its firmware interface.</param>
 /// <param name="FirmwareReportsState">The firmware can report the current value (false for ASUS).</param>
 /// <param name="PlanHasReadBack">The write plan contains a read-back verify step. Pass true before a plan exists.</param>
-/// <param name="OtherOwner">Name of another app that manages the limit, or null.</param>
+/// <param name="OtherOwner">Name of another app that manages, or may manage, the limit, or null.</param>
+/// <param name="OtherOwnerConfirmed">False when that app's charge control could not be confirmed off (still refused).</param>
 public sealed record WriteGateInput(
     BackendConfidence Confidence,
     bool ModelVerified,
@@ -39,7 +46,8 @@ public sealed record WriteGateInput(
     bool Detected,
     bool FirmwareReportsState,
     bool PlanHasReadBack,
-    string? OtherOwner);
+    string? OtherOwner,
+    bool OtherOwnerConfirmed = true);
 
 public sealed record WriteGateResult(WriteGateDecision Decision, WriteRefusal Refusal, string Message)
 {
@@ -58,7 +66,11 @@ public static class WriteGate
         if (input.Confidence == BackendConfidence.Simulated)
             return new(WriteGateDecision.Simulated, WriteRefusal.None, "Simulated backend.");
         if (input.OtherOwner is { Length: > 0 } owner)
-            return Refuse(WriteRefusal.OtherOwner, $"{owner} manages the charge limit on this PC, so nothing was changed. Turn off charge control in one of the two apps first.");
+        {
+            return input.OtherOwnerConfirmed
+                ? Refuse(WriteRefusal.OtherOwner, $"{owner} manages the charge limit on this PC, so nothing was changed. Turn off charge control in one of the two apps first.")
+                : Refuse(WriteRefusal.OtherOwnerUnconfirmed, $"Couldn't confirm {owner} has charge control off, so nothing was changed. Open {owner} and check that its battery care is turned off.");
+        }
         if (!input.Detected)
             return Refuse(WriteRefusal.NotDetected, "The charge-limit interface for this laptop was not found, so nothing was changed.");
         if (!input.FirmwareReportsState || !input.PlanHasReadBack)
@@ -80,8 +92,8 @@ public sealed class WriteGateContext
 
     public Func<bool> BetaOptIn { get; init; } = () => false;
 
-    /// <summary>Returns the name of another app that manages the limit, or null.</summary>
-    public Func<string?> OtherOwner { get; init; } = () => null;
+    /// <summary>Returns another app that manages, or may manage, the limit, or null when none does.</summary>
+    public Func<OtherOwnerClaim?> OtherOwner { get; init; } = () => null;
 }
 
 public enum ReadBackCheck

@@ -60,17 +60,17 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
 
     private WriteGateInput GateInput(bool planHasReadBack, bool includeOwner)
     {
-        string? owner = null;
+        OtherOwnerClaim? owner = null;
         if (includeOwner)
         {
             try { owner = GateContext.OtherOwner(); }
-            catch (Exception) { owner = "Another app"; }
+            catch (Exception) { owner = new OtherOwnerClaim("Another app", Confirmed: false); }
         }
         bool beta;
         try { beta = GateContext.BetaOptIn(); }
         catch (Exception) { beta = false; }
         return new WriteGateInput(Confidence, Confidence != BackendConfidence.Simulated && IsVerifiedDevice(), beta,
-            _interfaceFound, FirmwareReportsState, planHasReadBack, owner);
+            _interfaceFound, FirmwareReportsState, planHasReadBack, owner?.Name, owner?.Confirmed ?? true);
     }
 
     private static bool HasReadBackStep(BatteryWritePlan plan) =>

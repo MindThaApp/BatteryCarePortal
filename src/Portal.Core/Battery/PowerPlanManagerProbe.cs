@@ -3,12 +3,28 @@ using System.Text.Json;
 
 namespace Portal.Core.Battery;
 
-public sealed record PowerPlanManagerStatus(bool Installed, bool Running, bool ChargeControlOn, bool SettingsFound)
+/// <summary>What Power Plan Manager's settings mirror says about its charge control.</summary>
+public enum PowerPlanManagerChargeControl
 {
-    public static PowerPlanManagerStatus None { get; } = new(false, false, false, false);
+    /// <summary>No settings mirror was found.</summary>
+    Absent,
+    /// <summary>A mirror exists but could not be read or understood (locked, mid-write, unknown format).</summary>
+    Unreadable,
+    /// <summary>The mirror says charge control is off ("Enabled": false).</summary>
+    Disabled,
+    /// <summary>The mirror says charge control is on.</summary>
+    Enabled,
+}
+
+public sealed record PowerPlanManagerStatus(bool Installed, bool Running, PowerPlanManagerChargeControl ChargeControl)
+{
+    public static PowerPlanManagerStatus None { get; } = new(false, false, PowerPlanManagerChargeControl.Absent);
 
     /// <summary>Power Plan Manager is installed with its battery care turned on, so it may write the limit.</summary>
-    public bool OwnsCharging => Installed && ChargeControlOn;
+    public bool OwnsCharging => Installed && ChargeControl == PowerPlanManagerChargeControl.Enabled;
+
+    /// <summary>True only when Power Plan Manager is not installed or its charge control is confirmed off.</summary>
+    public bool ConfirmedOff => !Installed || ChargeControl == PowerPlanManagerChargeControl.Disabled;
 }
 
 /// <summary>
@@ -16,6 +32,7 @@ public sealed record PowerPlanManagerStatus(bool Installed, bool Running, bool C
 /// string under "BatterySettings" in its package LocalSettings, and mirrors all LocalSettings to
 /// %LOCALAPPDATA%\PowerPlanManagerBackup\&lt;family name&gt;\settings-backup.json (inside its package LocalCache when
 /// the write was virtualized). Its charge-care engine writes the limit only while that JSON has "Enabled": true.
+/// Fails closed: when Power Plan Manager is installed, only an explicit "Enabled": false lets this app write.
 /// Nothing here writes, and Power Plan Manager is never changed.
 /// </summary>
 public sealed class PowerPlanManagerProbe
@@ -25,6 +42,7 @@ public sealed class PowerPlanManagerProbe
     public const string ProcessName = "PowerPlanTray";
     private const string BackupFolder = "PowerPlanManagerBackup";
     private const string BackupFile = "settings-backup.json";
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
 
     private readonly string _localAppData;
     private readonly Func<bool> _isRunning;
@@ -38,56 +56,92 @@ public sealed class PowerPlanManagerProbe
     /// <summary>Never throws.</summary>
     public PowerPlanManagerStatus Check()
     {
+        string packages = Path.Combine(_localAppData, "Packages");
+        string[] families;
         try
         {
-            string packages = Path.Combine(_localAppData, "Packages");
-            string[] families = Directory.Exists(packages)
+            families = Directory.Exists(packages)
                 ? Directory.GetDirectories(packages, PackageNamePrefix + "*").Select(Path.GetFileName).OfType<string>().ToArray()
                 : Array.Empty<string>();
-            if (families.Length == 0) return PowerPlanManagerStatus.None;
-
-            bool found = false, on = false;
-            foreach (string family in families)
-            {
-                foreach (string path in new[]
-                {
-                    Path.Combine(_localAppData, BackupFolder, family, BackupFile),
-                    Path.Combine(packages, family, "LocalCache", "Local", BackupFolder, family, BackupFile),
-                })
-                {
-                    if (ReadEnabled(path) is not bool enabled) continue;
-                    found = true;
-                    on |= enabled;
-                }
-            }
-            return new PowerPlanManagerStatus(true, SafeRunning(), on, found);
         }
         catch (Exception)
         {
-            return PowerPlanManagerStatus.None;
+            // Whether it is installed cannot be told, so it cannot be confirmed off.
+            return new PowerPlanManagerStatus(true, SafeRunning(), PowerPlanManagerChargeControl.Unreadable);
+        }
+        if (families.Length == 0) return PowerPlanManagerStatus.None;
+
+        var seen = new List<PowerPlanManagerChargeControl>();
+        foreach (string family in families)
+        {
+            seen.Add(ReadChargeControl(Path.Combine(_localAppData, BackupFolder, family, BackupFile)));
+            seen.Add(ReadChargeControl(Path.Combine(packages, family, "LocalCache", "Local", BackupFolder, family, BackupFile)));
+        }
+        return new PowerPlanManagerStatus(true, SafeRunning(), Combine(seen));
+    }
+
+    /// <summary>
+    /// For <see cref="WriteGateContext.OtherOwner"/>: null only when Power Plan Manager is absent or its charge control
+    /// is confirmed off; otherwise a claim that refuses writes.
+    /// </summary>
+    public OtherOwnerClaim? OtherOwner()
+    {
+        PowerPlanManagerStatus status = Check();
+        if (status.ConfirmedOff) return null;
+        return new OtherOwnerClaim(DisplayName, Confirmed: status.OwnsCharging);
+    }
+
+    /// <summary>On means on anywhere; otherwise any doubt wins over a confirmed off.</summary>
+    private static PowerPlanManagerChargeControl Combine(IEnumerable<PowerPlanManagerChargeControl> values)
+    {
+        var all = values.ToList();
+        if (all.Contains(PowerPlanManagerChargeControl.Enabled)) return PowerPlanManagerChargeControl.Enabled;
+        if (all.Contains(PowerPlanManagerChargeControl.Unreadable)) return PowerPlanManagerChargeControl.Unreadable;
+        if (all.Contains(PowerPlanManagerChargeControl.Disabled)) return PowerPlanManagerChargeControl.Disabled;
+        return PowerPlanManagerChargeControl.Absent;
+    }
+
+    /// <summary>Reads one mirror. A locked or half-written file is read once more after a short pause.</summary>
+    public static PowerPlanManagerChargeControl ReadChargeControl(string path)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                if (!File.Exists(path)) return PowerPlanManagerChargeControl.Absent;
+                return Parse(File.ReadAllText(path));
+            }
+            catch (Exception ex) when (ex is IOException or JsonException && attempt == 0)
+            {
+                Thread.Sleep(RetryDelay);
+            }
+            catch (Exception)
+            {
+                return PowerPlanManagerChargeControl.Unreadable;
+            }
         }
     }
 
-    /// <summary>The owner name for <see cref="WriteGateContext.OtherOwner"/>, or null.</summary>
-    public string? OtherOwner() => Check().OwnsCharging ? DisplayName : null;
-
-    internal static bool? ReadEnabled(string path)
+    private static PowerPlanManagerChargeControl Parse(string text)
     {
-        try
+        using JsonDocument backup = JsonDocument.Parse(text);
+        if (backup.RootElement.ValueKind != JsonValueKind.Object ||
+            !backup.RootElement.TryGetProperty("LocalSettings", out JsonElement settings) ||
+            settings.ValueKind != JsonValueKind.Object ||
+            !settings.TryGetProperty("BatterySettings", out JsonElement battery) ||
+            battery.ValueKind != JsonValueKind.String)
+            return PowerPlanManagerChargeControl.Unreadable;
+
+        using JsonDocument batteryJson = JsonDocument.Parse(battery.GetString()!);
+        if (batteryJson.RootElement.ValueKind != JsonValueKind.Object ||
+            !batteryJson.RootElement.TryGetProperty("Enabled", out JsonElement enabled))
+            return PowerPlanManagerChargeControl.Unreadable;
+        return enabled.ValueKind switch
         {
-            if (!File.Exists(path)) return null;
-            using JsonDocument backup = JsonDocument.Parse(File.ReadAllText(path));
-            if (!backup.RootElement.TryGetProperty("LocalSettings", out JsonElement settings) ||
-                !settings.TryGetProperty("BatterySettings", out JsonElement battery) ||
-                battery.ValueKind != JsonValueKind.String)
-                return false;
-            using JsonDocument batteryJson = JsonDocument.Parse(battery.GetString()!);
-            return batteryJson.RootElement.TryGetProperty("Enabled", out JsonElement enabled) && enabled.ValueKind == JsonValueKind.True;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+            JsonValueKind.True => PowerPlanManagerChargeControl.Enabled,
+            JsonValueKind.False => PowerPlanManagerChargeControl.Disabled,
+            _ => PowerPlanManagerChargeControl.Unreadable,
+        };
     }
 
     private bool SafeRunning()

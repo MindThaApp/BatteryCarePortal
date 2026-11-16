@@ -76,6 +76,7 @@ public sealed partial class ChargingPage : Page
     private static string RefusalText(WriteRefusal refusal, string fallback) => refusal switch
     {
         WriteRefusal.OtherOwner => Strings.Get("ChargeStatusPpmOwns"),
+        WriteRefusal.OtherOwnerUnconfirmed => Strings.Get("ChargeStatusPpmUnconfirmed"),
         WriteRefusal.BetaOff => Strings.Get("ChargeStatusBetaOff"),
         WriteRefusal.NoReadBack => Strings.Get("ChargeStatusNotVerified"),
         WriteRefusal.NotDetected => Strings.Get("ChargeStatusNotDetected"),

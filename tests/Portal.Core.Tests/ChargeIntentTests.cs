@@ -184,7 +184,7 @@ public class ChargeIntentTests : IDisposable
     {
         var driver = new FakeEnergyDriver();
         string? owner = null;
-        var gate = new WriteGateContext { OtherOwner = () => owner };
+        var gate = new WriteGateContext { OtherOwner = () => owner is null ? null : new OtherOwnerClaim(owner) };
         ChargeLimitController controller = New(Lenovo(driver, gate));
         await controller.SetLimitAsync(true);
         await controller.StartTopUpAsync(TimeSpan.FromHours(1));
@@ -312,22 +312,65 @@ public class PowerPlanManagerProbeTests : IDisposable
         var probe = new PowerPlanManagerProbe(_root, () => true);
         PowerPlanManagerStatus s = probe.Check();
         Assert.True(s.Installed);
-        Assert.True(s.SettingsFound);
+        Assert.Equal(enabled ? PowerPlanManagerChargeControl.Enabled : PowerPlanManagerChargeControl.Disabled, s.ChargeControl);
         Assert.True(s.Running);
         Assert.Equal(enabled, s.OwnsCharging);
-        Assert.Equal(enabled ? PowerPlanManagerProbe.DisplayName : null, probe.OtherOwner());
+        Assert.Equal(!enabled, s.ConfirmedOff);
+        Assert.Equal(enabled ? PowerPlanManagerProbe.DisplayName : null, probe.OtherOwner()?.Name);
+    }
+
+    private string BackupPath()
+    {
+        string folder = Path.Combine(_root, "PowerPlanManagerBackup", Family);
+        Directory.CreateDirectory(folder);
+        return Path.Combine(folder, "settings-backup.json");
+    }
+
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData("{\"Version\":1}")]
+    [InlineData("{\"LocalSettings\":{\"Theme\":\"Dark\"}}")]
+    [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{\\\"Limit\\\":80}\"}}")]
+    [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{\\\"Enabled\\\":\\\"no\\\"}\"}}")]
+    public void Installed_with_unreadable_settings_refuses_as_unconfirmed(string content)
+    {
+        Install();
+        File.WriteAllText(BackupPath(), content);
+        var probe = new PowerPlanManagerProbe(_root, () => true);
+        PowerPlanManagerStatus s = probe.Check();
+        Assert.True(s.Installed);
+        Assert.Equal(PowerPlanManagerChargeControl.Unreadable, s.ChargeControl);
+        Assert.False(s.ConfirmedOff);
+        Assert.Equal(new OtherOwnerClaim(PowerPlanManagerProbe.DisplayName, Confirmed: false), probe.OtherOwner());
     }
 
     [Fact]
-    public void Installed_without_readable_settings_is_not_an_owner()
+    public void Installed_without_any_settings_mirror_refuses_as_unconfirmed()
     {
         Install();
-        string folder = Path.Combine(_root, "PowerPlanManagerBackup", Family);
-        Directory.CreateDirectory(folder);
-        File.WriteAllText(Path.Combine(folder, "settings-backup.json"), "garbage");
-        PowerPlanManagerStatus s = new PowerPlanManagerProbe(_root, () => true).Check();
-        Assert.True(s.Installed);
-        Assert.False(s.SettingsFound);
-        Assert.False(s.OwnsCharging);
+        var probe = new PowerPlanManagerProbe(_root, () => false);
+        Assert.Equal(PowerPlanManagerChargeControl.Absent, probe.Check().ChargeControl);
+        Assert.False(probe.OtherOwner()!.Confirmed);
+    }
+
+    [Fact]
+    public void Locked_settings_mirror_is_unconfirmed_not_off()
+    {
+        Install();
+        WriteBackup(enabled: false);
+        using (new FileStream(BackupPath(), FileMode.Open, FileAccess.Read, FileShare.None))
+            Assert.Equal(PowerPlanManagerChargeControl.Unreadable, new PowerPlanManagerProbe(_root, () => true).Check().ChargeControl);
+        Assert.Null(new PowerPlanManagerProbe(_root, () => true).OtherOwner());
+    }
+
+    [Fact]
+    public void One_unreadable_mirror_outweighs_one_that_says_off()
+    {
+        Install();
+        WriteBackup(enabled: false);
+        string virtualized = Path.Combine(_root, "Packages", Family, "LocalCache", "Local", "PowerPlanManagerBackup", Family);
+        Directory.CreateDirectory(virtualized);
+        File.WriteAllText(Path.Combine(virtualized, "settings-backup.json"), "{ half");
+        Assert.Equal(PowerPlanManagerChargeControl.Unreadable, new PowerPlanManagerProbe(_root, () => true).Check().ChargeControl);
     }
 }

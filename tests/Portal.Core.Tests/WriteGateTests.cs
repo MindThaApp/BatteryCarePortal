@@ -85,7 +85,36 @@ public class BackendGateTests
         return wmi;
     }
 
-    private static WriteGateContext Beta(bool on, string? owner = null) => new() { BetaOptIn = () => on, OtherOwner = () => owner };
+    private static WriteGateContext Beta(bool on, string? owner = null) =>
+        new() { BetaOptIn = () => on, OtherOwner = () => owner is null ? null : new OtherOwnerClaim(owner) };
+
+    [Fact]
+    public async Task Unconfirmed_other_owner_refuses_with_its_own_reason()
+    {
+        var driver = new FakeEnergyDriver();
+        var backend = new LenovoConservationBackend(LenovoWmi("IdeaPad 5"), new RecordingExecutor(), driver)
+        {
+            GateContext = new WriteGateContext { OtherOwner = () => new OtherOwnerClaim(PowerPlanManagerProbe.DisplayName, Confirmed: false) },
+        };
+        Assert.True(backend.Detect());
+        BackendWriteResult write = await backend.SetLimitAsync(60);
+        Assert.Equal(WriteRefusal.OtherOwnerUnconfirmed, write.Refusal);
+        Assert.StartsWith("Couldn't confirm Power Plan Manager has charge control off", write.Message);
+        Assert.DoesNotContain(LenovoConservationBackend.ConservationOnCode, driver.Sent);
+    }
+
+    [Fact]
+    public async Task Owner_check_that_throws_refuses()
+    {
+        var driver = new FakeEnergyDriver();
+        var backend = new LenovoConservationBackend(LenovoWmi("IdeaPad 5"), new RecordingExecutor(), driver)
+        {
+            GateContext = new WriteGateContext { OtherOwner = () => throw new IOException("locked") },
+        };
+        Assert.True(backend.Detect());
+        Assert.Equal(WriteRefusal.OtherOwnerUnconfirmed, (await backend.SetLimitAsync(60)).Refusal);
+        Assert.DoesNotContain(LenovoConservationBackend.ConservationOnCode, driver.Sent);
+    }
 
     [Fact]
     public async Task Unverified_lenovo_writes_only_with_beta_and_reads_back()
