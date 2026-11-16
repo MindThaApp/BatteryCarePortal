@@ -174,12 +174,30 @@ public sealed class ProEntitlementServiceTests
     [Fact]
     public void FeatureTiers_BasicLimitAndMonitoringFree_OthersPro()
     {
-        Assert.True(FeatureTiers.IsAvailable(PortalFeature.Monitoring, hasPro: false));
-        Assert.True(FeatureTiers.IsAvailable(PortalFeature.BasicChargeLimit, hasPro: false));
-        Assert.False(FeatureTiers.IsAvailable(PortalFeature.HeatProtection, hasPro: false));
-        Assert.True(FeatureTiers.IsAvailable(PortalFeature.HeatProtection, hasPro: true));
-        foreach (PortalFeature f in Enum.GetValues<PortalFeature>())
-            Assert.True(FeatureTiers.IsAvailable(f, hasPro: true));
+        bool saved = FeatureTiers.EverythingFree;
+        FeatureTiers.EverythingFree = false;
+        try
+        {
+            Assert.True(FeatureTiers.IsAvailable(PortalFeature.Monitoring, hasPro: false));
+            Assert.True(FeatureTiers.IsAvailable(PortalFeature.BasicChargeLimit, hasPro: false));
+            Assert.False(FeatureTiers.IsAvailable(PortalFeature.HeatProtection, hasPro: false));
+            Assert.True(FeatureTiers.IsAvailable(PortalFeature.HeatProtection, hasPro: true));
+            foreach (PortalFeature f in Enum.GetValues<PortalFeature>())
+                Assert.True(FeatureTiers.IsAvailable(f, hasPro: true));
+        }
+        finally { FeatureTiers.EverythingFree = saved; }
+    }
+
+    [Fact]
+    public void FeatureTiers_EverythingFreeSwitch_MakesAllFeaturesAvailable()
+    {
+        bool saved = FeatureTiers.EverythingFree;
+        FeatureTiers.EverythingFree = true;
+        try
+        {
+            foreach (PortalFeature f in Enum.GetValues<PortalFeature>())
+                Assert.True(FeatureTiers.IsAvailable(f, hasPro: false));
+        }
+        finally { FeatureTiers.EverythingFree = saved; }
     }
 }
-

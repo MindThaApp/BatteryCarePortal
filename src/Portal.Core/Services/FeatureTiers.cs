@@ -31,7 +31,11 @@ public static class FeatureTiers
         [PortalFeature.ScheduledCare] = FeatureTier.Pro,
     };
 
+    /// <summary>While true every feature is free and available; the map below is the intended future split.</summary>
+    public static bool EverythingFree = true;
+
+    /// <summary>The tier the map assigns, ignoring <see cref="EverythingFree"/>.</summary>
     public static FeatureTier TierOf(PortalFeature feature) => Map[feature];
 
-    public static bool IsAvailable(PortalFeature feature, bool hasPro) => hasPro || TierOf(feature) == FeatureTier.Free;
+    public static bool IsAvailable(PortalFeature feature, bool hasPro) => EverythingFree || hasPro || TierOf(feature) == FeatureTier.Free;
 }
