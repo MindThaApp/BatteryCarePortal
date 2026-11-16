@@ -81,6 +81,7 @@ public class BatteryPageLogicTests : IDisposable
         var backend = new TestBackend(ThresholdCaps);
         var engine = new ChargeCareEngine(backend, new BatterySettings { Enabled = true, Limit = 85, SailingRange = 7 },
             new ManualTimeProvider(Start));
+        engine.HardwareChangeRequired += (_, r) => backend.ApplyAsync(r);
         await engine.ProcessAsync(Snap.At(60, onAc: true, charging: true));
         Assert.Equal(78, backend.Start);
     }
@@ -124,11 +125,13 @@ public class BatteryPageLogicTests : IDisposable
     }
 
     [Fact]
-    public async Task Resume_writes_the_limit_again_in_hardware_mode_even_when_it_reads_back_fine()
+    public async Task Resume_asks_for_the_limit_again_in_hardware_mode_even_when_it_reads_back_fine()
     {
         var backend = new TestBackend(ThresholdCaps);
         var engine = new ChargeCareEngine(backend, new BatterySettings { Enabled = true, Limit = 80, SailingRange = 5 },
             new ManualTimeProvider(Start));
+        // The app's part: the controller applies what the engine asks for.
+        engine.HardwareChangeRequired += (_, r) => backend.ApplyAsync(r);
         var log = new List<string>();
         var guard = new SleepGuard(engine, log.Add);
         await engine.ProcessAsync(Snap.At(70, onAc: true, charging: true));

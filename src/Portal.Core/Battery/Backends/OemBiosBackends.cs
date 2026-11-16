@@ -51,6 +51,7 @@ public sealed class DellChargeLimitBackend : ChargeLimitBackendBase
             Limit = custom ? (int)stop.Value.Current : 100,
             StartThreshold = custom ? (int)start.Value.Current : null,
             RawValue = $"{mode.Value.Current}; start {start.Value.Current}; stop {stop.Value.Current}",
+            Mode = mode.Value.Current,
         };
     }
 
@@ -70,7 +71,7 @@ public sealed class DellChargeLimitBackend : ChargeLimitBackendBase
             !int.TryParse(original.Values.GetValueOrDefault(StopAttribute), NumberStyles.Integer, CultureInfo.InvariantCulture, out int stop))
             return null;
         bool custom = string.Equals(mode, "Custom", StringComparison.OrdinalIgnoreCase);
-        return new ChargeLimitState { Limit = custom ? stop : 100, StartThreshold = custom ? start : null };
+        return new ChargeLimitState { Limit = custom ? stop : 100, StartThreshold = custom ? start : null, Mode = mode };
     }
 
     protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error)
@@ -98,8 +99,26 @@ public sealed class DellChargeLimitBackend : ChargeLimitBackendBase
             error = "The original Dell values were never read.";
             return null;
         }
-        string currentMode = ReadEnum(ModeAttribute)?.Current ?? string.Empty;
-        return BuildSetPlan("Restore Dell charge settings", mode, currentMode, start, stop);
+        // The saved values must still be values this BIOS accepts; anything else is refused before any write.
+        var modeNow = ReadEnum(ModeAttribute);
+        var startNow = ReadInt(StartAttribute);
+        var stopNow = ReadInt(StopAttribute);
+        if (modeNow is null || startNow is null || stopNow is null)
+        {
+            error = "The Dell BIOS charge settings could not be read, so nothing was changed.";
+            return null;
+        }
+        if (!modeNow.Value.Possible.Contains(mode, StringComparer.OrdinalIgnoreCase))
+        {
+            error = $"The saved charge mode '{mode}' is not one this BIOS offers, so nothing was changed.";
+            return null;
+        }
+        if (start < startNow.Value.Lower || start > startNow.Value.Upper || stop < stopNow.Value.Lower || stop > stopNow.Value.Upper)
+        {
+            error = "The saved charge thresholds are outside what this BIOS accepts, so nothing was changed.";
+            return null;
+        }
+        return BuildSetPlan("Restore Dell charge settings", mode, modeNow.Value.Current, start, stop);
     }
 
     private BatteryWritePlan BuildSetPlan(string description, string mode, string currentMode, int start, int stop)
@@ -304,7 +323,6 @@ public sealed class AsusChargeLimitBackend : ChargeLimitBackendBase
     public override string Id => "asus-atk-charge-limit";
     public override string Name => "ASUS battery charge limit";
     public override BackendConfidence Confidence => BackendConfidence.Unverified;
-    protected override bool AllowWriteWithoutReadBack => true;
     /// <summary>The firmware cannot report the limit, so the write gate refuses every ASUS write, beta included.</summary>
     public override bool FirmwareReportsState => false;
     protected override ChargeLimitState? ExpectedAfterRestoreCore(BackendOriginalState original) => null;

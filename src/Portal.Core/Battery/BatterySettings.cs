@@ -72,7 +72,10 @@ public sealed class BatterySettings
         BetaOptInConfirmedUtc = null;
     }
 
-    /// <summary>Firmware values found before the first write, for "Restore defaults".</summary>
+    /// <summary>
+    /// Not used: the original firmware values live only in <see cref="OriginalStateStore"/>, written by
+    /// <see cref="ChargeLimitController"/>. Kept so a settings file from an earlier build loses nothing when saved.
+    /// </summary>
     public BackendOriginalState? OriginalHardwareState { get; set; }
 
     /// <summary>Clamps every value into its valid range.</summary>

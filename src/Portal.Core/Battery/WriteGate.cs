@@ -130,7 +130,12 @@ public static class ReadBackVerifier
         return anyRead ? ReadBackCheck.Matched : ReadBackCheck.Unreadable;
     }
 
-    /// <summary>Compares a restore against the state the saved originals describe.</summary>
-    public static ReadBackCheck CompareRestore(ChargeLimitState expected, ChargeLimitState state) =>
-        Compare(new ChargeLimitRequest { Limit = expected.Limit, StartThreshold = expected.StartThreshold }, state);
+    /// <summary>Compares a restore against the state the saved originals describe, including the firmware mode where there is one.</summary>
+    public static ReadBackCheck CompareRestore(ChargeLimitState expected, ChargeLimitState state)
+    {
+        ReadBackCheck check = Compare(new ChargeLimitRequest { Limit = expected.Limit, StartThreshold = expected.StartThreshold }, state);
+        if (expected.Mode is not string mode || check == ReadBackCheck.Mismatch) return check;
+        if (state.Mode is null) return check == ReadBackCheck.Matched ? ReadBackCheck.Mismatch : check;
+        return string.Equals(mode, state.Mode, StringComparison.OrdinalIgnoreCase) ? check : ReadBackCheck.Mismatch;
+    }
 }

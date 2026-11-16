@@ -14,11 +14,13 @@ internal static class AppServices
     private static DispatcherQueue? _dispatcher;
     private static bool _startupReapplyDone;
     private static bool _checking;
-    private static bool _stopping;
+    private static volatile bool _stopping;
+    private static int _exitReapplyDone;
 
     public static BatteryInfoService Battery { get; } = BatteryInfoService.CreateDefault();
 
-    private static string StateFolder => Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+    private static string StateFolder =>
+        AppStateFolder.Resolve(Windows.Storage.ApplicationData.Current.LocalFolder.Path, BatteryEnvironment.IsFakeBatteryEnabled);
 
     public static BatterySettingsStore Settings { get; } = new(StateFolder);
 
@@ -55,6 +57,7 @@ internal static class AppServices
         _dispatcher = DispatcherQueue.GetForCurrentThread();
         Battery.Start();
         try { SystemEvents.PowerModeChanged += OnPowerModeChanged; } catch (Exception) { }
+        try { SystemEvents.SessionEnding += OnSessionEnding; } catch (Exception) { }
         _ = StartupCheckAsync();
     }
 
@@ -165,6 +168,16 @@ internal static class AppServices
     {
         _stopping = true;
         try { SystemEvents.PowerModeChanged -= OnPowerModeChanged; } catch (Exception) { }
+        try { SystemEvents.SessionEnding -= OnSessionEnding; } catch (Exception) { }
+        if (Interlocked.Exchange(ref _exitReapplyDone, 1) == 1) return;
         try { Charge?.ReapplyOnExit(ChargeLimitController.DefaultExitBudget); } catch (Exception) { }
+    }
+
+    // Sign-out or shutdown: bounded, in-process only (no administrator helper), never prompts.
+    private static void OnSessionEnding(object? sender, SessionEndingEventArgs e)
+    {
+        _stopping = true;
+        if (Interlocked.Exchange(ref _exitReapplyDone, 1) == 1) return;
+        try { Charge?.ReapplyOnSessionEnd(ChargeLimitController.DefaultExitBudget); } catch (Exception) { }
     }
 }

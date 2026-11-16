@@ -226,6 +226,90 @@ public class BackendGateTests
         Assert.Single(executor.Plans);
     }
 
+    private static BackendOriginalState DellOriginal(string mode, string start, string stop) => new()
+    {
+        BackendId = "dell-bios-custom-charge",
+        Values = new() { ["PrimaryBattChargeCfg"] = mode, ["CustomChargeStart"] = start, ["CustomChargeStop"] = stop },
+    };
+
+    [Theory]
+    [InlineData("Adaptive", "50", "100")]
+    [InlineData("Standard", "45", "100")]
+    [InlineData("Standard", "50", "101")]
+    [InlineData("Custom", "60", "50")]
+    public async Task Dell_restore_refuses_values_the_bios_does_not_accept(string mode, string start, string stop)
+    {
+        FakeWmiReader wmi = DellWmi("Custom", 75, 80);
+        var executor = new RecordingExecutor();
+        var backend = new DellChargeLimitBackend(wmi, executor) { GateContext = Beta(true) };
+        Assert.True(backend.Detect());
+        BackendWriteResult result = await backend.RestoreAsync(DellOriginal(mode, start, stop));
+        Assert.False(result.Success);
+        Assert.True(result.NotAttempted, result.Message);
+        Assert.Empty(executor.Plans);
+    }
+
+    [Fact]
+    public async Task Dell_restore_read_back_checks_the_mode()
+    {
+        FakeWmiReader wmi = DellWmi("Custom", 75, 80);
+        var executor = new CallbackExecutor(_ => SetDell(wmi, "Express", 50, 100));
+        var backend = new DellChargeLimitBackend(wmi, executor) { GateContext = Beta(true) };
+        Assert.True(backend.Detect());
+        BackendWriteResult result = await backend.RestoreAsync(DellOriginal("Standard", "50", "100"));
+        Assert.False(result.Success);
+        Assert.Equal(ReadBackCheck.Mismatch, result.ReadBackCheck);
+
+        SetDell(wmi, "Custom", 75, 80);
+        var good = new DellChargeLimitBackend(wmi, new CallbackExecutor(_ => SetDell(wmi, "Standard", 50, 100))) { GateContext = Beta(true) };
+        Assert.True(good.Detect());
+        Assert.True((await good.RestoreAsync(DellOriginal("Standard", "50", "100"))).Success);
+    }
+
+    [Fact]
+    public void Restore_comparison_includes_the_mode()
+    {
+        var expected = new ChargeLimitState { Limit = 100, Mode = "Standard" };
+        Assert.Equal(ReadBackCheck.Matched, ReadBackVerifier.CompareRestore(expected, new ChargeLimitState { Limit = 100, Mode = "standard" }));
+        Assert.Equal(ReadBackCheck.Mismatch, ReadBackVerifier.CompareRestore(expected, new ChargeLimitState { Limit = 100, Mode = "Express" }));
+        Assert.Equal(ReadBackCheck.Mismatch, ReadBackVerifier.CompareRestore(expected, new ChargeLimitState { Limit = 100 }));
+    }
+
+    [Fact]
+    public void Every_write_step_needs_its_own_read_back()
+    {
+        var write = new BatteryWriteStep { Kind = BatteryWriteStepKind.WmiMethod };
+        var ioctl = new BatteryWriteStep { Kind = BatteryWriteStepKind.DeviceIoControl };
+        var verify = new BatteryWriteStep { Kind = BatteryWriteStepKind.VerifyWmiProperty };
+        var verifyBit = new BatteryWriteStep { Kind = BatteryWriteStepKind.VerifyDeviceIoControlBit };
+        Assert.True(new BatteryWritePlan { Steps = { write, verify, ioctl, verifyBit } }.EveryWriteIsVerified());
+        Assert.False(new BatteryWritePlan { Steps = { write, write, verify } }.EveryWriteIsVerified());
+        Assert.False(new BatteryWritePlan { Steps = { write, verify, write } }.EveryWriteIsVerified());
+        Assert.False(new BatteryWritePlan { Steps = { verify } }.EveryWriteIsVerified());
+        Assert.False(new BatteryWritePlan().EveryWriteIsVerified());
+    }
+
+    [Theory]
+    [InlineData(DeviceIoResult.ErrorAccessDenied, true)]
+    [InlineData(31, false)]
+    [InlineData(-1, false)]
+    public async Task Lenovo_writes_without_a_pre_read_only_after_access_denied(int readError, bool goesToHelper)
+    {
+        var driver = new FakeEnergyDriver();
+        var executor = new RecordingExecutor();
+        var backend = new LenovoConservationBackend(LenovoWmi("IdeaPad 5"), executor, driver);
+        Assert.True(backend.Detect());
+        driver.FailAllWith = readError;
+
+        BackendWriteResult result = await backend.SetLimitAsync(60);
+        Assert.Equal(goesToHelper, executor.Plans.Count == 1);
+        if (!goesToHelper)
+        {
+            Assert.True(result.NotAttempted);
+            Assert.DoesNotContain(LenovoConservationBackend.ConservationOnCode, driver.Sent);
+        }
+    }
+
     [Fact]
     public async Task Asus_stays_read_only_even_with_beta()
     {

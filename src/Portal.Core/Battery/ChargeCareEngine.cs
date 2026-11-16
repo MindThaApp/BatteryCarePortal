@@ -57,8 +57,9 @@ public sealed record ChargeCareEvaluation
 /// <summary>
 /// Turns battery snapshots and <see cref="BatterySettings"/> into hardware targets and reminders.
 /// Not thread-safe: call it from one thread (for example the snapshot callback, marshalled to the UI thread).
-/// Hardware writes happen automatically only when the backend needs no administrator prompt; otherwise
-/// <see cref="HardwareChangeRequired"/> asks the UI to confirm and call <see cref="ApplyNowAsync"/>.
+/// It only plans: it reads the backend's capabilities and state but holds no reference that can write firmware, and it
+/// never reads or writes the saved original values. A hardware change it wants is raised through
+/// <see cref="HardwareChangeRequired"/>; the app applies it through <see cref="ChargeLimitController"/>, the only writer.
 /// </summary>
 public sealed class ChargeCareEngine
 {
@@ -68,7 +69,8 @@ public sealed class ChargeCareEngine
     public static readonly TimeSpan ScheduledTopUpGrace = TimeSpan.FromHours(2);
 
     private readonly TimeProvider _time;
-    private readonly SemaphoreSlim _applyGate = new(1, 1);
+    private readonly Func<ChargeLimitCapabilities>? _capabilities;
+    private readonly Func<ChargeLimitState>? _readState;
     private BatterySettings _settings;
     private ChargeLimitRequest? _lastApplied;
     private ChargeLimitRequest? _lastRequired;
@@ -81,16 +83,21 @@ public sealed class ChargeCareEngine
     private bool _manualPause;
     private bool _forceReapply;
 
+    /// <param name="backend">Read only: the engine keeps its capabilities and state reader, never the backend itself.</param>
     public ChargeCareEngine(IChargeLimitBackend? backend, BatterySettings settings, TimeProvider? time = null,
         bool hardwareFeaturesAllowed = true)
     {
-        Backend = backend;
+        if (backend is not null)
+        {
+            _capabilities = () => backend.Capabilities;
+            _readState = backend.GetState;
+        }
         _settings = settings.Clone().Normalize();
         _time = time ?? TimeProvider.System;
         HardwareFeaturesAllowed = hardwareFeaturesAllowed;
     }
 
-    public IChargeLimitBackend? Backend { get; }
+    private ChargeLimitCapabilities? Capabilities => _capabilities?.Invoke();
 
     /// <summary>False in Lite: hardware limit, sailing, top-up, heat protection and calibration stay read-only.</summary>
     public bool HardwareFeaturesAllowed { get; }
@@ -99,23 +106,22 @@ public sealed class ChargeCareEngine
     public BatterySnapshot LastSnapshot { get; private set; } = BatterySnapshot.NotPresent;
     public ChargeCareEvaluation Last { get; private set; } = new() { Mode = ChargeCareMode.NoBattery };
     public bool IsManuallyPaused => _manualPause;
-    public bool CanPauseCharging => Mode == ChargeCareMode.Hardware && Backend!.Capabilities.CanPauseCharging;
+    public bool CanPauseCharging => Mode == ChargeCareMode.Hardware && Capabilities!.CanPauseCharging;
     public bool IsTopUpActive => _settings.TopUpUntil is DateTimeOffset until && until > _time.GetUtcNow();
 
     public ChargeCareMode Mode =>
         !LastSnapshot.Present ? ChargeCareMode.NoBattery
         : !_settings.Enabled ? ChargeCareMode.Disabled
-        : Backend is not null && HardwareFeaturesAllowed && Backend.Capabilities is { } c && (c.SupportsLimit || c.CanPauseCharging)
+        : HardwareFeaturesAllowed && Capabilities is { } c && (c.SupportsLimit || c.CanPauseCharging)
             ? ChargeCareMode.Hardware
             : ChargeCareMode.Software;
 
     public event EventHandler<ChargeCareEvaluation>? StateChanged;
     public event EventHandler<ChargeCareReminder>? ReminderRaised;
-    /// <summary>The engine changed settings itself (top-up ended, calibration step, original values captured); persist them.</summary>
+    /// <summary>The engine changed settings itself (top-up ended, calibration step); persist them.</summary>
     public event EventHandler<BatterySettings>? SettingsChanged;
-    /// <summary>A hardware change needs an administrator prompt; ask the user, then call <see cref="ApplyNowAsync"/>.</summary>
+    /// <summary>The hardware target differs from the firmware. Raised once per target; the app applies it through the controller.</summary>
     public event EventHandler<ChargeLimitRequest>? HardwareChangeRequired;
-    public event EventHandler<BackendWriteResult>? HardwareApplied;
 
     public void UpdateSettings(BatterySettings settings)
     {
@@ -162,76 +168,22 @@ public sealed class ChargeCareEngine
         return true;
     }
 
-    /// <summary>Evaluates a snapshot and applies hardware changes that need no administrator prompt.</summary>
-    public async Task<ChargeCareEvaluation> ProcessAsync(BatterySnapshot snapshot, CancellationToken cancellationToken = default)
+    /// <summary>Evaluates a snapshot and raises <see cref="HardwareChangeRequired"/> for a pending change. Never writes.</summary>
+    public Task<ChargeCareEvaluation> ProcessAsync(BatterySnapshot snapshot, CancellationToken cancellationToken = default)
     {
         ChargeCareEvaluation evaluation = Evaluate(snapshot);
-        if (evaluation.PendingHardware is { } pending)
-        {
-            if (!Backend!.RequiresElevation)
-            {
-                BackendWriteResult result = await ApplyCoreAsync(pending, allowPrompt: false, cancellationToken).ConfigureAwait(false);
-                if (result.NeedsElevation) RequireHardwareChange(pending);
-            }
-            else
-            {
-                RequireHardwareChange(pending);
-            }
-        }
-        return evaluation;
+        if (evaluation.PendingHardware is { } pending) RequireHardwareChange(pending);
+        return Task.FromResult(evaluation);
     }
 
-    /// <summary>
-    /// After the PC wakes: writes the hardware target again through the backend (without an administrator prompt;
-    /// a backend that needs one asks through <see cref="HardwareChangeRequired"/>). Does nothing outside hardware mode.
-    /// </summary>
-    public async Task<ChargeCareEvaluation> ReapplyAfterResumeAsync(CancellationToken cancellationToken = default)
+    /// <summary>After the PC wakes: asks for the hardware target again. Does nothing outside hardware mode. Never writes.</summary>
+    public Task<ChargeCareEvaluation> ReapplyAfterResumeAsync(CancellationToken cancellationToken = default)
     {
-        if (Mode != ChargeCareMode.Hardware || !LastSnapshot.Present) return Last;
+        if (Mode != ChargeCareMode.Hardware || !LastSnapshot.Present) return Task.FromResult(Last);
         _forceReapply = true;
         _lastApplied = null;
         _lastRequired = null;
-        return await ProcessAsync(LastSnapshot, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Applies the current hardware target in one operation (at most one administrator prompt). User-initiated.</summary>
-    public async Task<BackendWriteResult> ApplyNowAsync(CancellationToken cancellationToken = default)
-    {
-        if (Mode != ChargeCareMode.Hardware) return BackendWriteResult.Fail("No hardware charge control is available.");
-        ChargeLimitRequest desired = Last.DesiredHardware ?? ComputeDesired(LastSnapshot, _time.GetUtcNow(), out _);
-        return await ApplyCoreAsync(desired, allowPrompt: true, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Puts the firmware values captured before the first write back and turns charge care off.</summary>
-    public async Task<BackendWriteResult> RestoreDefaultsAsync(CancellationToken cancellationToken = default)
-    {
-        if (Backend is null) return BackendWriteResult.Fail("No hardware charge control is available.");
-        BackendOriginalState? original = _settings.OriginalHardwareState;
-        if (original is null || original.BackendId != Backend.Id)
-            return BackendWriteResult.Ok("Nothing was changed on this device, so there is nothing to restore.");
-
-        await _applyGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            BackendWriteResult result = await Backend.RestoreAsync(original, cancellationToken).ConfigureAwait(false);
-            if (result.Success)
-            {
-                _settings.Enabled = false;
-                _settings.TopUpUntil = null;
-                _settings.Calibration.Step = CalibrationStep.NotRunning;
-                _settings.OriginalHardwareState = null;
-                _lastApplied = null;
-                _lastRequired = null;
-                _manualPause = false;
-                RaiseSettingsChanged();
-            }
-            HardwareApplied?.Invoke(this, result);
-            return result;
-        }
-        finally
-        {
-            _applyGate.Release();
-        }
+        return ProcessAsync(LastSnapshot, cancellationToken);
     }
 
     /// <summary>Pure state update for one snapshot: advances top-up, calibration, heat and reminder state.</summary>
@@ -272,7 +224,7 @@ public sealed class ChargeCareEngine
         }
         else if (desired is not null && !SameTarget(desired, _lastApplied))
         {
-            ChargeLimitState state = Backend!.GetState();
+            ChargeLimitState state = _readState!();
             if (IsSatisfiedBy(desired, state)) _lastApplied = desired;
             else pending = desired;
         }
@@ -304,7 +256,7 @@ public sealed class ChargeCareEngine
 
     private ChargeLimitRequest ComputeDesired(BatterySnapshot snapshot, DateTimeOffset now, out int effectiveLimit)
     {
-        ChargeLimitCapabilities caps = Backend!.Capabilities;
+        ChargeLimitCapabilities caps = Capabilities!;
         int target = ComputeEffectiveLimit(now);
         bool normal = target == _settings.Limit && target < 100;
         effectiveLimit = caps.SupportsLimit ? caps.Snap(target) ?? target : target;
@@ -437,7 +389,7 @@ public sealed class ChargeCareEngine
         if (t >= heat.MaxTempC) _hot = true;
         else if (t <= heat.MaxTempC - HeatHysteresisC) { _hot = false; _hotReminderSent = false; }
 
-        bool canPause = Mode == ChargeCareMode.Hardware && Backend!.Capabilities.CanPauseCharging;
+        bool canPause = Mode == ChargeCareMode.Hardware && Capabilities!.CanPauseCharging;
         if (_hot && !canPause && snapshot.IsOnAc && !_hotReminderSent)
         {
             _hotReminderSent = true;
@@ -489,37 +441,6 @@ public sealed class ChargeCareEngine
             if (p >= _settings.SailingLower) return ChargeCareStatus.Sailing;
         }
         return ChargeCareStatus.Idle;
-    }
-
-    private async Task<BackendWriteResult> ApplyCoreAsync(ChargeLimitRequest request, bool allowPrompt, CancellationToken cancellationToken)
-    {
-        await _applyGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            if (_settings.OriginalHardwareState is null || _settings.OriginalHardwareState.BackendId != Backend!.Id)
-            {
-                BackendOriginalState original = Backend!.CaptureOriginal();
-                if (original.Values.Count > 0)
-                {
-                    _settings.OriginalHardwareState = original;
-                    RaiseSettingsChanged();
-                }
-            }
-
-            BackendWriteResult result = await Backend!.ApplyAsync(request with { AllowElevationPrompt = allowPrompt }, cancellationToken)
-                .ConfigureAwait(false);
-            if (result.Success)
-            {
-                _lastApplied = request;
-                _lastRequired = null;
-            }
-            if (!result.NeedsElevation) HardwareApplied?.Invoke(this, result);
-            return result;
-        }
-        finally
-        {
-            _applyGate.Release();
-        }
     }
 
     private void RequireHardwareChange(ChargeLimitRequest pending)

@@ -3,6 +3,16 @@ using System.Text.Json;
 
 namespace Portal.Core.Battery;
 
+/// <summary>Where the app keeps its state files.</summary>
+public static class AppStateFolder
+{
+    public const string SimulatedSubfolder = "simulated";
+
+    /// <summary>With the simulated battery on, everything goes to a separate subfolder so real intent, originals and settings are never touched.</summary>
+    public static string Resolve(string localFolder, bool simulated) =>
+        simulated ? System.IO.Path.Combine(localFolder, SimulatedSubfolder) : localFolder;
+}
+
 /// <summary>One lock object per state-file path for the whole process, so every store instance on a file serializes with the others.</summary>
 public static class AppStateFileLock
 {

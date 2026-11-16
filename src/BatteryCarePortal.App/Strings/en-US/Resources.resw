@@ -106,5 +106,6 @@
   <data name="SettingsBetaOffTitle" xml:space="preserve"><value>Turn off beta testing?</value></data>
   <data name="SettingsBetaOffText" xml:space="preserve"><value>Changes the app made during beta testing stay on your laptop. To undo them, use Restore laptop defaults on the Charging page before you turn beta testing off.</value></data>
   <data name="SettingsBetaOffYes" xml:space="preserve"><value>Turn off</value></data>
+  <data name="SettingsBetaFailed" xml:space="preserve"><value>The setting could not be changed. {0}</value></data>
 </root>
 

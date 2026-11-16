@@ -22,28 +22,32 @@ public sealed partial class SettingsPage : Page
     }
 
     // Turning beta on always needs the warning accepted; nothing is stored until the user confirms.
+    // Async void: any exception is shown on the page, never let out (it would end the app).
     private async void OnBetaToggled(object sender, RoutedEventArgs e)
     {
         if (_updating || _busy) return;
         bool on = BetaSwitch.IsOn;
         _busy = true;
         BetaSwitch.IsEnabled = false;
+        StatusInfo.IsOpen = false;
         try
         {
             bool confirmed = await ConfirmAsync(on);
-            if (!confirmed)
-            {
-                ShowStoredValue();
-                return;
-            }
+            if (!confirmed) return;
             AppServices.SetBetaOptIn(on);
             await AppServices.CheckDeviceAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Severity = InfoBarSeverity.Error;
+            StatusInfo.Message = string.Format(Strings.Get("SettingsBetaFailed"), ex.Message);
+            StatusInfo.IsOpen = true;
         }
         finally
         {
             _busy = false;
             BetaSwitch.IsEnabled = true;
-            ShowStoredValue();
+            try { ShowStoredValue(); } catch (Exception) { }
         }
     }
 

@@ -73,8 +73,7 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
             _interfaceFound, FirmwareReportsState, planHasReadBack, owner?.Name, owner?.Confirmed ?? true);
     }
 
-    private static bool HasReadBackStep(BatteryWritePlan plan) =>
-        plan.Steps.Any(s => s.Kind is BatteryWriteStepKind.VerifyDeviceIoControlBit or BatteryWriteStepKind.VerifyWmiProperty);
+    private static bool HasReadBackStep(BatteryWritePlan plan) => plan.EveryWriteIsVerified();
 
     /// <summary>Read-only probe; must also fill <see cref="Capabilities"/>.</summary>
     protected abstract bool DetectCore();
@@ -107,8 +106,8 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
         ChargeLimitState current = GetState();
         string? error = ChargeLimitRequestValidator.Validate(request, Capabilities, current.Limit);
         if (error is not null) return BackendWriteResult.FailBeforeWrite(error);
-        if (current.Message is not null && current.Limit is null && !AllowWriteWithoutReadBack)
-            return BackendWriteResult.FailBeforeWrite(current.Message);
+        if (current.Limit is null && !MayWriteWithoutPreRead(current))
+            return BackendWriteResult.FailBeforeWrite(current.Message ?? "The current value could not be read, so nothing was changed.");
 
         BatteryWritePlan? plan;
         try { plan = BuildPlan(request, current, out error); }
@@ -186,8 +185,11 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
         };
     }
 
-    /// <summary>True for backends whose current value may be unreadable before a write (the plan then reads back itself).</summary>
-    protected virtual bool AllowWriteWithoutReadBack => false;
+    /// <summary>
+    /// Whether a write may go ahead although the current value could not be read first. False unless a backend can
+    /// tell that only the read was refused for lack of rights (its elevated plan then reads back itself).
+    /// </summary>
+    protected virtual bool MayWriteWithoutPreRead(ChargeLimitState current) => false;
 
     /// <summary>Returns null with a null error when nothing needs to change, or null with an error to refuse.</summary>
     protected abstract BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error);

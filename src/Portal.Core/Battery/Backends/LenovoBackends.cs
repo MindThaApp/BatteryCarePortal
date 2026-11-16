@@ -131,6 +131,7 @@ public sealed class LenovoConservationBackend : ChargeLimitBackendBase
         {
             return new ChargeLimitState
             {
+                ReadAccessDenied = query.AccessDenied,
                 Message = query.AccessDenied
                     ? "Reading conservation mode needs administrator rights on this device."
                     : $"Could not read conservation mode (error {query.Win32Error}).",
@@ -160,8 +161,8 @@ public sealed class LenovoConservationBackend : ChargeLimitBackendBase
             ? new ChargeLimitState { Limit = value == "On" ? _conservationPercent : 100 }
             : null;
 
-    // Access denied on the read is acceptable: the elevated helper then reads back itself.
-    protected override bool AllowWriteWithoutReadBack => true;
+    // Only access denied on the read is acceptable: the elevated helper then reads back itself. Any other read error stops the write.
+    protected override bool MayWriteWithoutPreRead(ChargeLimitState current) => current.ReadAccessDenied;
 
     protected override BatteryWritePlan? BuildPlan(ChargeLimitRequest request, ChargeLimitState current, out string? error)
     {

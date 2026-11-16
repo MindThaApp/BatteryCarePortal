@@ -88,10 +88,14 @@ public sealed class ChargeLimitController
     /// <summary>Read-only.</summary>
     public ChargeLimitState ReadState() => Backend.GetState();
 
-    /// <summary>The write gate as it stands now. Read-only.</summary>
-    public WriteGateResult EvaluateGate() => Backend is ChargeLimitBackendBase b
-        ? b.EvaluateGate()
-        : new WriteGateResult(WriteGateDecision.Simulated, WriteRefusal.None, "Simulated backend.");
+    /// <summary>The write gate as it stands now. Read-only. A backend outside the gated base class may write only when it is simulated.</summary>
+    public WriteGateResult EvaluateGate() => Backend switch
+    {
+        ChargeLimitBackendBase b => b.EvaluateGate(),
+        { Confidence: BackendConfidence.Simulated } => new WriteGateResult(WriteGateDecision.Simulated, WriteRefusal.None, "Simulated backend."),
+        _ => new WriteGateResult(WriteGateDecision.Refused, WriteRefusal.NotDetected,
+            "This charge-limit interface is not checked by the write gate, so nothing was changed."),
+    };
 
     public bool HasSavedOriginals => _originals.Get(Backend.Id, out _) is not null;
 
@@ -326,6 +330,15 @@ public sealed class ChargeLimitController
         return new(ChargeActionStatus.Failed, "Putting the charge limit back took too long; the app will finish it at the next start.");
     }
 
+    /// <summary>
+    /// Windows is signing out or shutting down: the same bounded re-apply as quitting, but only for a backend that writes
+    /// in-process without an administrator helper. Never prompts; anything else is left to the next start.
+    /// </summary>
+    public ChargeActionResult ReapplyOnSessionEnd(TimeSpan budget) =>
+        Backend.RequiresElevation
+            ? new(ChargeActionStatus.NothingToDo, "This laptop needs administrator approval to put the limit back, so the next start handles it.") { NotAttempted = true }
+            : ReapplyOnExit(budget);
+
     /// <summary>User choice after <see cref="ChargeActionStatus.ChangedElsewhere"/>: keep what the firmware shows. No firmware write.</summary>
     public ChargeActionResult KeepFirmwareValue()
     {
@@ -348,8 +361,10 @@ public sealed class ChargeLimitController
         // Last guard before the write: putting the limit back must turn a valid limit on, never off.
         if (!intent.LimitOn || intent.Limit >= 100 || !Capabilities.IsValidLimit(intent.Limit))
             return new(ChargeActionStatus.Failed, "The saved charge limit is not a limit this laptop supports, so nothing was changed.") { NotAttempted = true };
-
-        ChargeActionResult result = await WriteLimitAsync(intent.Limit, allowPrompt, cancellationToken).ConfigureAwait(false);
+        WriteGateResult gate = EvaluateGate();
+        ChargeActionResult result = gate.Allowed
+            ? await WriteLimitAsync(intent.Limit, allowPrompt, cancellationToken).ConfigureAwait(false)
+            : Refused(gate.Refusal, gate.Message);
         DateTimeOffset now = _time.GetUtcNow();
         ChargeIntent next = result.Succeeded ? Settled(intent)
             : !WriteMayHaveHappened(result) ? intent with { NeedsReapply = true, UpdatedUtc = now }

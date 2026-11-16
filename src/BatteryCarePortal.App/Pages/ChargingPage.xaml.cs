@@ -29,7 +29,20 @@ public sealed partial class ChargingPage : Page
         };
     }
 
+    // Async void handlers on this page never let an exception out: it would end the app.
     private async void Refresh()
+    {
+        try { await RefreshAsync(); }
+        catch (Exception ex) { ShowError(ex); }
+    }
+
+    private void ShowError(Exception ex)
+    {
+        try { ShowStatus(InfoBarSeverity.Error, string.Format(Strings.Get("ChargeResultFailed"), ex.Message)); }
+        catch (Exception) { }
+    }
+
+    private async Task RefreshAsync()
     {
         DeviceSupport? support = AppServices.Support;
         ChargeLimitController? controller = AppServices.Charge;
@@ -162,21 +175,27 @@ public sealed partial class ChargingPage : Page
         _ => null,
     };
 
-    private async void OnLimitToggled(object sender, RoutedEventArgs e)
+    private async Task Guarded(Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception ex) { ShowError(ex); }
+    }
+
+    private async void OnLimitToggled(object sender, RoutedEventArgs e) => await Guarded(async () =>
     {
         if (_updating || _busy) return;
         bool on = LimitSwitch.IsOn;
         int? value = CurrentValue();
         await RunAsync(c => c.SetLimitAsync(on, value));
-    }
+    });
 
-    private async void OnApplyValue(object sender, RoutedEventArgs e)
+    private async void OnApplyValue(object sender, RoutedEventArgs e) => await Guarded(async () =>
     {
         int? value = CurrentValue();
         await RunAsync(c => c.SetLimitAsync(true, value));
-    }
+    });
 
-    private async void OnRestore(object sender, RoutedEventArgs e)
+    private async void OnRestore(object sender, RoutedEventArgs e) => await Guarded(async () =>
     {
         if (_busy) return;
         var dialog = new ContentDialog
@@ -190,19 +209,21 @@ public sealed partial class ChargingPage : Page
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         await RunAsync(c => c.RestoreDefaultsAsync());
-    }
+    });
 
     private async void OnResetState(object sender, RoutedEventArgs e) =>
-        await RunAsync(c => Task.FromResult(c.ResetAppState()));
+        await Guarded(() => RunAsync(c => Task.FromResult(c.ResetAppState())));
 
-    private async void OnNoticePrimary(object sender, RoutedEventArgs e)
+    private async void OnNoticePrimary(object sender, RoutedEventArgs e) => await Guarded(async () =>
     {
-        int? value = AppServices.Charge?.LoadIntent() is { LimitOn: true } intent ? intent.Limit : CurrentValue();
+        ChargeLimitController? controller = AppServices.Charge;
+        ChargeIntent? saved = controller is null ? null : await Task.Run(controller.LoadIntent);
+        int? value = saved is { LimitOn: true } intent ? intent.Limit : CurrentValue();
         await RunAsync(c => c.SetLimitAsync(true, value));
-    }
+    });
 
     private async void OnNoticeSecondary(object sender, RoutedEventArgs e) =>
-        await RunAsync(c => Task.FromResult(c.KeepFirmwareValue()));
+        await Guarded(() => RunAsync(c => Task.FromResult(c.KeepFirmwareValue())));
 
     /// <summary>One change at a time: the controls stay disabled until the write and its read-back finish.</summary>
     private async Task RunAsync(Func<ChargeLimitController, Task<ChargeActionResult>> action)

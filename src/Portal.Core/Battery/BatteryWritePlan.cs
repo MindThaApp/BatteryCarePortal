@@ -14,6 +14,29 @@ public sealed record BatteryWritePlan
     public string Description { get; init; } = string.Empty;
     public List<BatteryWriteCheck> Checks { get; init; } = new();
     public List<BatteryWriteStep> Steps { get; init; } = new();
+
+    /// <summary>True when the plan writes something and every write step is followed by a read-back step before the next write.</summary>
+    public bool EveryWriteIsVerified()
+    {
+        bool anyWrite = false, unverified = false;
+        foreach (BatteryWriteStep step in Steps)
+        {
+            if (step.Kind is BatteryWriteStepKind.WmiMethod or BatteryWriteStepKind.DeviceIoControl)
+            {
+                if (unverified) return false;
+                anyWrite = unverified = true;
+            }
+            else if (step.Kind is BatteryWriteStepKind.VerifyDeviceIoControlBit or BatteryWriteStepKind.VerifyWmiProperty)
+            {
+                unverified = false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return anyWrite && !unverified;
+    }
 }
 
 /// <summary>A read-only precondition, for example "no BIOS administrator password is set".</summary>

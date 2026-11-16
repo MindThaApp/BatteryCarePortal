@@ -106,6 +106,41 @@ public class ChargeIntentTests : IDisposable
     }
 
     [Fact]
+    public async Task Session_end_puts_the_limit_back_in_process_only()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController lenovo = New(Lenovo(driver));
+        await lenovo.SetLimitAsync(true);
+        await lenovo.StartTopUpAsync(TimeSpan.FromHours(12));
+        Assert.True(lenovo.ReapplyOnSessionEnd(ChargeLimitController.DefaultExitBudget).Succeeded);
+        Assert.True(LenovoConservationBackend.IsConservationOn(driver.ModeWord));
+
+        // The elevated-helper kind is left alone: no write, no prompt, the intent stays for the next start.
+        var elevated = new TestBackend(Continuous, requiresElevation: true);
+        string otherFolder = Path.Combine(_folder, "elevated");
+        var controller = new ChargeLimitController(elevated, new OriginalStateStore(otherFolder), new ChargeIntentStore(otherFolder), _time, _lock);
+        await controller.SetLimitAsync(true, 80);
+        await controller.StartTopUpAsync(TimeSpan.FromHours(12));
+        int writes = elevated.Applied.Count;
+        ChargeActionResult result = controller.ReapplyOnSessionEnd(ChargeLimitController.DefaultExitBudget);
+        Assert.Equal(ChargeActionStatus.NothingToDo, result.Status);
+        Assert.Equal(writes, elevated.Applied.Count);
+        Assert.True(controller.LoadIntent()!.TopUpActive);
+    }
+
+    [Fact]
+    public void Simulated_mode_keeps_its_state_in_a_separate_folder()
+    {
+        string real = Path.Combine(_folder, "LocalState");
+        Assert.Equal(real, AppStateFolder.Resolve(real, simulated: false));
+        string simulated = AppStateFolder.Resolve(real, simulated: true);
+        Assert.NotEqual(real, simulated);
+        Assert.Equal(real, Path.GetDirectoryName(simulated));
+        Assert.NotEqual(new ChargeIntentStore(real).Path, new ChargeIntentStore(simulated).Path);
+        Assert.NotEqual(new OriginalStateStore(real).Path, new OriginalStateStore(simulated).Path);
+    }
+
+    [Fact]
     public async Task Quit_is_bounded_in_time_when_the_backend_hangs()
     {
         var backend = new ChargeLimitControllerTests.BlockingBackend();

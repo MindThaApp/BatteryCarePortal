@@ -76,6 +76,10 @@ public sealed record ChargeLimitState
     public string? RawValue { get; init; }
     /// <summary>Why the state could not be read, if it could not.</summary>
     public string? Message { get; init; }
+    /// <summary>The read failed only because the firmware interface refused access to a standard user.</summary>
+    public bool ReadAccessDenied { get; init; }
+    /// <summary>The firmware's charge mode where it has one (Dell PrimaryBattChargeCfg), compared on restore.</summary>
+    public string? Mode { get; init; }
 }
 
 /// <summary>Target values for one apply. Null fields are left unchanged.</summary>
@@ -94,7 +98,7 @@ public sealed record ChargeLimitRequest
 
 /// <summary>
 /// The firmware values a backend found before its first write, so "Restore defaults" can put them back.
-/// Persisted in <see cref="BatterySettings.OriginalHardwareState"/>.
+/// Persisted in <see cref="OriginalStateStore"/>.
 /// </summary>
 public sealed record BackendOriginalState
 {

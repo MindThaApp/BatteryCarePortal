@@ -75,7 +75,7 @@ public sealed class SleepGuard
         return advice;
     }
 
-    /// <summary>Re-applies the limit through the backend. Returns true when a hardware re-apply was requested.</summary>
+    /// <summary>Asks the engine for the hardware target again (the app applies it through the controller). Returns true when it was requested.</summary>
     public async Task<bool> OnResumeAsync(CancellationToken cancellationToken = default)
     {
         if (!SleepPolicy.ReapplyOnResume(_engine.Mode))

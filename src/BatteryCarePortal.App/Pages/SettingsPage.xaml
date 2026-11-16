@@ -7,6 +7,8 @@
         <StackPanel Padding="32,24" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
             <TextBlock x:Uid="TitleSettings" Style="{StaticResource TitleTextBlockStyle}" />
 
+            <InfoBar x:Name="StatusInfo" IsOpen="False" IsClosable="True" />
+
             <Border Padding="20" CornerRadius="8"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">

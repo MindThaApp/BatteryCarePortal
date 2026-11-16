@@ -25,13 +25,15 @@ public class ChargeCareEngineTests
         return s;
     }
 
+    /// <param name="applyRequests">Plays the app's part: applies each requested change to the fake backend, as the controller will.</param>
     private static (ChargeCareEngine Engine, ManualTimeProvider Time, List<ChargeCareReminder> Reminders) Create(
-        IChargeLimitBackend? backend, BatterySettings settings, bool pro = true)
+        IChargeLimitBackend? backend, BatterySettings settings, bool pro = true, bool applyRequests = true)
     {
         var time = new ManualTimeProvider(Start);
         var engine = new ChargeCareEngine(backend, settings, time, pro);
         var reminders = new List<ChargeCareReminder>();
         engine.ReminderRaised += (_, r) => reminders.Add(r);
+        if (applyRequests && backend is not null) engine.HardwareChangeRequired += (_, r) => backend.ApplyAsync(r);
         return (engine, time, reminders);
     }
 
@@ -48,7 +50,34 @@ public class ChargeCareEngineTests
         Assert.Single(backend.Applied);
         Assert.Equal(80, backend.Limit);
         Assert.Equal(75, backend.Start);
-        Assert.NotNull(engine.Settings.OriginalHardwareState);
+        Assert.Null(engine.Settings.OriginalHardwareState);
+    }
+
+    [Fact]
+    public async Task Engine_never_writes_firmware_or_touches_saved_originals()
+    {
+        var backend = new TestBackend(PauseCaps);
+        var original = new BackendOriginalState { BackendId = backend.Id, Values = new() { ["Limit"] = "100" } };
+        var (engine, time, _) = Create(backend, Enabled(s => s.OriginalHardwareState = original), applyRequests: false);
+        var asked = new List<ChargeLimitRequest>();
+        engine.HardwareChangeRequired += (_, r) => asked.Add(r);
+
+        await engine.ProcessAsync(Snap.At(60, onAc: true, charging: true));
+        engine.StartTopUp(TimeSpan.FromHours(1));
+        await engine.ProcessAsync(Snap.At(61, onAc: true, charging: true));
+        engine.SetManualPause(true);
+        await engine.ProcessAsync(Snap.At(62, onAc: true));
+        time.Advance(TimeSpan.FromHours(2));
+        await engine.ReapplyAfterResumeAsync();
+
+        Assert.Empty(backend.Applied);
+        Assert.NotEmpty(asked);
+        BackendOriginalState kept = engine.Settings.OriginalHardwareState!;
+        Assert.Equal(original.BackendId, kept.BackendId);
+        Assert.Equal(original.Values, kept.Values);
+        Assert.DoesNotContain(typeof(ChargeCareEngine).GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public),
+            f => typeof(IChargeLimitBackend).IsAssignableFrom(f.FieldType));
+        Assert.DoesNotContain(typeof(ChargeCareEngine).GetMethods(), m => m.ReturnType == typeof(Task<BackendWriteResult>));
     }
 
     [Fact]
@@ -179,10 +208,10 @@ public class ChargeCareEngineTests
     }
 
     [Fact]
-    public async Task Elevated_backend_asks_once_and_writes_only_on_apply()
+    public async Task Engine_asks_once_per_target()
     {
         var backend = new TestBackend(ThresholdCaps, requiresElevation: true);
-        var (engine, _, _) = Create(backend, Enabled());
+        var (engine, _, _) = Create(backend, Enabled(), applyRequests: false);
         int asked = 0;
         engine.HardwareChangeRequired += (_, _) => asked++;
 
@@ -190,11 +219,6 @@ public class ChargeCareEngineTests
         await engine.ProcessAsync(Snap.At(61, onAc: true, charging: true));
         Assert.Equal(1, asked);
         Assert.Empty(backend.Applied);
-
-        BackendWriteResult result = await engine.ApplyNowAsync();
-        Assert.True(result.Success);
-        Assert.Single(backend.Applied);
-        Assert.Equal(80, backend.Limit);
     }
 
     [Fact]
@@ -271,21 +295,6 @@ public class ChargeCareEngineTests
         var (noPause, _, _) = Create(new TestBackend(ThresholdCaps), Enabled());
         noPause.Evaluate(Snap.At(50, onAc: true));
         Assert.False(noPause.SetManualPause(true));
-    }
-
-    [Fact]
-    public async Task Restore_defaults_puts_original_values_back_and_disables()
-    {
-        var backend = new TestBackend(ThresholdCaps) { Limit = 100 };
-        var (engine, _, _) = Create(backend, Enabled());
-        await engine.ProcessAsync(Snap.At(60, onAc: true, charging: true));
-        Assert.Equal(80, backend.Limit);
-
-        BackendWriteResult result = await engine.RestoreDefaultsAsync();
-        Assert.True(result.Success);
-        Assert.Equal(100, backend.Limit);
-        Assert.False(engine.Settings.Enabled);
-        Assert.Null(engine.Settings.OriginalHardwareState);
     }
 
     [Fact]

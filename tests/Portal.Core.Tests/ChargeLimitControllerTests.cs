@@ -55,6 +55,22 @@ public class ChargeLimitControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task Ungated_backend_that_is_not_simulated_is_refused()
+    {
+        var backend = new TestBackend(new ChargeLimitCapabilities { Kind = ChargeLimitKind.ContinuousRange, MinLimit = 50, MaxLimit = 100 })
+        {
+            Confidence = BackendConfidence.Verified,
+        };
+        ChargeLimitController controller = New(backend);
+        Assert.Equal(WriteGateDecision.Refused, controller.EvaluateGate().Decision);
+        Assert.Equal(ChargeActionStatus.Refused, (await controller.SetLimitAsync(true, 80)).Status);
+
+        new ChargeIntentStore(_folder).TrySave(new ChargeIntent { BackendId = backend.Id, Managed = true, LimitOn = true, Limit = 80, TopUpActive = true });
+        Assert.Equal(ChargeActionStatus.Refused, (await controller.ReapplyAsync(ReapplyReason.Startup)).Status);
+        Assert.Empty(backend.Applied);
+    }
+
+    [Fact]
     public void Store_instances_on_one_file_share_one_lock()
     {
         Assert.Same(AppStateFileLock.For(Path.Combine(_folder, "a.json")), AppStateFileLock.For(Path.Combine(_folder, ".", "A.json")));

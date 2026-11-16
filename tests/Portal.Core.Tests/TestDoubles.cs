@@ -23,7 +23,7 @@ public sealed class TestBackend : IChargeLimitBackend
 
     public string Id => "test";
     public string Name => "Test backend";
-    public BackendConfidence Confidence => BackendConfidence.Simulated;
+    public BackendConfidence Confidence { get; init; } = BackendConfidence.Simulated;
     public bool RequiresElevation { get; }
     public ChargeLimitCapabilities Capabilities { get; }
     public List<ChargeLimitRequest> Applied { get; } = new();
