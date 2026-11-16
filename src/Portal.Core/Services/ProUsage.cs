@@ -1,4 +1,4 @@
-namespace Portal.Core.Services;
+﻿namespace Portal.Core.Services;
 
 /// <summary>
 /// Where a deliberate use of a Pro feature is reported (saving a hotkey, creating a rule, taking fan control and so on).
@@ -18,7 +18,7 @@ public static class ProUsage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: Pro use not recorded ({feature}): {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: Pro use not recorded ({feature}): {ex.Message}");
         }
     }
 }

@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="AppName" xml:space="preserve"><value>Portal Battery Care</value></data>
+  <data name="AppName" xml:space="preserve"><value>Battery Care Portal</value></data>
   <data name="TrayOpen" xml:space="preserve"><value>Open Battery Care</value></data>
   <data name="TrayQuit" xml:space="preserve"><value>Quit</value></data>
   <data name="NavOverview.Content" xml:space="preserve"><value>Overview</value></data>
@@ -19,8 +19,8 @@
   <data name="TitlePowerFlow.Text" xml:space="preserve"><value>Power flow</value></data>
   <data name="TitleHistory.Text" xml:space="preserve"><value>History</value></data>
   <data name="TitleSettings.Text" xml:space="preserve"><value>Settings</value></data>
-  <data name="TrayTipLevel" xml:space="preserve"><value>Portal Battery Care: {0}%</value></data>
-  <data name="TrayTipCharging" xml:space="preserve"><value>Portal Battery Care: {0}%, charging</value></data>
+  <data name="TrayTipLevel" xml:space="preserve"><value>Battery Care Portal: {0}%</value></data>
+  <data name="TrayTipCharging" xml:space="preserve"><value>Battery Care Portal: {0}%, charging</value></data>
   <data name="OverviewSimulated.Text" xml:space="preserve"><value>Simulated battery (test mode)</value></data>
   <data name="BatteryCharging" xml:space="preserve"><value>Charging</value></data>
   <data name="BatteryPluggedIn" xml:space="preserve"><value>Plugged in, not charging</value></data>

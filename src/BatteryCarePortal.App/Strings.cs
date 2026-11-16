@@ -1,6 +1,6 @@
-using Microsoft.Windows.ApplicationModel.Resources;
+﻿using Microsoft.Windows.ApplicationModel.Resources;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 internal static class Strings
 {

@@ -1,9 +1,9 @@
-<Page
-    x:Class="PortalBatteryCare.Pages.HeatProtectionPage"
+﻿<Page
+    x:Class="BatteryCarePortal.Pages.PowerFlowPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Padding="32,24">
-        <TextBlock x:Uid="TitleHeatProtection" Style="{StaticResource TitleTextBlockStyle}" />
+        <TextBlock x:Uid="TitlePowerFlow" Style="{StaticResource TitleTextBlockStyle}" />
     </Grid>
 </Page>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -10,12 +10,12 @@
 
   <!-- Name and Publisher are placeholders until the Store reservation exists; replace with the values Partner Center shows. -->
   <Identity
-    Name="34458MindtheApp.PortalBatteryCare"
+    Name="34458MindtheApp.BatteryCarePortal"
     Publisher="CN=PLACEHOLDER-STORE-PUBLISHER-ID"
     Version="0.1.0.0" />
 
   <Properties>
-    <DisplayName>Portal Battery Care</DisplayName>
+    <DisplayName>Battery Care Portal</DisplayName>
     <PublisherDisplayName>MindtheApp</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -29,11 +29,11 @@
   </Resources>
 
   <Applications>
-    <Application Id="PortalBatteryCare"
+    <Application Id="BatteryCarePortal"
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Portal Battery Care"
+        DisplayName="Battery Care Portal"
         Description="Keeps a laptop battery healthy for years."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -44,13 +44,13 @@
       <Extensions>
         <uap5:Extension Category="windows.startupTask">
           <uap5:StartupTask
-            TaskId="PortalBatteryCareStartup"
+            TaskId="BatteryCarePortalStartup"
             Enabled="false"
-            DisplayName="Portal Battery Care" />
+            DisplayName="Battery Care Portal" />
         </uap5:Extension>
         <uap:Extension Category="windows.protocol">
-          <uap:Protocol Name="portal-battery">
-            <uap:DisplayName>Portal Battery Care</uap:DisplayName>
+          <uap:Protocol Name="battery-care-portal">
+            <uap:DisplayName>Battery Care Portal</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
       </Extensions>

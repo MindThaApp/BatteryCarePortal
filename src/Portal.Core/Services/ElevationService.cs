@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 
 namespace Portal.Core.Services;
@@ -16,7 +16,7 @@ public sealed class ElevationService
     public async Task<Battery.BatteryWritePlanResult> RunBatteryWritePlanAsync(
         Battery.BatteryWritePlan plan, CancellationToken cancellationToken = default)
     {
-        string resultPath = Path.Combine(Path.GetTempPath(), $"PortalBatteryCare-battery-{Guid.NewGuid():N}.json");
+        string resultPath = Path.Combine(Path.GetTempPath(), $"BatteryCarePortal-battery-{Guid.NewGuid():N}.json");
         string encoded = Battery.BatteryWritePlanScript.EncodeForCommandLine(Battery.BatteryWritePlanScript.Build(plan, resultPath));
         string powershell = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
         string arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {encoded}";

@@ -3,7 +3,7 @@ namespace Portal.Core.Battery;
 public static class BatteryEnvironment
 {
     /// <summary>PBC_FAKE_BATTERY=1 (or the older PPM_FAKE_BATTERY=1) turns on the simulated battery and backend (development and UI testing only).</summary>
-    public static bool IsFakeBatteryEnabled => IsSet("PBC_FAKE_BATTERY") || IsSet("PPM_FAKE_BATTERY");
+    public static bool IsFakeBatteryEnabled => IsSet("PBC_FAKE_BATTERY") || IsSet("BCP_FAKE_BATTERY") || IsSet("PPM_FAKE_BATTERY");
 
     private static bool IsSet(string name) =>
         Environment.GetEnvironmentVariable(name) is "1" or "true" or "TRUE" or "True";

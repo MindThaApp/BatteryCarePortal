@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using Microsoft.UI.Xaml;
@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
 using Portal.Core.Battery;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 public partial class App : Application
 {

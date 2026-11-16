@@ -1,6 +1,6 @@
-using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml.Controls;
 
-namespace PortalBatteryCare.Pages;
+namespace BatteryCarePortal.Pages;
 
 public sealed partial class HistoryPage : Page
 {

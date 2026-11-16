@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Portal.Core.Tests", "tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Portal.Core.UI", "src\Portal.Core.UI\Portal.Core.UI.csproj", "{9858809D-6C6E-4F36-B991-EA4B60CC4045}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortalBatteryCare.App", "src\PortalBatteryCare.App\PortalBatteryCare.App.csproj", "{3C1A457D-E566-4A5F-994D-A3748A0B842F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BatteryCarePortal.App", "src\BatteryCarePortal.App\BatteryCarePortal.App.csproj", "{3C1A457D-E566-4A5F-994D-A3748A0B842F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

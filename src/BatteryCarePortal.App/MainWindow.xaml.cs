@@ -1,10 +1,10 @@
-using Microsoft.UI.Windowing;
+﻿using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using PortalBatteryCare.Pages;
+using BatteryCarePortal.Pages;
 using WinRT.Interop;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 public sealed partial class MainWindow : Window
 {

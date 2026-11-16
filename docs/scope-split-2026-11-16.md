@@ -1,4 +1,4 @@
-# Scope split: Power Plan Manager + Portal Battery Care (owner decision 2026-11-16)
+﻿# Scope split: Power Plan Manager + Battery Care Portal (owner decision 2026-11-16)
 
 ## Why
 Power Plan Manager (PPM) grew to cover power plans, battery care, fans, sensors, schedules and more.
@@ -9,7 +9,7 @@ Pro sales so far are very low. One clear pitch per app sells better than one app
 - **Automatic switching** by CPU load (with hysteresis/delays so plans don't flap) and by running/focused app
   (per-app rules, e.g. Game.exe -> High performance, revert on exit). This is the headline feature.
 - **Plugged-in / on-battery plan switching stays in PPM** (owner, 2026-11-16): it is a power-plan rule, not
-  battery care. Portal Battery Care only handles charging and battery health.
+  battery care. Battery Care Portal only handles charging and battery health.
 - **Fan control via FanControl (Rem0o.FanControl)**, which supports many motherboards:
   - Quiet / Balanced / Performance presets = PPM-owned FanControl config files, switched with the power plan.
   - Free-form curves under Advanced, behind a one-time warning, with Restore defaults and a 30 s keep-or-revert
@@ -23,7 +23,7 @@ Pro sales so far are very low. One clear pitch per app sells better than one app
   schedules, presets, history, toasts, search, profile export.
 - **Power flow** (kept in BOTH apps).
 
-## Moves out of PPM -> new app "Portal Battery Care" (laptops)
+## Moves out of PPM -> new app "Battery Care Portal" (laptops)
 - Everything battery-care related: charge limit, sailing, top-up, heat protection, calibration, battery health,
   Battery page, battery rules.
 - Laptop OEM backends (Lenovo conservation via \\.\EnergyDrv working; Dell/HP/ASUS off until verified on real

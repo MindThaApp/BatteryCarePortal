@@ -1,4 +1,4 @@
-using Windows.Services.Store;
+﻿using Windows.Services.Store;
 
 namespace Portal.Core.Services;
 
@@ -30,7 +30,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: Store context unavailable: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: Store context unavailable: {ex}");
         }
         _entitlement = new ProEntitlementService(
             _storeContext is null ? null : new StoreLicenseProvider(_storeContext),
@@ -82,7 +82,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: Pro trial start not recorded: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: Pro trial start not recorded: {ex}");
         }
         finally
         {
@@ -115,7 +115,7 @@ public sealed class LicensingService
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: trial test marker unavailable: {ex}");
+                System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: trial test marker unavailable: {ex}");
             }
 #endif
             return _appSettingsService.ProTrialTerms;
@@ -144,7 +144,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: Store price unavailable: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: Store price unavailable: {ex}");
         }
         return _formattedPrice;
     }
@@ -172,7 +172,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: tip lookup unavailable: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: tip lookup unavailable: {ex}");
             return false;
         }
     }
@@ -188,7 +188,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: tip purchase unavailable: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: tip purchase unavailable: {ex}");
             return StorePurchaseStatus.NetworkError;
         }
     }
@@ -205,7 +205,7 @@ public sealed class LicensingService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: Store purchase unavailable: {ex}");
+            System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: Store purchase unavailable: {ex}");
             return StorePurchaseStatus.NetworkError;
         }
     }

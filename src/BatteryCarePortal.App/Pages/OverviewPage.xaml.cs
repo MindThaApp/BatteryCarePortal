@@ -1,10 +1,10 @@
-using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Portal.Core.Battery;
 using Windows.ApplicationModel.DataTransfer;
 
-namespace PortalBatteryCare.Pages;
+namespace BatteryCarePortal.Pages;
 
 public sealed partial class OverviewPage : Page
 {
@@ -119,7 +119,7 @@ public sealed partial class OverviewPage : Page
         try
         {
             // WriteReport creates a new file and never overwrites: a taken name gets " (2)", " (3)" and so on.
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PortalBatteryCare-diagnostics.txt");
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "BatteryCarePortal-diagnostics.txt");
             string saved = await Task.Run(() => BatteryDiagnostics.WriteReport(path));
             ShowInfo(InfoBarSeverity.Success, string.Format(Strings.Get("SupportReportSaved"), saved));
         }

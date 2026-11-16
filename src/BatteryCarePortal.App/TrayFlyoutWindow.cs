@@ -1,10 +1,10 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Graphics;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 /// <summary>The tray flyout: a small borderless window pinned to the bottom-right of the work area. Empty for now.</summary>
 public sealed class TrayFlyoutWindow : Window

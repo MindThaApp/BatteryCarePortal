@@ -1,4 +1,4 @@
-namespace Portal.Core.Services;
+﻿namespace Portal.Core.Services;
 
 public enum ProAccessSource
 {
@@ -16,7 +16,7 @@ public enum ProAccessSource
 public sealed class ProEntitlementService
 {
     // Durable Pro add-on. Placeholder until the Store listing exists.
-    public const string ProAddOnStoreId = "PBC-PRO-ADDON-STORE-ID-PLACEHOLDER";
+    public const string ProAddOnStoreId = "BCP-PRO-ADDON-STORE-ID-PLACEHOLDER";
 
     public static readonly TimeSpan TrialDuration = ProTrialRecord.Duration;
 
@@ -122,7 +122,7 @@ public sealed class ProEntitlementService
         {
             if (!_logged.Add(context + "\n" + reason)) return;
         }
-        System.Diagnostics.Debug.WriteLine($"PortalBatteryCare: {context}: {reason}");
+        System.Diagnostics.Debug.WriteLine($"BatteryCarePortal: {context}: {reason}");
         try
         {
             _log?.Invoke(context, reason);

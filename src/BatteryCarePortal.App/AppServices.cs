@@ -1,6 +1,6 @@
-using Portal.Core.Battery;
+﻿using Portal.Core.Battery;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 /// <summary>The battery reader and the device check, shared by the window, the tray and the flyout. Read-only: nothing here writes to the firmware.</summary>
 internal static class AppServices

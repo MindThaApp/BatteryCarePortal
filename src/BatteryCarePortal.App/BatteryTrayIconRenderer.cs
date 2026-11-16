@@ -1,8 +1,8 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
-namespace PortalBatteryCare;
+namespace BatteryCarePortal;
 
 /// <summary>Draws the tray battery glyph at the tray's pixel size: outline, fill to the level, and a tick at the charge limit when one is set.</summary>
 internal static class BatteryTrayIconRenderer

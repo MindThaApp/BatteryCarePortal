@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Portal.Core.Battery.Backends;
 
@@ -13,7 +13,7 @@ public static class BatteryDiagnostics
     public const string CommandLineSwitch = "--battery-diag";
 
     public static string DefaultReportPath =>
-        Path.Combine(Path.GetTempPath(), "PortalBatteryCare-battery-diag.txt");
+        Path.Combine(Path.GetTempPath(), "BatteryCarePortal-battery-diag.txt");
 
     /// <summary>Writes the report to a new file and returns its path; an existing file is never overwritten (a numbered name is used instead). Never throws for device errors.</summary>
     public static string WriteReport(string? path = null)
@@ -51,7 +51,7 @@ public static class BatteryDiagnostics
             catch (Exception ex) { Line($"{title}: failed ({ex.GetType().Name}: {ex.Message})"); }
         }
 
-        Line("Portal Battery Care diagnostics (read-only)");
+        Line("Battery Care Portal diagnostics (read-only)");
         Line($"Time (UTC): {DateTimeOffset.UtcNow:O}");
         Line($"OS: {Environment.OSVersion.VersionString}; 64-bit process: {Environment.Is64BitProcess}");
         Line($"Fake battery (PBC_FAKE_BATTERY / PPM_FAKE_BATTERY): {BatteryEnvironment.IsFakeBatteryEnabled}");
