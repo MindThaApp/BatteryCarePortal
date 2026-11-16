@@ -138,6 +138,8 @@ public sealed record ChargeIntent
     public DateTimeOffset? TopUpUntil { get; init; }
     /// <summary>An unattended re-apply could not run (elevation needed, timed out, refused). The next start or the user fixes it.</summary>
     public bool NeedsReapply { get; init; }
+    /// <summary>A re-apply was attempted and failed. It is never retried automatically; the user puts the limit back.</summary>
+    public bool ReapplyFailed { get; init; }
     public DateTimeOffset UpdatedUtc { get; init; }
 }
 
@@ -162,6 +164,28 @@ public sealed class ChargeIntentStore
         {
             try { AtomicJsonFile.Write(Path, intent); return true; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+        }
+    }
+
+    /// <summary>
+    /// Renames the intent file to a unique "&lt;name&gt;.corrupt-&lt;timestamp&gt;" next to it when it cannot be read or
+    /// <paramref name="isUsable"/> rejects it. Never deletes and never overwrites: an existing name gets " (2)", " (3)" and so on.
+    /// Returns the new path, or null when the file is missing or fine. Throws on I/O failure.
+    /// </summary>
+    public string? QuarantineIfUnusable(Func<ChargeIntent, bool> isUsable, DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            AtomicJsonFile.ReadStatus status = AtomicJsonFile.TryRead(Path, out ChargeIntent? intent);
+            if (status == AtomicJsonFile.ReadStatus.Missing) return null;
+            if (status == AtomicJsonFile.ReadStatus.Ok && isUsable(intent!)) return null;
+
+            string stem = $"{Path}.corrupt-{now.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", System.Globalization.CultureInfo.InvariantCulture)}";
+            string target = stem;
+            for (int n = 2; File.Exists(target) || Directory.Exists(target); n++) target = $"{stem} ({n})";
+            // Same-folder rename of the app's own file; overwrite: false so a name that appeared meanwhile is never replaced.
+            File.Move(Path, target, overwrite: false);
+            return target;
         }
     }
 }

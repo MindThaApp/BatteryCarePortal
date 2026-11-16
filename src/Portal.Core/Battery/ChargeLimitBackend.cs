@@ -117,20 +117,26 @@ public sealed record BackendWriteResult
     public WriteRefusal Refusal { get; init; }
     /// <summary>The app's own read-back comparison after the write.</summary>
     public ReadBackCheck ReadBackCheck { get; init; }
+    /// <summary>The failure happened before any firmware write was attempted, so the firmware is certainly unchanged.</summary>
+    public bool NotAttempted { get; init; }
 
     public static BackendWriteResult Ok(string message = "OK", ChargeLimitState? readBack = null) =>
         new() { Success = true, Message = message, ReadBack = readBack };
 
+    /// <summary>A failure where a write may have been attempted (the outcome is uncertain).</summary>
     public static BackendWriteResult Fail(string message) => new() { Success = false, Message = message };
 
+    /// <summary>A failure before any write was attempted.</summary>
+    public static BackendWriteResult FailBeforeWrite(string message) => new() { Success = false, Message = message, NotAttempted = true };
+
     public static BackendWriteResult Refused(WriteGateResult gate) =>
-        new() { Success = false, Refusal = gate.Refusal, Message = gate.Message };
+        new() { Success = false, Refusal = gate.Refusal, Message = gate.Message, NotAttempted = true };
 
     public static BackendWriteResult ElevationNeeded() =>
-        new() { Success = false, NeedsElevation = true, Message = "This change needs administrator approval." };
+        new() { Success = false, NeedsElevation = true, Message = "This change needs administrator approval.", NotAttempted = true };
 
     public static BackendWriteResult UserCancelled() =>
-        new() { Success = false, Cancelled = true, Message = "The administrator prompt was cancelled. Nothing was changed." };
+        new() { Success = false, Cancelled = true, Message = "The administrator prompt was cancelled. Nothing was changed.", NotAttempted = true };
 }
 
 public enum BackendConfidence

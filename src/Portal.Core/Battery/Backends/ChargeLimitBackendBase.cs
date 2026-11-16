@@ -106,18 +106,18 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
 
         ChargeLimitState current = GetState();
         string? error = ChargeLimitRequestValidator.Validate(request, Capabilities, current.Limit);
-        if (error is not null) return BackendWriteResult.Fail(error);
+        if (error is not null) return BackendWriteResult.FailBeforeWrite(error);
         if (current.Message is not null && current.Limit is null && !AllowWriteWithoutReadBack)
-            return BackendWriteResult.Fail(current.Message);
+            return BackendWriteResult.FailBeforeWrite(current.Message);
 
         BatteryWritePlan? plan;
         try { plan = BuildPlan(request, current, out error); }
-        catch (Exception ex) { return BackendWriteResult.Fail(ex.Message); }
+        catch (Exception ex) { return BackendWriteResult.FailBeforeWrite(ex.Message); }
         if (plan is null)
         {
             return error is null
                 ? BackendWriteResult.Ok("Already set.", current) with { ReadBackCheck = ReadBackVerifier.Compare(request, current) }
-                : BackendWriteResult.Fail(error);
+                : BackendWriteResult.FailBeforeWrite(error);
         }
 
         gate = WriteGate.Evaluate(GateInput(HasReadBackStep(plan), includeOwner: false));
@@ -141,22 +141,22 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
 
     public async Task<BackendWriteResult> RestoreAsync(BackendOriginalState original, bool allowElevationPrompt, CancellationToken cancellationToken = default)
     {
-        if (original.BackendId != Id) return BackendWriteResult.Fail("The saved original values belong to a different backend.");
+        if (original.BackendId != Id) return BackendWriteResult.FailBeforeWrite("The saved original values belong to a different backend.");
         WriteGateResult gate = WriteGate.Evaluate(GateInput(planHasReadBack: true, includeOwner: true));
         if (!gate.Allowed) return BackendWriteResult.Refused(gate);
         if (ExpectedStateAfterRestore(original) is not { } expected)
-            return BackendWriteResult.Fail("The saved original values are incomplete, so nothing was changed.");
+            return BackendWriteResult.FailBeforeWrite("The saved original values are incomplete, so nothing was changed.");
 
         BatteryWritePlan? plan;
         string? error;
         ChargeLimitState current = GetState();
         try { plan = BuildRestorePlan(original, current, out error); }
-        catch (Exception ex) { return BackendWriteResult.Fail(ex.Message); }
+        catch (Exception ex) { return BackendWriteResult.FailBeforeWrite(ex.Message); }
         if (plan is null)
         {
             return error is null
                 ? BackendWriteResult.Ok("Already at the original values.", current) with { ReadBackCheck = ReadBackVerifier.CompareRestore(expected, current) }
-                : BackendWriteResult.Fail(error);
+                : BackendWriteResult.FailBeforeWrite(error);
         }
 
         gate = WriteGate.Evaluate(GateInput(HasReadBackStep(plan), includeOwner: false));
@@ -197,7 +197,7 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
     protected virtual async Task<BackendWriteResult> RunPlanAsync(BatteryWritePlan plan, bool allowPrompt, CancellationToken cancellationToken)
     {
         if (!HasReadBackStep(plan))
-            return BackendWriteResult.Fail("This change cannot be read back from the firmware, so it was not made.") with { Refusal = WriteRefusal.NoReadBack };
+            return BackendWriteResult.FailBeforeWrite("This change cannot be read back from the firmware, so it was not made.") with { Refusal = WriteRefusal.NoReadBack };
         if (!allowPrompt) return BackendWriteResult.ElevationNeeded();
         BatteryWritePlanResult result = await Executor.ExecuteAsync(plan, cancellationToken).ConfigureAwait(false);
         if (result.Cancelled) return BackendWriteResult.UserCancelled();
@@ -212,6 +212,7 @@ public abstract class ChargeLimitBackendBase : IChargeLimitBackend
                 Message = result.Message ?? "The firmware rejected the change.",
                 ReadBack = readBack,
                 ReadBackCheck = verifyFailed ? ReadBackCheck.Mismatch : ReadBackCheck.NotChecked,
+                NotAttempted = !result.WritesAttempted,
             };
         }
         return BackendWriteResult.Ok("Applied.", readBack);

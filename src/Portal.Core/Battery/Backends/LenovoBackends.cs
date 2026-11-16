@@ -9,6 +9,8 @@ public readonly record struct DeviceIoResult(bool Success, uint Output, int Win3
     public const int ErrorFileNotFound = 2;
     public const int ErrorPathNotFound = 3;
     public const int ErrorAccessDenied = 5;
+    /// <summary>The IOCTL itself succeeded but returned too few bytes.</summary>
+    public const int ErrorBadLength = 24;
     public bool AccessDenied => !Success && Win32Error == ErrorAccessDenied;
     public bool DeviceMissing => !Success && Win32Error is ErrorFileNotFound or ErrorPathNotFound;
 }
@@ -45,7 +47,7 @@ public sealed class LenovoEnergyDriver : ILenovoEnergyDriver
             if (handle.IsInvalid) return new DeviceIoResult(false, 0, Marshal.GetLastWin32Error());
             bool ok = DeviceIoControl(handle, BatteryModeIoctl, ref input, 4, out uint output, 4, out uint returned, IntPtr.Zero);
             if (!ok) return new DeviceIoResult(false, 0, Marshal.GetLastWin32Error());
-            return returned >= 4 ? new DeviceIoResult(true, output, 0) : new DeviceIoResult(false, 0, 24 /* ERROR_BAD_LENGTH */);
+            return returned >= 4 ? new DeviceIoResult(true, output, 0) : new DeviceIoResult(false, 0, DeviceIoResult.ErrorBadLength);
         }
         catch (Exception)
         {
@@ -214,7 +216,12 @@ public sealed class LenovoConservationBackend : ChargeLimitBackendBase
         BatteryWriteStep verify = plan.Steps[1];
         DeviceIoResult result = _driver.Send(write.InputValue);
         if (result.AccessDenied) return await base.RunPlanAsync(plan, allowPrompt, cancellationToken).ConfigureAwait(false);
-        if (!result.Success) return BackendWriteResult.Fail($"The energy-management driver rejected the change (error {result.Win32Error}). Nothing was retried.");
+        if (!result.Success)
+        {
+            string message = $"The energy-management driver rejected the change (error {result.Win32Error}). Nothing was retried.";
+            // Bad length means the IOCTL ran, so the firmware may have changed.
+            return result.Win32Error == DeviceIoResult.ErrorBadLength ? BackendWriteResult.Fail(message) : BackendWriteResult.FailBeforeWrite(message);
+        }
 
         await Task.Delay(SettleDelay, cancellationToken).ConfigureAwait(false);
         DeviceIoResult readBack = _driver.Send(QueryCode);

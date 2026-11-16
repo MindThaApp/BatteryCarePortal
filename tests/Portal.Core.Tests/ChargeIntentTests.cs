@@ -118,19 +118,159 @@ public class ChargeIntentTests : IDisposable
         Assert.True(Intent()!.NeedsReapply);
     }
 
+    private static int Writes(FakeEnergyDriver driver) =>
+        driver.Sent.Count(c => c is LenovoConservationBackend.ConservationOnCode or LenovoConservationBackend.ConservationOffCode);
+
     [Fact]
-    public async Task Wake_reapplies_a_lost_limit_but_start_without_flags_asks_instead()
+    public async Task Start_and_wake_without_pending_flags_never_override_a_change_made_elsewhere()
     {
         var driver = new FakeEnergyDriver();
         await New(Lenovo(driver)).SetLimitAsync(true);
-        driver.ModeWord = 0;
+        driver.ModeWord = 0; // turned off in another tool
 
-        int writesBefore = driver.Sent.Count(c => c == LenovoConservationBackend.ConservationOnCode);
+        int writesBefore = Writes(driver);
         Assert.Equal(ChargeActionStatus.ChangedElsewhere, (await New(Lenovo(driver)).ReapplyAsync(ReapplyReason.Startup)).Status);
-        Assert.Equal(writesBefore, driver.Sent.Count(c => c == LenovoConservationBackend.ConservationOnCode));
+        Assert.Equal(ChargeActionStatus.ChangedElsewhere, (await New(Lenovo(driver)).ReapplyAsync(ReapplyReason.Resume)).Status);
+        Assert.Equal(writesBefore, Writes(driver));
+        Assert.False(LenovoConservationBackend.IsConservationOn(driver.ModeWord));
+    }
 
-        Assert.Equal(ChargeActionStatus.Applied, (await New(Lenovo(driver)).ReapplyAsync(ReapplyReason.Resume)).Status);
-        Assert.True(LenovoConservationBackend.IsConservationOn(driver.ModeWord));
+    [Theory]
+    [InlineData(true, 100, true, false)]
+    [InlineData(true, 70, false, true)]
+    [InlineData(false, 60, false, true)]
+    public async Task Inconsistent_intent_is_never_acted_on(bool limitOn, int limit, bool topUp, bool needsReapply)
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+        driver.ModeWord = 0;
+        new ChargeIntentStore(_folder).TrySave(new ChargeIntent
+        {
+            BackendId = "lenovo-conservation", Managed = true, LimitOn = limitOn, Limit = limit, TopUpActive = topUp, NeedsReapply = needsReapply,
+        });
+        string before = File.ReadAllText(Path.Combine(_folder, ChargeIntentStore.FileName));
+        int writes = Writes(driver);
+
+        Assert.Equal(IntentFileState.Unusable, controller.IntentState);
+        Assert.Null(controller.LoadIntent());
+        foreach (ReapplyReason reason in Enum.GetValues<ReapplyReason>())
+            Assert.Equal(ChargeActionStatus.StateFileUnavailable, (await controller.ReapplyAsync(reason)).Status);
+        Assert.Equal(ChargeActionStatus.StateFileUnavailable, (await controller.StartTopUpAsync(TimeSpan.FromHours(1))).Status);
+        Assert.Equal(writes, Writes(driver));
+        Assert.Equal(before, File.ReadAllText(Path.Combine(_folder, ChargeIntentStore.FileName)));
+    }
+
+    [Fact]
+    public async Task Driver_error_before_the_write_reverts_the_intent()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+
+        driver.FailWritesWith = 31;
+        ChargeActionResult result = await controller.SetLimitAsync(false);
+        Assert.Equal(ChargeActionStatus.Failed, result.Status);
+        Assert.True(result.NotAttempted);
+        Assert.True(Intent()!.LimitOn);
+    }
+
+    [Fact]
+    public async Task Pre_read_failure_reverts_the_intent()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+
+        driver.FailAllWith = 31;
+        ChargeActionResult result = await controller.SetLimitAsync(false);
+        Assert.True(result.NotAttempted, result.Message);
+        Assert.True(Intent()!.LimitOn);
+    }
+
+    [Fact]
+    public async Task Uncertain_failure_keeps_the_new_intent()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+
+        driver.IgnoreWrites = true;
+        ChargeActionResult result = await controller.SetLimitAsync(false);
+        Assert.Equal(ChargeActionStatus.ReadBackMismatch, result.Status);
+        Assert.False(result.NotAttempted);
+        Assert.False(Intent()!.LimitOn);
+    }
+
+    [Fact]
+    public async Task Failed_unattended_reapply_is_never_retried_automatically()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+        Assert.True((await controller.StartTopUpAsync(TimeSpan.FromHours(1))).Succeeded);
+
+        driver.IgnoreWrites = true;
+        Assert.Equal(ChargeActionStatus.ReadBackMismatch, (await New(Lenovo(driver)).ReapplyAsync(ReapplyReason.Startup)).Status);
+        ChargeIntent failed = Intent()!;
+        Assert.True(failed.ReapplyFailed);
+        Assert.False(failed.TopUpActive);
+        Assert.False(failed.NeedsReapply);
+
+        driver.IgnoreWrites = false;
+        int writes = Writes(driver);
+        foreach (ReapplyReason reason in Enum.GetValues<ReapplyReason>())
+        {
+            ChargeActionResult again = await New(Lenovo(driver)).ReapplyAsync(reason);
+            Assert.Equal(ChargeActionStatus.Failed, again.Status);
+            Assert.True(again.NotAttempted);
+        }
+        controller.ReapplyOnExit(ChargeLimitController.DefaultExitBudget);
+        Assert.Equal(writes, Writes(driver));
+        Assert.False(Intent()!.NeedsReapply);
+
+        // The user puts it back; that clears the flag.
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+        Assert.False(Intent()!.ReapplyFailed);
+    }
+
+    [Fact]
+    public async Task Unreadable_intent_file_does_not_block_restore_and_is_kept_aside()
+    {
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+        File.WriteAllText(Path.Combine(_folder, ChargeIntentStore.FileName), "nope");
+
+        Assert.True((await controller.RestoreDefaultsAsync()).Succeeded);
+        Assert.False(LenovoConservationBackend.IsConservationOn(driver.ModeWord));
+        Assert.False(Intent()!.Managed);
+        string kept = Assert.Single(Directory.GetFiles(_folder, ChargeIntentStore.FileName + ".corrupt-*"));
+        Assert.Equal("nope", File.ReadAllText(kept));
+    }
+
+    [Fact]
+    public void Reset_app_state_renames_the_file_and_never_overwrites()
+    {
+        Directory.CreateDirectory(_folder);
+        string path = Path.Combine(_folder, ChargeIntentStore.FileName);
+        File.WriteAllText(path, "nope");
+        string taken = path + ".corrupt-20261116T090000Z";
+        File.WriteAllText(taken, "older");
+        var driver = new FakeEnergyDriver();
+        ChargeLimitController controller = New(Lenovo(driver));
+        Assert.Equal(IntentFileState.Unusable, controller.IntentState);
+
+        ChargeActionResult reset = controller.ResetAppState();
+        Assert.Equal(ChargeActionStatus.StateReset, reset.Status);
+        Assert.False(File.Exists(path));
+        Assert.Equal("older", File.ReadAllText(taken));
+        Assert.Equal("nope", File.ReadAllText(taken + " (2)"));
+        Assert.Equal(IntentFileState.Ok, controller.IntentState);
+        Assert.Equal(ChargeActionStatus.NothingToDo, controller.ResetAppState().Status);
+        Assert.Equal(2, Directory.GetFiles(_folder).Length);
+        Assert.DoesNotContain(LenovoConservationBackend.ConservationOnCode, driver.Sent);
+        Assert.DoesNotContain(LenovoConservationBackend.ConservationOffCode, driver.Sent);
     }
 
     [Fact]

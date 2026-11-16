@@ -85,7 +85,10 @@
   <data name="ChargeResultFailed" xml:space="preserve"><value>The change did not go through. {0}</value></data>
   <data name="ChargeNoticeReapplyTitle" xml:space="preserve"><value>The charge limit is not back yet</value></data>
   <data name="ChargeNoticeReapplyText" xml:space="preserve"><value>The app could not put your charge limit back on by itself. It may need administrator approval.</value></data>
+  <data name="ChargeNoticeReapplyFailedText" xml:space="preserve"><value>The app tried to put your charge limit back, but your laptop did not take the change. The app does not try again by itself.</value></data>
   <data name="ChargeNoticePutBack" xml:space="preserve"><value>Put it back</value></data>
+  <data name="ChargeResetText.Text" xml:space="preserve"><value>The app's saved charge-limit state cannot be read. Restore laptop defaults still works. To start clean, reset the app's state: the file is kept under a new name, nothing is deleted and your laptop's settings are not changed.</value></data>
+  <data name="ChargeResetButton.Content" xml:space="preserve"><value>Reset app state</value></data>
   <data name="ChargeNoticeChangedTitle" xml:space="preserve"><value>The charge limit was changed outside this app</value></data>
   <data name="ChargeNoticeUseApp" xml:space="preserve"><value>Use the app's setting</value></data>
   <data name="ChargeNoticeKeepLaptop" xml:space="preserve"><value>Keep the laptop's setting</value></data>

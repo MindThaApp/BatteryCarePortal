@@ -78,6 +78,8 @@ public sealed record BatteryWritePlanResult
     public string? Message { get; init; }
     public string? ReadBackRaw { get; init; }
     public bool Cancelled { get; init; }
+    /// <summary>False only when the helper is known to have stopped before its first write step (checks failed, never started).</summary>
+    public bool WritesAttempted { get; init; } = true;
 }
 
 public interface IBatteryWriteExecutor

@@ -39,11 +39,12 @@ public sealed partial class ChargingPage : Page
             return;
         }
 
-        (ChargeLimitState state, WriteGateResult gate, ChargeIntent? intent) =
-            await Task.Run(() => (controller.ReadState(), controller.EvaluateGate(), controller.LoadIntent()));
+        (ChargeLimitState state, WriteGateResult gate, ChargeIntent? intent, IntentFileState intentState) =
+            await Task.Run(() => (controller.ReadState(), controller.EvaluateGate(), controller.LoadIntent(), controller.IntentState));
         if (!ReferenceEquals(controller, AppServices.Charge)) return;
 
         LimitCard.Visibility = RestoreCard.Visibility = Visibility.Visible;
+        ResetPanel.Visibility = intentState == IntentFileState.Unusable ? Visibility.Visible : Visibility.Collapsed;
         _gateAllowed = gate.Allowed;
         UnavailableText.Text = gate.Allowed ? string.Empty : RefusalText(gate.Refusal, gate.Message);
         UnavailableText.Visibility = gate.Allowed ? Visibility.Collapsed : Visibility.Visible;
@@ -132,14 +133,14 @@ public sealed partial class ChargingPage : Page
 
     private void ShowNotice(ChargeIntent? intent)
     {
-        _notice = intent is { Managed: true, LimitOn: true, NeedsReapply: true } ? Notice.NeedsReapply
+        _notice = intent is { Managed: true, LimitOn: true } && (intent.NeedsReapply || intent.ReapplyFailed) ? Notice.NeedsReapply
             : AppServices.LastReapply?.Status == ChargeActionStatus.ChangedElsewhere && intent is { Managed: true } ? Notice.ChangedElsewhere
             : Notice.None;
         switch (_notice)
         {
             case Notice.NeedsReapply:
                 NoticeInfo.Title = Strings.Get("ChargeNoticeReapplyTitle");
-                NoticeInfo.Message = Strings.Get("ChargeNoticeReapplyText");
+                NoticeInfo.Message = Strings.Get(intent!.ReapplyFailed ? "ChargeNoticeReapplyFailedText" : "ChargeNoticeReapplyText");
                 NoticePrimaryButton.Content = Strings.Get("ChargeNoticePutBack");
                 NoticeSecondaryButton.Visibility = Visibility.Collapsed;
                 break;
@@ -190,6 +191,9 @@ public sealed partial class ChargingPage : Page
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         await RunAsync(c => c.RestoreDefaultsAsync());
     }
+
+    private async void OnResetState(object sender, RoutedEventArgs e) =>
+        await RunAsync(c => Task.FromResult(c.ResetAppState()));
 
     private async void OnNoticePrimary(object sender, RoutedEventArgs e)
     {
@@ -251,6 +255,12 @@ public sealed partial class ChargingPage : Page
             case ChargeActionStatus.NothingToRestore:
                 ShowStatus(InfoBarSeverity.Informational, Strings.Get("ChargeResultNothingToRestore"));
                 break;
+            case ChargeActionStatus.StateReset:
+                ShowStatus(InfoBarSeverity.Success, r.Message);
+                break;
+            case ChargeActionStatus.NothingToDo:
+                ShowStatus(InfoBarSeverity.Informational, r.Message);
+                break;
             default:
                 ShowStatus(InfoBarSeverity.Error, string.Format(Strings.Get("ChargeResultFailed"), r.Message));
                 break;
@@ -278,6 +288,7 @@ public sealed partial class ChargingPage : Page
         ApplyValueButton.IsEnabled = canWrite && LimitSwitch.IsOn;
         ValueSlider.IsEnabled = ValueCombo.IsEnabled = canWrite;
         RestoreButton.IsEnabled = canWrite;
+        ResetStateButton.IsEnabled = !_busy;
         NoticePrimaryButton.IsEnabled = canWrite;
         NoticeSecondaryButton.IsEnabled = !_busy;
     }

@@ -32,6 +32,7 @@ public sealed class ElevationService
                 {
                     Ok = false,
                     Cancelled = LastOperationWasCancelled,
+                    WritesAttempted = false,
                     Message = LastOperationWasCancelled ? "The administrator prompt was cancelled." : "The administrator helper could not start.",
                 };
             }

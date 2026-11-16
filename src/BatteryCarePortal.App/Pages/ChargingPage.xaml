@@ -52,6 +52,10 @@
                     <TextBlock x:Uid="ChargeRestoreTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
                     <TextBlock x:Uid="ChargeRestoreText" TextWrapping="Wrap" />
                     <Button x:Name="RestoreButton" x:Uid="ChargeRestoreButton" Click="OnRestore" />
+                    <StackPanel x:Name="ResetPanel" Spacing="8" Visibility="Collapsed">
+                        <TextBlock x:Uid="ChargeResetText" TextWrapping="Wrap" />
+                        <Button x:Name="ResetStateButton" x:Uid="ChargeResetButton" Click="OnResetState" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>
