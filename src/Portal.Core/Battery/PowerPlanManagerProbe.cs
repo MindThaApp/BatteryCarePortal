@@ -127,15 +127,19 @@ public sealed class PowerPlanManagerProbe
         using JsonDocument backup = JsonDocument.Parse(text);
         if (backup.RootElement.ValueKind != JsonValueKind.Object ||
             !backup.RootElement.TryGetProperty("LocalSettings", out JsonElement settings) ||
-            settings.ValueKind != JsonValueKind.Object ||
-            !settings.TryGetProperty("BatterySettings", out JsonElement battery) ||
-            battery.ValueKind != JsonValueKind.String)
+            settings.ValueKind != JsonValueKind.Object)
+            return PowerPlanManagerChargeControl.Unreadable;
+        // Power Plan Manager's BatterySettings.Enabled defaults to false, so a readable mirror with no battery settings means off.
+        if (!settings.TryGetProperty("BatterySettings", out JsonElement battery))
+            return PowerPlanManagerChargeControl.Disabled;
+        if (battery.ValueKind != JsonValueKind.String)
             return PowerPlanManagerChargeControl.Unreadable;
 
         using JsonDocument batteryJson = JsonDocument.Parse(battery.GetString()!);
-        if (batteryJson.RootElement.ValueKind != JsonValueKind.Object ||
-            !batteryJson.RootElement.TryGetProperty("Enabled", out JsonElement enabled))
+        if (batteryJson.RootElement.ValueKind != JsonValueKind.Object)
             return PowerPlanManagerChargeControl.Unreadable;
+        if (!batteryJson.RootElement.TryGetProperty("Enabled", out JsonElement enabled))
+            return PowerPlanManagerChargeControl.Disabled;
         return enabled.ValueKind switch
         {
             JsonValueKind.True => PowerPlanManagerChargeControl.Enabled,

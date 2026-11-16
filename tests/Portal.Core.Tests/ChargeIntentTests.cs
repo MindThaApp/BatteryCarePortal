@@ -507,8 +507,9 @@ public class PowerPlanManagerProbeTests : IDisposable
     [Theory]
     [InlineData("garbage")]
     [InlineData("{\"Version\":1}")]
-    [InlineData("{\"LocalSettings\":{\"Theme\":\"Dark\"}}")]
-    [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{\\\"Limit\\\":80}\"}}")]
+    [InlineData("[]")]
+    [InlineData("{\"LocalSettings\":{\"BatterySettings\":5}}")]
+    [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{ half\"}}")]
     [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{\\\"Enabled\\\":\\\"no\\\"}\"}}")]
     public void Installed_with_unreadable_settings_refuses_as_unconfirmed(string content)
     {
@@ -520,6 +521,20 @@ public class PowerPlanManagerProbeTests : IDisposable
         Assert.Equal(PowerPlanManagerChargeControl.Unreadable, s.ChargeControl);
         Assert.False(s.ConfirmedOff);
         Assert.Equal(new OtherOwnerClaim(PowerPlanManagerProbe.DisplayName, Confirmed: false), probe.OtherOwner());
+    }
+
+    [Theory]
+    [InlineData("{\"LocalSettings\":{\"Theme\":\"Dark\"}}")]
+    [InlineData("{\"LocalSettings\":{\"BatterySettings\":\"{\\\"Limit\\\":80}\"}}")]
+    public void Readable_mirror_without_battery_settings_or_enabled_key_is_confirmed_off(string content)
+    {
+        Install();
+        File.WriteAllText(BackupPath(), content);
+        var probe = new PowerPlanManagerProbe(_root, () => true);
+        PowerPlanManagerStatus s = probe.Check();
+        Assert.Equal(PowerPlanManagerChargeControl.Disabled, s.ChargeControl);
+        Assert.True(s.ConfirmedOff);
+        Assert.Null(probe.OtherOwner());
     }
 
     [Fact]
