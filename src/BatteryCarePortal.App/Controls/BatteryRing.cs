@@ -54,6 +54,11 @@ public sealed class BatteryRing : UserControl
 
         Content = canvas;
         ActualThemeChanged += (_, _) => Redraw();
+        // The settings object outlives the control, so listen only while the control is in the tree.
+        Windows.Foundation.TypedEventHandler<Windows.UI.ViewManagement.AccessibilitySettings, object> onContrast =
+            (_, _) => DispatcherQueue?.TryEnqueue(Redraw);
+        Loaded += (_, _) => Access.HighContrastChanged += onContrast;
+        Unloaded += (_, _) => Access.HighContrastChanged -= onContrast;
         Loaded += (_, _) => Redraw();
         Redraw();
     }
@@ -66,8 +71,13 @@ public sealed class BatteryRing : UserControl
         Redraw();
     }
 
+    private static readonly Windows.UI.ViewManagement.AccessibilitySettings Access = new();
+    private static readonly Windows.UI.ViewManagement.UISettings Ui = new();
+
+    // High contrast: every stroke is the system text colour, so the ring never depends on theme accent colours.
     private static Brush ThemeBrush(string key, Brush fallback) =>
-        Application.Current.Resources.TryGetValue(key, out object? o) && o is Brush b ? b : fallback;
+        Access.HighContrast ? new SolidColorBrush(Ui.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground))
+        : Application.Current.Resources.TryGetValue(key, out object? o) && o is Brush b ? b : fallback;
 
     private void Redraw()
     {

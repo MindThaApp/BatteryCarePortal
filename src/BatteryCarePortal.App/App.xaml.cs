@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using Microsoft.UI.Xaml;
@@ -32,6 +32,7 @@ public partial class App : Application
         CreateTrayIcon();
         AppServices.Battery.SnapshotChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray);
         AppServices.SupportChanged += UpdateTray;
+        try { Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray); } catch (Exception) { }
         AppServices.ReapplyNeedsUser += ShowLimitOffNotification;
         AppServices.Start();
 
@@ -50,7 +51,7 @@ public partial class App : Application
         menu.Items.Add(open);
         menu.Items.Add(quit);
 
-        _trayGlyph = BatteryTrayIconRenderer.Render(0, null, 32, lightTaskbar: false);
+        _trayGlyph = BatteryTrayIconRenderer.Render(0, null, 32, lightTaskbar: TaskbarIsLight());
         _trayIcon = new TaskbarIcon
         {
             ToolTipText = Strings.Get("AppName"),
@@ -90,14 +91,41 @@ public partial class App : Application
         if (_exiting || _trayIcon is null) return;
         BatterySnapshot snapshot = AppServices.Battery.Current;
         int? limit = AppServices.Support is { ChargeLimitAvailable: true } support ? support.CurrentLimit : null;
-        Icon glyph = BatteryTrayIconRenderer.Render(snapshot.Percent ?? 0, limit, 32, lightTaskbar: false);
+        Icon glyph = BatteryTrayIconRenderer.Render(snapshot.Percent ?? 0, limit, 32, lightTaskbar: TaskbarIsLight());
         Icon? old = _trayGlyph;
         _trayGlyph = glyph;
         _trayIcon.Icon = glyph;
         old?.Dispose();
-        _trayIcon.ToolTipText = !snapshot.Present || snapshot.Percent is not int percent
+        string quick = !snapshot.Present || snapshot.Percent is not int percent
             ? Strings.Get("AppName")
             : string.Format(Strings.Get(snapshot.IsCharging ? "TrayTipCharging" : "TrayTipLevel"), percent);
+        _trayIcon.ToolTipText = quick;
+        _ = UpdateTooltipAsync(snapshot);
+    }
+
+    // Level plus the status sentence; the sentence reads the firmware state, so it is built off the UI thread.
+    private async Task UpdateTooltipAsync(BatterySnapshot snapshot)
+    {
+        if (snapshot.Percent is not int percent || !snapshot.Present || AppServices.Support is null) return;
+        try
+        {
+            ChargeStatusView view = await Task.Run(() => ChargeStatusView.Build(null, false));
+            if (_exiting || _trayIcon is null) return;
+            string tip = string.Format(Strings.Get("TrayTipSentence"), percent, view.Sentence);
+            _trayIcon.ToolTipText = tip.Length <= 127 ? tip : tip[..126] + "…"; // the tray tooltip holds 127 characters
+        }
+        catch (Exception) { }
+    }
+
+    // The taskbar and tray follow SystemUsesLightTheme; the glyph ink has to contrast with it. Read only.
+    private static bool TaskbarIsLight()
+    {
+        try
+        {
+            using Microsoft.Win32.RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("SystemUsesLightTheme") is int v && v != 0;
+        }
+        catch (Exception) { return false; }
     }
 
     public void ShowMainWindow() => _mainWindow?.ShowAndActivate();

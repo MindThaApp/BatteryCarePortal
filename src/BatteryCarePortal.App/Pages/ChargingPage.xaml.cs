@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Portal.Core.Battery;
 
@@ -17,6 +17,7 @@ public sealed partial class ChargingPage : Page
     public ChargingPage()
     {
         InitializeComponent();
+        LayoutHelper.AlignToStart(Column);
         Loaded += (_, _) =>
         {
             AppServices.SupportChanged += Refresh;
