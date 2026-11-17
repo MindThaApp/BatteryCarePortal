@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Portal.Core.Battery;
@@ -14,6 +14,8 @@ public sealed partial class OverviewPage : Page
     public OverviewPage()
     {
         InitializeComponent();
+        LayoutHelper.AlignToStart(Column);
+        LayoutHelper.AlignToStart(SimulatedChip);
         RingHost.Child = Ring;
         Loaded += (_, _) =>
         {
@@ -55,6 +57,7 @@ public sealed partial class OverviewPage : Page
 
     private async void RefreshToday()
     {
+        _todayAt = DateTime.UtcNow;
         try
         {
             DateTimeOffset now = DateTimeOffset.Now;
@@ -71,7 +74,13 @@ public sealed partial class OverviewPage : Page
         catch (Exception) { }
     }
 
-    private void OnSnapshotChanged(object? sender, BatterySnapshot snapshot) => _dispatcher.TryEnqueue(RefreshBattery);
+    private DateTime _todayAt = DateTime.MinValue;
+
+    private void OnSnapshotChanged(object? sender, BatterySnapshot snapshot) => _dispatcher.TryEnqueue(() =>
+    {
+        RefreshBattery();
+        if (DateTime.UtcNow - _todayAt > TimeSpan.FromSeconds(30)) RefreshToday();
+    });
 
     // Monitor mode: the live reading is shown on every device, whatever the charge-limit state.
     private void RefreshBattery()
@@ -106,8 +115,7 @@ public sealed partial class OverviewPage : Page
         string key = support.State.ToString();
         StateText.Text = Strings.Get("SupportState" + key);
         SentenceText.Text = string.Format(Strings.Get(support.BetaActive ? "SupportTextOnTestListBeta" : "SupportText" + key), Brand(support.Device));
-        DeviceText.Text = string.Join(" ", new[] { support.Device.Manufacturer, support.Device.Family.Length > 0 ? support.Device.Family : support.Device.Model }
-            .Where(t => !string.IsNullOrWhiteSpace(t))).Trim();
+        DeviceText.Text = DeviceNameText.Join(support.Device.Manufacturer, support.Device.Family.Length > 0 ? support.Device.Family : support.Device.Model);
         DeviceText.Visibility = DeviceText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // Read only here: changes happen on the Charging page.
