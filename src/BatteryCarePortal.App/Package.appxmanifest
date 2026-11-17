@@ -14,7 +14,7 @@
   <Identity
     Name="34458MindtheApp.BatteryCarePortal"
     Publisher="CN=PLACEHOLDER-STORE-PUBLISHER-ID"
-    Version="0.1.0.0" />
+    Version="0.2.0.0" />
 
   <Properties>
     <DisplayName>Battery Care Portal</DisplayName>
