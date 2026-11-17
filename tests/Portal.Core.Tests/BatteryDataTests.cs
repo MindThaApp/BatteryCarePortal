@@ -380,6 +380,21 @@ public class HistoryLoggerTests : IDisposable
     }
 
     [Fact]
+    public void Long_gap_still_prunes_but_never_within_retention_of_the_newest_recorded_day()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 9, 20, 8, 0, 0, TimeSpan.Zero));
+        var logger = new BatteryHistoryLogger(_folder, time, retentionDays: 3);
+        Directory.CreateDirectory(logger.Folder);
+        for (int day = 1; day <= 10; day++)
+            File.WriteAllText(Path.Combine(logger.Folder, $"2026-09-{day:00}.jsonl"), "");
+
+        Assert.True(logger.Record(Snap.At(60, onAc: true)));
+
+        string[] names = Directory.GetFiles(logger.Folder, "*.jsonl").Select(Path.GetFileName).OrderBy(n => n).ToArray()!;
+        Assert.Equal(new[] { "2026-09-08.jsonl", "2026-09-09.jsonl", "2026-09-10.jsonl", "2026-09-20.jsonl" }, names);
+    }
+
+    [Fact]
     public void Locked_health_file_is_skipped_and_a_damaged_one_kept_aside()
     {
         var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));

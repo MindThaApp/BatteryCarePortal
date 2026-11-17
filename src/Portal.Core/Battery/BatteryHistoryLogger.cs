@@ -203,13 +203,10 @@ public sealed class BatteryHistoryLogger
         }
     }
 
-    /// <summary>More days than this between the newest earlier day file and today counts as a clock jump: nothing is pruned that day.</summary>
-    public const int MaxPruneGapDays = 2;
-
     /// <summary>
     /// Once per day. Keeps the retention window counted back from today and from the newest earlier day on file, whichever
-    /// keeps more, and skips the day entirely when today is more than <see cref="MaxPruneGapDays"/> past that newest day,
-    /// so a clock that jumps forward never empties the history.
+    /// keeps more, so a long gap between runs or a clock that jumps forward never deletes anything within retention of
+    /// the newest recorded day.
     /// </summary>
     private void PruneIfNewDay(DateOnly today)
     {
@@ -228,7 +225,6 @@ public sealed class BatteryHistoryLogger
         if (earlier.Length > 0)
         {
             DateOnly newest = earlier.Max();
-            if (today.DayNumber - newest.DayNumber > MaxPruneGapDays) return;
             DateOnly fromNewest = newest.AddDays(-(_retentionDays - 1));
             if (fromNewest < oldestKept) oldestKept = fromNewest;
         }
