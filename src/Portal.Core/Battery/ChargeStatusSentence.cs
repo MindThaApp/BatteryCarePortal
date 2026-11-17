@@ -19,6 +19,8 @@ public enum ChargeStatusKind
     ChangedElsewhere,
     ReapplyFailed,
     NeedsReapply,
+    /// <summary>A top-up is running: the limit is off until the battery is full or the top-up ends.</summary>
+    TopUp,
     Unreadable,
     On,
     Off,
@@ -40,6 +42,8 @@ public sealed record ChargeStatusInput
     public bool ManagedLimitOn { get; init; }
     public bool NeedsReapply { get; init; }
     public bool ReapplyFailed { get; init; }
+    /// <summary>The saved intent has a top-up running.</summary>
+    public bool TopUpActive { get; init; }
     public ChargeActionStatus? LastReapply { get; init; }
     /// <summary>Limit read back from the firmware (100 = none). Null when unreadable.</summary>
     public int? Limit { get; init; }
@@ -89,6 +93,7 @@ public static class ChargeStatusSentence
         if (i.LastReapply == ChargeActionStatus.ChangedElsewhere) return ChargeStatusKind.ChangedElsewhere;
         if (i.ManagedLimitOn && i.ReapplyFailed) return ChargeStatusKind.ReapplyFailed;
         if (i.ManagedLimitOn && i.NeedsReapply) return ChargeStatusKind.NeedsReapply;
+        if (i.ManagedLimitOn && i.TopUpActive && i.Limit is >= 100) return ChargeStatusKind.TopUp;
 
         return i.Limit switch
         {

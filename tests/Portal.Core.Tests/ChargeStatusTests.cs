@@ -22,6 +22,9 @@ public class ChargeStatusTests
     [Fact] public void ChangedElsewhere() => Assert.Equal(ChargeStatusKind.ChangedElsewhere, ChargeStatusSentence.Resolve(Ready() with { LastReapply = ChargeActionStatus.ChangedElsewhere }));
     [Fact] public void ReapplyFailed() => Assert.Equal(ChargeStatusKind.ReapplyFailed, ChargeStatusSentence.Resolve(Ready() with { ManagedLimitOn = true, ReapplyFailed = true, NeedsReapply = true }));
     [Fact] public void NeedsReapply() => Assert.Equal(ChargeStatusKind.NeedsReapply, ChargeStatusSentence.Resolve(Ready() with { ManagedLimitOn = true, NeedsReapply = true }));
+    [Fact] public void TopUp() => Assert.Equal(ChargeStatusKind.TopUp, ChargeStatusSentence.Resolve(Ready(100) with { ManagedLimitOn = true, TopUpActive = true }));
+    [Fact] public void TopUpNeedingTheUserSaysSo() => Assert.Equal(ChargeStatusKind.NeedsReapply, ChargeStatusSentence.Resolve(Ready(100) with { ManagedLimitOn = true, TopUpActive = true, NeedsReapply = true }));
+    [Fact] public void TopUpFlagWithTheLimitInPlaceReadsOn() => Assert.Equal(ChargeStatusKind.On, ChargeStatusSentence.Resolve(Ready(80) with { ManagedLimitOn = true, TopUpActive = true }));
     [Fact] public void StateFileUnusable() => Assert.Equal(ChargeStatusKind.StateFileUnusable, ChargeStatusSentence.Resolve(Ready() with { IntentState = IntentFileState.Unusable }));
     [Fact] public void NoBattery() => Assert.Equal(ChargeStatusKind.NoBattery, ChargeStatusSentence.Resolve(new() { Support = DeviceSupportState.NoBattery }));
     [Fact] public void MonitorMode() => Assert.Equal(ChargeStatusKind.MonitorMode, ChargeStatusSentence.Resolve(new() { Support = DeviceSupportState.MonitorMode }));

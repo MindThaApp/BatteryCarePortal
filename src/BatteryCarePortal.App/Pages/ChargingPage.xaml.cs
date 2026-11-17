@@ -69,14 +69,25 @@ public sealed partial class ChargingPage : Page
         ConfigureCapabilities(controller.Capabilities, state, intent);
         ShowState(controller.Capabilities, state);
         ShowNotice(intent);
+        ShowTopUp(view);
         UpdateEnabled();
+    }
+
+    private void ShowTopUp(ChargeStatusView view)
+    {
+        TopUpCard.Visibility = view.CanStartTopUp || view.CanStopTopUp ? Visibility.Visible : Visibility.Collapsed;
+        TopUpButton.Visibility = view.CanStartTopUp ? Visibility.Visible : Visibility.Collapsed;
+        StopTopUpButton.Visibility = view.CanStopTopUp ? Visibility.Visible : Visibility.Collapsed;
+        TopUpText.Text = view.CanStopTopUp
+            ? string.Format(Strings.Get("ChargeTopUpRunning"), ChargeStatusView.TopUpEndText(view.Intent?.TopUpUntil))
+            : string.Format(Strings.Get("ChargeTopUpText"), (int)TopUpPolicy.MaxDuration.TotalHours);
     }
 
     private void ShowUnavailable(string message)
     {
         UnavailableText.Text = message;
         UnavailableText.Visibility = Visibility.Visible;
-        LimitCard.Visibility = RestoreCard.Visibility = Visibility.Collapsed;
+        LimitCard.Visibility = RestoreCard.Visibility = TopUpCard.Visibility = Visibility.Collapsed;
         _notice = Notice.None;
         NoticeInfo.IsOpen = false;
     }
@@ -205,6 +216,12 @@ public sealed partial class ChargingPage : Page
         await RunAsync(c => c.RestoreDefaultsAsync());
     });
 
+    private async void OnTopUp(object sender, RoutedEventArgs e) =>
+        await Guarded(() => RunAsync(c => c.StartTopUpAsync(TopUpPolicy.MaxDuration)));
+
+    private async void OnStopTopUp(object sender, RoutedEventArgs e) =>
+        await Guarded(() => RunAsync(c => c.EndTopUpAsync()));
+
     private async void OnResetState(object sender, RoutedEventArgs e) =>
         await Guarded(() => RunAsync(c => Task.FromResult(c.ResetAppState())));
 
@@ -308,5 +325,6 @@ public sealed partial class ChargingPage : Page
         ResetStateButton.IsEnabled = !_busy;
         NoticePrimaryButton.IsEnabled = canWrite;
         NoticeSecondaryButton.IsEnabled = !_busy;
+        TopUpButton.IsEnabled = StopTopUpButton.IsEnabled = canWrite;
     }
 }

@@ -19,6 +19,10 @@ internal static class AppServices
     private static bool _checking;
     private static volatile bool _stopping;
     private static int _exitReapplyDone;
+    private static TopUpMonitor? _topUpMonitor;
+
+    /// <summary>How often the running app checks for a finished top-up.</summary>
+    private static readonly TimeSpan CareInterval = TimeSpan.FromSeconds(30);
 
     private static bool CheckFlagFile()
     {
@@ -61,6 +65,9 @@ internal static class AppServices
     /// <summary>Raised on the UI thread when an unattended re-apply left the limit off and the user has to put it back.</summary>
     public static event Action<ChargeActionResult>? ReapplyNeedsUser;
 
+    /// <summary>Raised on the UI thread when the running app ended a top-up (full or expired), whatever the outcome.</summary>
+    public static event Action<TopUpCheckResult>? TopUpEnded;
+
     public static PowerPlanManagerStatus CheckPowerPlanManager() =>
         BatteryEnvironment.IsFakeBatteryEnabled ? PowerPlanManagerStatus.None : Ppm.Check();
 
@@ -72,6 +79,35 @@ internal static class AppServices
         try { SystemEvents.PowerModeChanged += OnPowerModeChanged; } catch (Exception) { }
         try { SystemEvents.SessionEnding += OnSessionEnding; } catch (Exception) { }
         _ = StartupCheckAsync();
+        _ = CareLoopAsync();
+    }
+
+    /// <summary>On the UI thread; each check runs off it. Ends when the app quits.</summary>
+    private static async Task CareLoopAsync()
+    {
+        using var timer = new PeriodicTimer(CareInterval);
+        while (!_stopping && await timer.WaitForNextTickAsync())
+        {
+            if (_stopping) return;
+            try { await CareTickAsync(); } catch (Exception) { }
+        }
+    }
+
+    private static async Task CareTickAsync()
+    {
+        if (Charge is not { } controller) return;
+        if (_topUpMonitor?.Controller != controller) _topUpMonitor = new TopUpMonitor(controller);
+        TopUpMonitor monitor = _topUpMonitor;
+        TopUpCheckResult? ended = await Task.Run(() => monitor.CheckAsync(Battery.Current.Percent));
+        if (ended is not null && !_stopping) ReportTopUpEnded(ended);
+    }
+
+    /// <summary>On the UI thread. A limit that could not be put back without a prompt is left to the user, like a failed re-apply.</summary>
+    private static void ReportTopUpEnded(TopUpCheckResult ended)
+    {
+        ChargeStateChanged?.Invoke();
+        if (ended.NeedsUser) ReapplyNeedsUser?.Invoke(ended.Result);
+        TopUpEnded?.Invoke(ended);
     }
 
     /// <summary>

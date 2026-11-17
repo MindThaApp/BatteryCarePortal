@@ -44,6 +44,10 @@
                 </StackPanel>
             </Border>
 
+            <Button x:Name="TopUpButton" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}"
+                    Visibility="Collapsed" Click="OnTopUp" />
+            <Button x:Name="StopTopUpButton" HorizontalAlignment="Stretch" Visibility="Collapsed" Click="OnStopTopUp" />
+
             <Button x:Name="OpenButton" HorizontalAlignment="Stretch" Click="OnOpen" />
         </StackPanel>
     </ScrollViewer>

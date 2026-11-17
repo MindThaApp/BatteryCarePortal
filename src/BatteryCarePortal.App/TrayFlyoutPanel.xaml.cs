@@ -6,8 +6,8 @@ using Portal.Core.Battery;
 namespace BatteryCarePortal;
 
 /// <summary>
-/// The flyout content: level, status sentence, and the charge-limit switch. The switch calls the same
-/// <see cref="ChargeLimitController"/> method as the Charging page and is gated the same way; nothing else is written here.
+/// The flyout content: level, status sentence, the charge-limit switch and Top up. They call the same
+/// <see cref="ChargeLimitController"/> methods as the Charging page and are gated the same way; nothing else is written here.
 /// </summary>
 public sealed partial class TrayFlyoutPanel : UserControl
 {
@@ -33,6 +33,8 @@ public sealed partial class TrayFlyoutPanel : UserControl
         RingHost.Child = _ring;
         LimitTitle.Text = Strings.Get("FlyoutLimitTitle");
         OpenButton.Content = Strings.Get("FlyoutOpen");
+        TopUpButton.Content = Strings.Get("FlyoutTopUp");
+        StopTopUpButton.Content = Strings.Get("FlyoutStopTopUp");
         AutomationProperties.SetName(LimitSwitch, Strings.Get("FlyoutLimitTitle"));
         AppServices.Battery.SnapshotChanged += (_, _) => DispatcherQueue.TryEnqueue(RefreshIfShown);
         AppServices.SupportChanged += RefreshIfShown;
@@ -90,8 +92,10 @@ public sealed partial class TrayFlyoutPanel : UserControl
                 _updating = false;
                 LimitHint.Text = limit is int on && on < 100 ? string.Format(Strings.Get("FlyoutLimitOn"), on) : Strings.Get("FlyoutLimitOff");
                 BusyRing.IsActive = _busy;
-                UpdateEnabled();
             }
+            TopUpButton.Visibility = showLimit && view?.CanStartTopUp == true ? Visibility.Visible : Visibility.Collapsed;
+            StopTopUpButton.Visibility = showLimit && view?.CanStopTopUp == true ? Visibility.Visible : Visibility.Collapsed;
+            UpdateEnabled();
         }
         catch (Exception) { }
         finally
@@ -103,23 +107,35 @@ public sealed partial class TrayFlyoutPanel : UserControl
     }
 
     private void UpdateEnabled() =>
-        LimitSwitch.IsEnabled = !_busy && _gateAllowed && AppServices.Charge is { IsBusy: false };
+        LimitSwitch.IsEnabled = TopUpButton.IsEnabled = StopTopUpButton.IsEnabled =
+            !_busy && _gateAllowed && AppServices.Charge is { IsBusy: false };
 
-    private async void OnLimitToggled(object sender, RoutedEventArgs e)
+    private void OnLimitToggled(object sender, RoutedEventArgs e)
     {
-        if (_updating || _busy || AppServices.Charge is not { } controller) return;
+        if (_updating || _busy) return;
         bool on = LimitSwitch.IsOn;
+        Run(async controller =>
+        {
+            int? value = ChargeLimitChoice.PreferredValue(controller.Capabilities, controller.ReadState(), controller.LoadIntent());
+            return await controller.SetLimitAsync(on, value);
+        });
+    }
+
+    private void OnTopUp(object sender, RoutedEventArgs e) => Run(c => c.StartTopUpAsync(TopUpPolicy.MaxDuration));
+
+    private void OnStopTopUp(object sender, RoutedEventArgs e) => Run(c => c.EndTopUpAsync());
+
+    // Same controller methods as the Charging page; one change at a time.
+    private async void Run(Func<ChargeLimitController, Task<ChargeActionResult>> action)
+    {
+        if (_busy || AppServices.Charge is not { } controller) return;
         _busy = true;
         FailedText.Visibility = Visibility.Collapsed;
         BusyRing.IsActive = true;
         UpdateEnabled();
         try
         {
-            ChargeActionResult result = await Task.Run(async () =>
-            {
-                int? value = ChargeLimitChoice.PreferredValue(controller.Capabilities, controller.ReadState(), controller.LoadIntent());
-                return await controller.SetLimitAsync(on, value);
-            });
+            ChargeActionResult result = await Task.Run(() => action(controller));
             if (result.Succeeded) AppServices.ClearReapplyNotice();
             else if (result.Status != ChargeActionStatus.Cancelled)
             {

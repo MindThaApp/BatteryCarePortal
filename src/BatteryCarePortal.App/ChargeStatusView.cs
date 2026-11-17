@@ -5,7 +5,15 @@ namespace BatteryCarePortal;
 /// <summary>The status sentence and the read-back limit for the Overview and Charging pages. Reads only.</summary>
 internal sealed record ChargeStatusView(ChargeStatusKind Kind, int? Limit)
 {
-    public string Sentence => string.Format(Strings.Get(ChargeStatusSentence.ResourceKey(Kind)), Limit ?? 0);
+    /// <summary>The app's intent, read with the state; the Top up controls use it.</summary>
+    public ChargeIntent? Intent { get; init; }
+
+    public string Sentence => Kind == ChargeStatusKind.TopUp && Intent is { } intent
+        ? string.Format(Strings.Get(ChargeStatusSentence.ResourceKey(Kind)), intent.Limit, TopUpEndText(intent.TopUpUntil))
+        : string.Format(Strings.Get(ChargeStatusSentence.ResourceKey(Kind)), Limit ?? 0);
+
+    public static string TopUpEndText(DateTimeOffset? until) =>
+        until is DateTimeOffset u ? u.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture) : BatteryFormat.None;
 
     public static string SentenceFor(ChargeStatusKind kind, int? limit = null) =>
         string.Format(Strings.Get(ChargeStatusSentence.ResourceKey(kind)), limit ?? 0);
@@ -43,9 +51,22 @@ internal sealed record ChargeStatusView(ChargeStatusKind Kind, int? Limit)
             ManagedLimitOn = managed,
             NeedsReapply = intent?.NeedsReapply ?? false,
             ReapplyFailed = intent?.ReapplyFailed ?? false,
+            TopUpActive = intent?.TopUpActive ?? false,
             LastReapply = intent is { Managed: true } ? AppServices.LastReapply?.Status : null,
             Limit = state.Limit,
         };
-        return new ChargeStatusView(ChargeStatusSentence.Resolve(input), state.Limit);
+        bool topUpOffered = gate.Allowed && Portal.Core.Services.FeatureTiers.IsAvailable(Portal.Core.Services.PortalFeature.TopUp, hasPro: false);
+        return new ChargeStatusView(ChargeStatusSentence.Resolve(input), state.Limit)
+        {
+            Intent = intent,
+            CanStartTopUp = topUpOffered && TopUpPolicy.CanStart(intent, state.Limit, AppServices.Battery.Current.Percent),
+            CanStopTopUp = gate.Allowed && intent is { Managed: true, LimitOn: true, TopUpActive: true },
+        };
     }
+
+    /// <summary>Show "Top up to 100%": the app's limit is on and in place, and the write gate allows a change.</summary>
+    public bool CanStartTopUp { get; init; }
+
+    /// <summary>Show "Stop top-up": a top-up is saved as running.</summary>
+    public bool CanStopTopUp { get; init; }
 }

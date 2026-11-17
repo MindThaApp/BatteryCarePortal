@@ -14,6 +14,7 @@ public enum PortalFeature
     PowerFlow,
     History,
     ScheduledCare,
+    TopUp,
 }
 
 /// <summary>
@@ -29,6 +30,7 @@ public static class FeatureTiers
         [PortalFeature.PowerFlow] = FeatureTier.Pro,
         [PortalFeature.History] = FeatureTier.Pro,
         [PortalFeature.ScheduledCare] = FeatureTier.Pro,
+        [PortalFeature.TopUp] = FeatureTier.Pro,
     };
 
     /// <summary>While true every feature is free and available; the map below is the intended future split.</summary>
