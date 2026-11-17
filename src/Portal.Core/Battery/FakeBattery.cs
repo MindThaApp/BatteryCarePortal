@@ -3,7 +3,25 @@ namespace Portal.Core.Battery;
 public static class BatteryEnvironment
 {
     /// <summary>PBC_FAKE_BATTERY=1 (or the older PPM_FAKE_BATTERY=1) turns on the simulated battery and backend (development and UI testing only).</summary>
-    public static bool IsFakeBatteryEnabled => IsSet("PBC_FAKE_BATTERY") || IsSet("BCP_FAKE_BATTERY") || IsSet("PPM_FAKE_BATTERY");
+    public const string FlagFileName = "fake-battery.flag";
+
+    private static volatile bool _flagFilePresent;
+
+    /// <summary>
+    /// The environment variables, or a <see cref="FlagFileName"/> file in the app's local folder (checked once by
+    /// <see cref="ConfigureFlagFile"/>; a packaged start does not inherit environment variables). The file is only ever read.
+    /// </summary>
+    public static bool IsFakeBatteryEnabled =>
+        _flagFilePresent || IsSet("PBC_FAKE_BATTERY") || IsSet("BCP_FAKE_BATTERY") || IsSet("PPM_FAKE_BATTERY");
+
+    /// <summary>Call once at startup, before anything reads <see cref="IsFakeBatteryEnabled"/>.</summary>
+    public static void ConfigureFlagFile(string localFolder) => _flagFilePresent = HasFlagFile(localFolder);
+
+    public static bool HasFlagFile(string localFolder)
+    {
+        try { return !string.IsNullOrEmpty(localFolder) && File.Exists(Path.Combine(localFolder, FlagFileName)); }
+        catch (Exception) { return false; }
+    }
 
     private static bool IsSet(string name) =>
         Environment.GetEnvironmentVariable(name) is "1" or "true" or "TRUE" or "True";

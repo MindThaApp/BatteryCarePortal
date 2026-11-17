@@ -15,6 +15,12 @@
             <NavigationViewItem x:Uid="NavPowerFlow" Tag="PowerFlow" Icon="Sync" />
             <NavigationViewItem x:Uid="NavHistory" Tag="History" Icon="Clock" />
         </NavigationView.MenuItems>
+        <NavigationView.PaneFooter>
+            <Border x:Name="SimulatedBadge" Visibility="Collapsed" Margin="12,0,12,8" Padding="8,4" CornerRadius="4"
+                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}">
+                <TextBlock x:Uid="OverviewSimulated" Style="{StaticResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+            </Border>
+        </NavigationView.PaneFooter>
         <NavigationView.FooterMenuItems>
             <NavigationViewItem x:Uid="NavSettings" Tag="Settings" Icon="Setting" />
         </NavigationView.FooterMenuItems>

@@ -21,7 +21,9 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Title = Strings.Get("AppName");
+        bool simulated = Portal.Core.Battery.BatteryEnvironment.IsFakeBatteryEnabled;
+        Title = simulated ? Strings.Get("AppName") + " - " + Strings.Get("OverviewSimulated/Text") : Strings.Get("AppName");
+        SimulatedBadge.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1000, 700));
         // Closing the window keeps the app in the tray; Quit in the tray menu exits.
         AppWindow.Closing += (_, e) =>

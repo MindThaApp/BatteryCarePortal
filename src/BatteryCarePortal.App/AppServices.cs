@@ -10,6 +10,8 @@ namespace BatteryCarePortal;
 /// </summary>
 internal static class AppServices
 {
+    // Must stay the first initializer: the battery service below reads the fake-battery switch.
+    private static readonly bool FlagChecked = CheckFlagFile();
     private static readonly PowerPlanManagerProbe Ppm = new();
     private static DispatcherQueue? _dispatcher;
     private static bool _startupReapplyDone;
@@ -17,10 +19,19 @@ internal static class AppServices
     private static volatile bool _stopping;
     private static int _exitReapplyDone;
 
+    private static bool CheckFlagFile()
+    {
+        BatteryEnvironment.ConfigureFlagFile(Windows.Storage.ApplicationData.Current.LocalFolder.Path);
+        return true;
+    }
+
     public static BatteryInfoService Battery { get; } = BatteryInfoService.CreateDefault();
 
     private static string StateFolder =>
         AppStateFolder.Resolve(Windows.Storage.ApplicationData.Current.LocalFolder.Path, BatteryEnvironment.IsFakeBatteryEnabled);
+
+    /// <summary>For reading the day's samples only; nothing in the app records into it yet.</summary>
+    public static BatteryHistoryLogger History { get; } = new(StateFolder);
 
     public static BatterySettingsStore Settings { get; } = new(StateFolder);
 
