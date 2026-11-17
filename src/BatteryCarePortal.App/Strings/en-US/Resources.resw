@@ -128,5 +128,13 @@
   <data name="SettingsBetaOffText" xml:space="preserve"><value>Changes the app made during beta testing stay on your laptop. To undo them, use Restore laptop defaults on the Charging page before you turn beta testing off.</value></data>
   <data name="SettingsBetaOffYes" xml:space="preserve"><value>Turn off</value></data>
   <data name="SettingsBetaFailed" xml:space="preserve"><value>The setting could not be changed. {0}</value></data>
+  <data name="WindowTitleSimulated" xml:space="preserve"><value>Simulated battery</value></data>
+  <data name="FlyoutLimitTitle" xml:space="preserve"><value>Charge limit</value></data>
+  <data name="FlyoutLimitOn" xml:space="preserve"><value>Holds near {0}% on this laptop</value></data>
+  <data name="FlyoutLimitOff" xml:space="preserve"><value>Charges to 100%</value></data>
+  <data name="FlyoutLimitFailed" xml:space="preserve"><value>The limit was not changed. Open Battery Care Portal for details.</value></data>
+  <data name="FlyoutOpen" xml:space="preserve"><value>Open Battery Care Portal</value></data>
+  <data name="FlyoutNoBattery" xml:space="preserve"><value>No battery found.</value></data>
+  <data name="TrayTipSentence" xml:space="preserve"><value>{0}% · {1}</value></data>
 </root>
 

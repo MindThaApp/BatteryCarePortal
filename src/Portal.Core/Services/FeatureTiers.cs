@@ -37,5 +37,11 @@ public static class FeatureTiers
     /// <summary>The tier the map assigns, ignoring <see cref="EverythingFree"/>.</summary>
     public static FeatureTier TierOf(PortalFeature feature) => Map[feature];
 
+    /// <summary>History window in days: the intended free and Pro values; everything is free (and Pro-length) for now.</summary>
+    public const int FreeHistoryDays = 7;
+    public const int ProHistoryDays = 30;
+
+    public static int HistoryRetentionDays(bool hasPro) => EverythingFree || hasPro ? ProHistoryDays : FreeHistoryDays;
+
     public static bool IsAvailable(PortalFeature feature, bool hasPro) => EverythingFree || hasPro || TierOf(feature) == FeatureTier.Free;
 }

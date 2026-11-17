@@ -1,6 +1,7 @@
-﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Dispatching;
 using Microsoft.Win32;
 using Portal.Core.Battery;
+using Portal.Core.Services;
 
 namespace BatteryCarePortal;
 
@@ -30,8 +31,8 @@ internal static class AppServices
     private static string StateFolder =>
         AppStateFolder.Resolve(Windows.Storage.ApplicationData.Current.LocalFolder.Path, BatteryEnvironment.IsFakeBatteryEnabled);
 
-    /// <summary>For reading the day's samples only; nothing in the app records into it yet.</summary>
-    public static BatteryHistoryLogger History { get; } = new(StateFolder);
+    /// <summary>Samples go into the state folder (the simulated one in fake mode), kept for the history window of the tier.</summary>
+    public static BatteryHistoryLogger History { get; } = new(StateFolder, retentionDays: FeatureTiers.HistoryRetentionDays(hasPro: false));
 
     public static BatterySettingsStore Settings { get; } = new(StateFolder);
 
@@ -66,6 +67,7 @@ internal static class AppServices
     public static void Start()
     {
         _dispatcher = DispatcherQueue.GetForCurrentThread();
+        Battery.SnapshotChanged += OnSnapshotForHistory;
         Battery.Start();
         try { SystemEvents.PowerModeChanged += OnPowerModeChanged; } catch (Exception) { }
         try { SystemEvents.SessionEnding += OnSessionEnding; } catch (Exception) { }
@@ -140,6 +142,16 @@ internal static class AppServices
         }
         finally { _checking = false; }
     }
+
+    // The logger throttles itself (on change, otherwise once a minute); the file write stays off the event thread.
+    private static void OnSnapshotForHistory(object? sender, BatterySnapshot snapshot)
+    {
+        if (_stopping) return;
+        _ = Task.Run(() => { try { History.Record(snapshot); } catch (Exception) { } });
+    }
+
+    /// <summary>Tells the open pages and the flyout that the charge state changed (call on the UI thread).</summary>
+    public static void NotifyChargeChanged() => ChargeStateChanged?.Invoke();
 
     public static void ClearReapplyNotice() => LastReapply = null;
 

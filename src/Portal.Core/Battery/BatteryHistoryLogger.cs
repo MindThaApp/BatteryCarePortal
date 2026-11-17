@@ -37,6 +37,7 @@ public sealed class BatteryHistoryLogger
     private readonly int _retentionDays;
     private readonly object _gate = new();
     private DateTimeOffset? _lastRecord;
+    private (bool OnAc, bool Charging)? _lastState;
     private DateOnly? _lastPrunedDay;
     private BatteryHealthPoint? _lastHealthWritten;
 
@@ -58,7 +59,7 @@ public sealed class BatteryHistoryLogger
         DateTimeOffset now = _time.GetUtcNow();
         lock (_gate)
         {
-            if (_lastRecord is DateTimeOffset last && now - last < _interval) return false;
+            if (_lastRecord is DateTimeOffset last && !ShouldRecord(now - last, _lastState, snapshot, _interval)) return false;
             try
             {
                 Directory.CreateDirectory(_folder);
@@ -74,6 +75,7 @@ public sealed class BatteryHistoryLogger
                 };
                 File.AppendAllText(DayFile(DateOnly.FromDateTime(now.UtcDateTime)), JsonSerializer.Serialize(entry) + "\n");
                 _lastRecord = now;
+                _lastState = (snapshot.IsOnAc, snapshot.IsCharging);
                 if (snapshot.HealthPercent is double health) RecordHealth(DateOnly.FromDateTime(now.UtcDateTime), health, snapshot.CycleCount);
                 PruneIfNewDay(DateOnly.FromDateTime(now.UtcDateTime));
                 return true;
@@ -83,6 +85,20 @@ public sealed class BatteryHistoryLogger
                 return false;
             }
         }
+    }
+
+    /// <summary>Shortest gap between two samples, even when the plug or charging state changed in between.</summary>
+    public static readonly TimeSpan MinChangeGap = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// True when a sample is due: the interval has passed, or the plug or charging state changed since the last sample
+    /// (so the Today log sees each change when it happens). Pure.
+    /// </summary>
+    public static bool ShouldRecord(TimeSpan sinceLast, (bool OnAc, bool Charging)? lastState, BatterySnapshot snapshot, TimeSpan interval)
+    {
+        if (sinceLast >= interval) return true;
+        bool changed = lastState is { } s && (s.OnAc != snapshot.IsOnAc || s.Charging != snapshot.IsCharging);
+        return changed && sinceLast >= MinChangeGap;
     }
 
     /// <summary>Samples between two times, oldest first. Corrupt lines are skipped.</summary>
@@ -137,6 +153,7 @@ public sealed class BatteryHistoryLogger
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
             _lastRecord = null;
+            _lastState = null;
             _lastHealthWritten = null;
         }
     }

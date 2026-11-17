@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Windowing;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using BatteryCarePortal.Pages;
@@ -22,7 +22,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         bool simulated = Portal.Core.Battery.BatteryEnvironment.IsFakeBatteryEnabled;
-        Title = simulated ? Strings.Get("AppName") + " - " + Strings.Get("OverviewSimulated/Text") : Strings.Get("AppName");
+        Title = simulated ? Strings.Get("AppName") + " - " + Strings.Get("WindowTitleSimulated") : Strings.Get("AppName");
         SimulatedBadge.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1000, 700));
         // Closing the window keeps the app in the tray; Quit in the tray menu exits.
