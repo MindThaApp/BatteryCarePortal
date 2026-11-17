@@ -48,6 +48,33 @@ public class ChargeStatusTests
             Assert.Contains($"name=\"{ChargeStatusSentence.ResourceKey(kind)}\"", resw);
     }
 
+    [Theory]
+    [InlineData("ChargeTopUpTitle.Text")]
+    [InlineData("ChargeTopUpText")]
+    [InlineData("ChargeTopUpRunning")]
+    [InlineData("ChargeTopUpButton.Content")]
+    [InlineData("ChargeTopUpStop.Content")]
+    [InlineData("FlyoutTopUp")]
+    [InlineData("FlyoutStopTopUp")]
+    [InlineData("ToastLimitReachedTitle")]
+    [InlineData("ToastLimitReachedText")]
+    [InlineData("ToastUnplugTitle")]
+    [InlineData("ToastUnplugText")]
+    [InlineData("ToastPlugInTitle")]
+    [InlineData("ToastPlugInText")]
+    [InlineData("ToastTopUpFullTitle")]
+    [InlineData("ToastTopUpFullText")]
+    [InlineData("ToastTopUpEndedTitle")]
+    [InlineData("ToastTopUpEndedText")]
+    [InlineData("SettingsNotificationsTitle.Text")]
+    [InlineData("SettingsNotifyLimit.Header")]
+    [InlineData("SettingsNotifyPlugIn")]
+    [InlineData("SettingsNotifyTopUp.Header")]
+    [InlineData("SettingsNotificationsNote.Text")]
+    [InlineData("SettingsNotifyFailed")]
+    public void TopUpAndNotificationStringsExist(string key) =>
+        Assert.Contains($"name=\"{key}\"", File.ReadAllText(FindResw()));
+
     private static string FindResw()
     {
         string? dir = AppContext.BaseDirectory;
