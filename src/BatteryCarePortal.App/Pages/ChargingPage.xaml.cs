@@ -12,6 +12,7 @@ public sealed partial class ChargingPage : Page
     private bool _updating;
     private bool _gateAllowed;
     private Notice _notice;
+    private ChargeActionStatus? _lastAction;
 
     public ChargingPage()
     {
@@ -48,19 +49,20 @@ public sealed partial class ChargingPage : Page
         ChargeLimitController? controller = AppServices.Charge;
         if (support is null || controller is null)
         {
-            ShowUnavailable(support is null ? Strings.Get("SupportCheckingNote") : UnavailableMessage(support));
+            ShowUnavailable(support is null ? Strings.Get("SupportCheckingNote") : (await Task.Run(() => ChargeStatusView.Build(null, false))).Sentence);
             return;
         }
 
-        (ChargeLimitState state, WriteGateResult gate, ChargeIntent? intent, IntentFileState intentState) =
-            await Task.Run(() => (controller.ReadState(), controller.EvaluateGate(), controller.LoadIntent(), controller.IntentState));
+        (ChargeLimitState state, WriteGateResult gate, ChargeIntent? intent, IntentFileState intentState, ChargeStatusView view) =
+            await Task.Run(() => (controller.ReadState(), controller.EvaluateGate(), controller.LoadIntent(), controller.IntentState,
+                ChargeStatusView.Build(_lastAction, _busy)));
         if (!ReferenceEquals(controller, AppServices.Charge)) return;
 
         LimitCard.Visibility = RestoreCard.Visibility = Visibility.Visible;
         ResetPanel.Visibility = intentState == IntentFileState.Unusable ? Visibility.Visible : Visibility.Collapsed;
         _gateAllowed = gate.Allowed;
-        UnavailableText.Text = gate.Allowed ? string.Empty : RefusalText(gate.Refusal, gate.Message);
-        UnavailableText.Visibility = gate.Allowed ? Visibility.Collapsed : Visibility.Visible;
+        UnavailableText.Text = view.Sentence;
+        UnavailableText.Visibility = Visibility.Visible;
         BetaChip.Visibility = gate.Decision == WriteGateDecision.BetaOptIn ? Visibility.Visible : Visibility.Collapsed;
 
         ConfigureCapabilities(controller.Capabilities, state, intent);
@@ -77,15 +79,6 @@ public sealed partial class ChargingPage : Page
         _notice = Notice.None;
         NoticeInfo.IsOpen = false;
     }
-
-    private static string UnavailableMessage(DeviceSupport support) => support.State switch
-    {
-        DeviceSupportState.NoBattery => Strings.Get("SupportTextNoBattery"),
-        DeviceSupportState.MonitorMode => Strings.Get("SupportTextMonitorMode"),
-        DeviceSupportState.OneStepMissing => Strings.Get("SupportTextOneStepMissing"),
-        DeviceSupportState.OnTestList => Strings.Get(support.BetaOptIn ? "ChargeStatusNotVerified" : "ChargeStatusBetaOff"),
-        _ => Strings.Get("ChargeStatusNotDetected"),
-    };
 
     private static string RefusalText(WriteRefusal refusal, string fallback) => refusal switch
     {
@@ -234,6 +227,7 @@ public sealed partial class ChargingPage : Page
         {
             ChargeActionResult result = await Task.Run(() => action(controller));
             ShowResult(result);
+            _lastAction = result.Status;
             if (result.Succeeded) AppServices.ClearReapplyNotice();
         }
         catch (Exception ex)
@@ -299,6 +293,7 @@ public sealed partial class ChargingPage : Page
     {
         _busy = busy;
         BusyRing.IsActive = busy;
+        if (busy) UnavailableText.Text = ChargeStatusView.SentenceFor(ChargeStatusKind.Writing);
         UpdateEnabled();
     }
 

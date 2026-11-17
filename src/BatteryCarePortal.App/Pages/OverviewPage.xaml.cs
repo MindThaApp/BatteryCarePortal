@@ -14,18 +14,61 @@ public sealed partial class OverviewPage : Page
     public OverviewPage()
     {
         InitializeComponent();
+        RingHost.Child = Ring;
         Loaded += (_, _) =>
         {
             AppServices.Battery.SnapshotChanged += OnSnapshotChanged;
             AppServices.SupportChanged += RefreshSupport;
+            AppServices.ChargeStateChanged += RefreshStatus;
+            AppServices.SupportChanged += RefreshStatus;
             RefreshBattery();
             RefreshSupport();
+            RefreshStatus();
+            RefreshToday();
         };
         Unloaded += (_, _) =>
         {
             AppServices.Battery.SnapshotChanged -= OnSnapshotChanged;
             AppServices.SupportChanged -= RefreshSupport;
+            AppServices.ChargeStateChanged -= RefreshStatus;
+            AppServices.SupportChanged -= RefreshStatus;
         };
+    }
+
+    private int? _limit;
+    private readonly BatteryCarePortal.Controls.BatteryRing Ring = new();
+
+    // Reads firmware state and the intent file off the UI thread; the sentence covers every engine state.
+    private async void RefreshStatus()
+    {
+        try
+        {
+            ChargeStatusView view = await Task.Run(() => ChargeStatusView.Build(null, false));
+            _limit = view.Limit;
+            LimitSentence.Text = AppServices.Support is null ? string.Empty : view.Sentence;
+            LimitSentence.Visibility = LimitSentence.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            BatterySnapshot s = AppServices.Battery.Current;
+            Ring.Set(s.Percent, _limit, s.IsCharging);
+        }
+        catch (Exception) { }
+    }
+
+    private async void RefreshToday()
+    {
+        try
+        {
+            DateTimeOffset now = DateTimeOffset.Now;
+            IReadOnlyList<TodayEvent> events = await Task.Run(() =>
+                TodayLog.Build(AppServices.History.Read(TodayLog.DayStart(now), now)));
+            TodayList.ItemsSource = events.Select(e =>
+            {
+                string pct = e.Percent is int p ? BatteryFormat.Percent(p, format: "0") : BatteryFormat.None;
+                return $"{e.Time:t}  {string.Format(Strings.Get("Today" + e.Kind), pct)}";
+            }).ToList();
+            TodayEmpty.Text = Strings.Get("OverviewTodayEmpty");
+            TodayEmpty.Visibility = events.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception) { }
     }
 
     private void OnSnapshotChanged(object? sender, BatterySnapshot snapshot) => _dispatcher.TryEnqueue(RefreshBattery);
@@ -43,7 +86,8 @@ public sealed partial class OverviewPage : Page
             ? string.Format(Strings.Get(w > 0 ? "BatteryRateIn" : "BatteryRateOut"), BatteryFormat.Watts(Math.Abs(w)).TrimStart('+'))
             : string.Empty;
         RateText.Visibility = RateText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SimulatedText.Visibility = s.IsSimulated ? Visibility.Visible : Visibility.Collapsed;
+        SimulatedChip.Visibility = s.IsSimulated ? Visibility.Visible : Visibility.Collapsed;
+        Ring.Set(s.Percent, _limit, s.IsCharging);
     }
 
     private void RefreshSupport()

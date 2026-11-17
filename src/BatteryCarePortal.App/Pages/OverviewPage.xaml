@@ -10,11 +10,28 @@
             <Border x:Name="BatteryCard" Padding="20" CornerRadius="8"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                <StackPanel Spacing="4">
-                    <TextBlock x:Name="LevelText" Style="{StaticResource TitleLargeTextBlockStyle}" />
-                    <TextBlock x:Name="StatusText" />
-                    <TextBlock x:Name="RateText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock x:Name="SimulatedText" x:Uid="OverviewSimulated" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                <StackPanel Orientation="Horizontal" Spacing="24">
+                    <Border x:Name="RingHost" VerticalAlignment="Center" />
+                    <StackPanel Spacing="4" VerticalAlignment="Center" MaxWidth="440">
+                        <TextBlock x:Name="LevelText" Style="{StaticResource TitleLargeTextBlockStyle}" />
+                        <TextBlock x:Name="StatusText" />
+                        <TextBlock x:Name="RateText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Border x:Name="SimulatedChip" Padding="8,2" CornerRadius="4" HorizontalAlignment="Left" Visibility="Collapsed"
+                                Background="{ThemeResource SystemFillColorCautionBackgroundBrush}">
+                            <TextBlock x:Name="SimulatedText" x:Uid="OverviewSimulated" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </Border>
+                        <TextBlock x:Name="LimitSentence" TextWrapping="Wrap" Margin="0,8,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="20" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="OverviewTodayTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="TodayEmpty" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ItemsControl x:Name="TodayList" />
                 </StackPanel>
             </Border>
 

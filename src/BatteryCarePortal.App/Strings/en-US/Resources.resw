@@ -23,7 +23,7 @@
   <data name="TitleSettings.Text" xml:space="preserve"><value>Settings</value></data>
   <data name="TrayTipLevel" xml:space="preserve"><value>Battery Care Portal: {0}%</value></data>
   <data name="TrayTipCharging" xml:space="preserve"><value>Battery Care Portal: {0}%, charging</value></data>
-  <data name="OverviewSimulated.Text" xml:space="preserve"><value>Simulated battery (test mode)</value></data>
+  <data name="OverviewSimulated.Text" xml:space="preserve"><value>Simulated battery</value></data>
   <data name="BatteryCharging" xml:space="preserve"><value>Charging</value></data>
   <data name="BatteryPluggedIn" xml:space="preserve"><value>Plugged in, not charging</value></data>
   <data name="BatteryOnBattery" xml:space="preserve"><value>On battery</value></data>
@@ -77,6 +77,27 @@
   <data name="ChargeStatusNotDetected" xml:space="preserve"><value>The charge-limit interface for this laptop was not found, so nothing can be changed.</value></data>
   <data name="ChargeStatusPpmOwns" xml:space="preserve"><value>Power Plan Manager manages the charge limit on this PC, so this app does not change it. Only one app should control the limit: turn off battery care in Power Plan Manager, or keep using it there.</value></data>
   <data name="ChargeStatusPpmUnconfirmed" xml:space="preserve"><value>Couldn't confirm Power Plan Manager has charge control off, so this app does not change the limit. Open Power Plan Manager and check that its battery care is turned off, then try again.</value></data>
+  <data name="ChargeStatusNoBattery" xml:space="preserve"><value>This PC has no battery. Battery Care is for laptops.</value></data>
+  <data name="ChargeStatusMonitorMode" xml:space="preserve"><value>Monitor mode. This laptop does not offer a charge limit the app can use safely, so nothing is changed. Health, power flow and history still work.</value></data>
+  <data name="ChargeStatusOneStepMissing" xml:space="preserve"><value>Your laptop supports a charge limit, but the maker's energy-management driver is not installed. Install it, then check again.</value></data>
+  <data name="ChargeStatusStateFileUnusable" xml:space="preserve"><value>The app's saved charge settings can't be read, so it does not change anything. Reset the app state below to start clean. Your laptop's own setting is not touched.</value></data>
+  <data name="ChargeStatusWriting" xml:space="preserve"><value>Changing the charge limit and checking that your laptop took it.</value></data>
+  <data name="ChargeStatusNeedsElevation" xml:space="preserve"><value>The last change needs administrator approval. Nothing was changed.</value></data>
+  <data name="ChargeStatusCancelled" xml:space="preserve"><value>The administrator prompt was cancelled. Nothing was changed.</value></data>
+  <data name="ChargeStatusReadBackMismatch" xml:space="preserve"><value>Your laptop did not report the new setting after the change, so the limit may not be working. The app did not retry.</value></data>
+  <data name="ChargeStatusChangedElsewhere" xml:space="preserve"><value>Your laptop's charge limit was changed outside this app. Choose which setting to keep.</value></data>
+  <data name="ChargeStatusReapplyFailed" xml:space="preserve"><value>The app tried to put your charge limit back and your laptop did not take it. The app will not try again by itself.</value></data>
+  <data name="ChargeStatusNeedsReapply" xml:space="preserve"><value>Your charge limit is not back on yet. Put it back when you are ready.</value></data>
+  <data name="ChargeStatusUnreadable" xml:space="preserve"><value>The app can't read the charge limit from your laptop right now, so it can't say whether it is on.</value></data>
+  <data name="ChargeStatusOn" xml:space="preserve"><value>Charge limit is on. Your laptop stops charging near {0}% and holds there, even when this app is closed.</value></data>
+  <data name="ChargeStatusOff" xml:space="preserve"><value>Charge limit is off. Your laptop charges to 100%.</value></data>
+  <data name="OverviewLimitTick" xml:space="preserve"><value>Limit {0}%</value></data>
+  <data name="OverviewTodayTitle.Text" xml:space="preserve"><value>Today</value></data>
+  <data name="OverviewTodayEmpty" xml:space="preserve"><value>Nothing to show yet today.</value></data>
+  <data name="TodayUnplugged" xml:space="preserve"><value>Unplugged at {0}</value></data>
+  <data name="TodayPluggedIn" xml:space="preserve"><value>Plugged in at {0}</value></data>
+  <data name="TodayChargingStarted" xml:space="preserve"><value>Charging started at {0}</value></data>
+  <data name="TodayChargingStopped" xml:space="preserve"><value>Charging stopped at {0}</value></data>
   <data name="ChargeResultApplied" xml:space="preserve"><value>Done. Your laptop reports the new setting.</value></data>
   <data name="ChargeResultNotConfirmed" xml:space="preserve"><value>The change was made and checked with administrator rights, but the app could not read it back itself.</value></data>
   <data name="ChargeResultNeedsElevation" xml:space="preserve"><value>This change needs administrator approval. Nothing was changed.</value></data>
