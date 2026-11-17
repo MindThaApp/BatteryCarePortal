@@ -6,7 +6,9 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap5 rescap">
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap uap5 rescap com desktop">
 
   <!-- Name and Publisher are placeholders until the Store reservation exists; replace with the values Partner Center shows. -->
   <Identity
@@ -53,6 +55,17 @@
             <uap:DisplayName>Battery Care Portal</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
+        <!-- Notification clicks: the CLSID must match in both entries. -->
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="0D4B3E75-044D-4D4E-B0EC-AD582EA1FF77" />
+        </desktop:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="BatteryCarePortal.App.exe" Arguments="----AppNotificationActivated:" DisplayName="Battery Care Portal">
+              <com:Class Id="0D4B3E75-044D-4D4E-B0EC-AD582EA1FF77" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
       </Extensions>
     </Application>
   </Applications>

@@ -13,6 +13,18 @@
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
+                    <TextBlock x:Uid="SettingsNotificationsTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <ToggleSwitch x:Name="NotifyLimitSwitch" x:Uid="SettingsNotifyLimit" Toggled="OnNotifyToggled" />
+                    <ToggleSwitch x:Name="NotifyPlugInSwitch" Toggled="OnNotifyToggled" />
+                    <ToggleSwitch x:Name="NotifyTopUpSwitch" x:Uid="SettingsNotifyTopUp" Toggled="OnNotifyToggled" />
+                    <TextBlock x:Uid="SettingsNotificationsNote" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="20" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
                     <TextBlock x:Uid="SettingsDeviceSupportTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
                     <ToggleSwitch x:Name="BetaSwitch" x:Uid="SettingsBetaSwitch" Toggled="OnBetaToggled" />
                     <TextBlock x:Uid="SettingsBetaWarning" TextWrapping="Wrap" />

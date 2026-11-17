@@ -20,6 +20,7 @@ internal static class AppServices
     private static volatile bool _stopping;
     private static int _exitReapplyDone;
     private static TopUpMonitor? _topUpMonitor;
+    private static readonly BatteryToastPlanner Toasts = new();
 
     /// <summary>How often the running app checks for a finished top-up.</summary>
     private static readonly TimeSpan CareInterval = TimeSpan.FromSeconds(30);
@@ -65,8 +66,8 @@ internal static class AppServices
     /// <summary>Raised on the UI thread when an unattended re-apply left the limit off and the user has to put it back.</summary>
     public static event Action<ChargeActionResult>? ReapplyNeedsUser;
 
-    /// <summary>Raised on the UI thread when the running app ended a top-up (full or expired), whatever the outcome.</summary>
-    public static event Action<TopUpCheckResult>? TopUpEnded;
+    /// <summary>Raised on the UI thread when a battery notification is due (already rate-limited and allowed by the settings).</summary>
+    public static event Action<BatteryToast>? ToastDue;
 
     public static PowerPlanManagerStatus CheckPowerPlanManager() =>
         BatteryEnvironment.IsFakeBatteryEnabled ? PowerPlanManagerStatus.None : Ppm.Check();
@@ -95,11 +96,48 @@ internal static class AppServices
 
     private static async Task CareTickAsync()
     {
-        if (Charge is not { } controller) return;
-        if (_topUpMonitor?.Controller != controller) _topUpMonitor = new TopUpMonitor(controller);
-        TopUpMonitor monitor = _topUpMonitor;
-        TopUpCheckResult? ended = await Task.Run(() => monitor.CheckAsync(Battery.Current.Percent));
-        if (ended is not null && !_stopping) ReportTopUpEnded(ended);
+        ChargeLimitController? controller = Charge;
+        DeviceSupport? support = Support;
+        BatterySnapshot snapshot = Battery.Current;
+        if (controller is not null && _topUpMonitor?.Controller != controller) _topUpMonitor = new TopUpMonitor(controller);
+        TopUpMonitor? monitor = controller is null ? null : _topUpMonitor;
+
+        (TopUpCheckResult? ended, BatteryToastInput? input, BatterySettings settings) = await Task.Run(async () =>
+        {
+            TopUpCheckResult? result = monitor is null ? null : await monitor.CheckAsync(snapshot.Percent);
+            BatterySettings loaded = Settings.Load();
+            return (result, ToastInputFor(snapshot, support, controller, loaded), loaded);
+        });
+        if (_stopping) return;
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        if (ended is not null)
+        {
+            ReportTopUpEnded(ended);
+            if (Toasts.TopUpEnded(ended, snapshot.Percent, settings, now) is { } finished) ToastDue?.Invoke(finished);
+        }
+        if (input is not null)
+            foreach (BatteryToast toast in Toasts.Evaluate(input, settings, now)) ToastDue?.Invoke(toast);
+    }
+
+    /// <summary>Off the UI thread. Read-only; null when there is nothing to remind about.</summary>
+    private static BatteryToastInput? ToastInputFor(BatterySnapshot s, DeviceSupport? support, ChargeLimitController? controller, BatterySettings settings)
+    {
+        if (!s.Present || s.Percent is null || support is null || support.State == DeviceSupportState.NoBattery) return null;
+        try
+        {
+            int? hold = null, unplugAt = null;
+            if (controller is not null)
+            {
+                if (settings.NotifyWhenLimitReached && controller.LoadIntent() is not { TopUpActive: true } &&
+                    controller.ReadState().Limit is int limit && limit < 100)
+                    hold = limit;
+            }
+            else if (support.CurrentLimit is int set && set < 100) hold = set;
+            else unplugAt = settings.Limit;
+            return new BatteryToastInput { Percent = s.Percent, OnAc = s.IsOnAc, Charging = s.IsCharging, HoldLimit = hold, UnplugAt = unplugAt };
+        }
+        catch (Exception) { return null; }
     }
 
     /// <summary>On the UI thread. A limit that could not be put back without a prompt is left to the user, like a failed re-apply.</summary>
@@ -107,7 +145,6 @@ internal static class AppServices
     {
         ChargeStateChanged?.Invoke();
         if (ended.NeedsUser) ReapplyNeedsUser?.Invoke(ended.Result);
-        TopUpEnded?.Invoke(ended);
     }
 
     /// <summary>

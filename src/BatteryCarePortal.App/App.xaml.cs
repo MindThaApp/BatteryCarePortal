@@ -34,11 +34,20 @@ public partial class App : Application
         AppServices.SupportChanged += UpdateTray;
         try { Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray); } catch (Exception) { }
         AppServices.ReapplyNeedsUser += ShowLimitOffNotification;
+        AppServices.ToastDue += toast => { if (!_exiting) AppToasts.Show(toast); };
+        AppToasts.PageRequested += page => _mainWindow.DispatcherQueue.TryEnqueue(() => ShowPage(page));
+        AppToasts.Register();
         AppServices.Start();
 
-        // A login start (StartupTask) lives in the tray; any other launch shows the window.
-        bool startHidden = AppInstance.GetCurrent().GetActivatedEventArgs().Kind == ExtendedActivationKind.StartupTask;
-        if (!startHidden) ShowMainWindow();
+        // A login start (StartupTask) lives in the tray; a notification click opens its page; any other launch shows the window.
+        AppActivationArguments activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        if (AppToasts.PageFromActivation(activation) is { } page) ShowPage(page);
+        else if (activation.Kind != ExtendedActivationKind.StartupTask) ShowMainWindow();
+    }
+
+    private void ShowPage(string page)
+    {
+        if (!_exiting) _mainWindow?.ShowPage(page);
     }
 
     private void CreateTrayIcon()
@@ -135,7 +144,12 @@ public partial class App : Application
     // A second launch lands here on the first instance's UI thread via the instance redirection.
     public void OnRedirectedActivation(AppActivationArguments args)
     {
-        _mainWindow?.DispatcherQueue.TryEnqueue(ShowMainWindow);
+        string? page = AppToasts.PageFromActivation(args);
+        _mainWindow?.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (page is null) ShowMainWindow();
+            else ShowPage(page);
+        });
     }
 
     // Runs once when the user quits: puts the steady-state charge limit back if a top-up had it off (bounded in time).

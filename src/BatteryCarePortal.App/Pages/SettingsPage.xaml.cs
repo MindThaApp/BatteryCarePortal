@@ -18,8 +18,35 @@ public sealed partial class SettingsPage : Page
     private void ShowStoredValue()
     {
         _updating = true;
-        BetaSwitch.IsOn = AppServices.Settings.Load().BetaOtherBrandsOptIn;
+        Portal.Core.Battery.BatterySettings settings = AppServices.Settings.Load();
+        BetaSwitch.IsOn = settings.BetaOtherBrandsOptIn;
+        NotifyLimitSwitch.IsOn = settings.NotifyWhenLimitReached;
+        NotifyPlugInSwitch.IsOn = settings.NotifyPlugIn;
+        NotifyPlugInSwitch.Header = string.Format(Strings.Get("SettingsNotifyPlugIn"), settings.LowReminderPercent);
+        NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
         _updating = false;
+    }
+
+    private void OnNotifyToggled(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+        bool limit = NotifyLimitSwitch.IsOn, plugIn = NotifyPlugInSwitch.IsOn, topUp = NotifyTopUpSwitch.IsOn;
+        try
+        {
+            AppServices.Settings.Update(s =>
+            {
+                s.NotifyWhenLimitReached = limit;
+                s.NotifyPlugIn = plugIn;
+                s.NotifyTopUpFinished = topUp;
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Severity = InfoBarSeverity.Error;
+            StatusInfo.Message = string.Format(Strings.Get("SettingsNotifyFailed"), ex.Message);
+            StatusInfo.IsOpen = true;
+            try { ShowStoredValue(); } catch (Exception) { }
+        }
     }
 
     // Turning beta on always needs the warning accepted; nothing is stored until the user confirms.

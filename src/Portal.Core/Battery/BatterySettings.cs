@@ -37,8 +37,14 @@ public sealed class BatterySettings
     /// <summary>"Plug in" reminder level on battery.</summary>
     public int LowReminderPercent { get; set; } = 20;
 
-    /// <summary>Notify once each time the battery reaches the limit.</summary>
+    /// <summary>Notify once each time the battery reaches the limit (in Monitor mode: the unplug reminder at <see cref="Limit"/>).</summary>
     public bool NotifyWhenLimitReached { get; set; } = true;
+
+    /// <summary>Notify on battery at <see cref="LowReminderPercent"/>.</summary>
+    public bool NotifyPlugIn { get; set; } = true;
+
+    /// <summary>Notify when the app ends a top-up and the limit is back on.</summary>
+    public bool NotifyTopUpFinished { get; set; } = true;
 
     public CalibrationProgress Calibration { get; set; } = new();
 

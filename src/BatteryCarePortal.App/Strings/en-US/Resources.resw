@@ -144,5 +144,21 @@
   <data name="ChargeTopUpStop.Content" xml:space="preserve"><value>Stop top-up</value></data>
   <data name="FlyoutTopUp" xml:space="preserve"><value>Top up to 100%</value></data>
   <data name="FlyoutStopTopUp" xml:space="preserve"><value>Stop top-up</value></data>
+  <data name="ToastLimitReachedTitle" xml:space="preserve"><value>Holding at {0}%</value></data>
+  <data name="ToastLimitReachedText" xml:space="preserve"><value>Your laptop stopped charging at the limit. The battery rests while you stay plugged in.</value></data>
+  <data name="ToastUnplugTitle" xml:space="preserve"><value>Battery at {0}%</value></data>
+  <data name="ToastUnplugText" xml:space="preserve"><value>You can unplug now. This laptop keeps charging, because it has no charge limit the app can use.</value></data>
+  <data name="ToastPlugInTitle" xml:space="preserve"><value>Battery at {0}%</value></data>
+  <data name="ToastPlugInText" xml:space="preserve"><value>Plug in soon.</value></data>
+  <data name="ToastTopUpFullTitle" xml:space="preserve"><value>Battery full</value></data>
+  <data name="ToastTopUpFullText" xml:space="preserve"><value>Top-up finished. Your {0}% limit is back on.</value></data>
+  <data name="ToastTopUpEndedTitle" xml:space="preserve"><value>Top-up ended</value></data>
+  <data name="ToastTopUpEndedText" xml:space="preserve"><value>The top-up time ran out at {1}%. Your {0}% limit is back on.</value></data>
+  <data name="SettingsNotificationsTitle.Text" xml:space="preserve"><value>Notifications</value></data>
+  <data name="SettingsNotifyLimit.Header" xml:space="preserve"><value>Limit reached</value></data>
+  <data name="SettingsNotifyPlugIn" xml:space="preserve"><value>Plug in at {0}%</value></data>
+  <data name="SettingsNotifyTopUp.Header" xml:space="preserve"><value>Top-up finished</value></data>
+  <data name="SettingsNotificationsNote.Text" xml:space="preserve"><value>Notifications need the app running in the tray. They make no sound, and each kind shows at most once every 30 minutes. On a laptop without a charge limit the app can use, "Limit reached" reminds you to unplug instead.</value></data>
+  <data name="SettingsNotifyFailed" xml:space="preserve"><value>The setting could not be saved. {0}</value></data>
 </root>
 
