@@ -61,7 +61,9 @@ public class StartupRecoveryTests : IDisposable
         var backend = new TestBackend(new ChargeLimitCapabilities { Kind = ChargeLimitKind.ContinuousRange, MinLimit = 50, MaxLimit = 100 }, requiresElevation: true);
         var controller = new ChargeLimitController(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder), writeLock: new ChargeWriteLock());
         Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
-        Assert.True((await controller.StartTopUpAsync(TimeSpan.FromHours(1))).Succeeded);
+        // A top-up this backend can no longer start (an older build, or the limit turned off with a prompt).
+        new ChargeIntentStore(_folder).TrySave(controller.LoadIntent()! with { TopUpActive = true, TopUpUntil = DateTimeOffset.UnixEpoch });
+        backend.Limit = 100;
         int writes = backend.Applied.Count;
 
         ChargeActionResult result = await controller.ReapplyAsync(ReapplyReason.Startup);

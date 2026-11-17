@@ -26,6 +26,13 @@ public class ChargeIntentTests : IDisposable
 
     private ChargeIntent? Intent() => new ChargeIntentStore(_folder).Load(out ChargeIntent? i) == AtomicJsonFile.ReadStatus.Ok ? i : null;
 
+    /// <summary>A running top-up on a backend that can no longer start one (saved by an older build), with the limit off.</summary>
+    private void SeedTopUp(ChargeLimitController controller, TestBackend backend)
+    {
+        Assert.True(new ChargeIntentStore(_folder).TrySave(controller.LoadIntent()! with { TopUpActive = true, TopUpUntil = _time.GetUtcNow().AddHours(12) }));
+        backend.Limit = 100;
+    }
+
     private static LenovoConservationBackend Lenovo(FakeEnergyDriver driver, WriteGateContext? gate = null)
     {
         var wmi = new FakeWmiReader();
@@ -86,7 +93,7 @@ public class ChargeIntentTests : IDisposable
         var backend = new TestBackend(Continuous, requiresElevation: true);
         ChargeLimitController controller = New(backend);
         await controller.SetLimitAsync(true, 80);
-        await controller.StartTopUpAsync(TimeSpan.FromHours(12));
+        SeedTopUp(controller, backend);
         Assert.Equal(100, backend.Limit);
 
         ChargeActionResult result = controller.ReapplyOnExit(ChargeLimitController.DefaultExitBudget);
@@ -100,8 +107,8 @@ public class ChargeIntentTests : IDisposable
         Assert.True((await New(backend).SetLimitAsync(true, 80)).Succeeded);
         Assert.False(Intent()!.NeedsReapply);
         Assert.Equal(80, backend.Limit);
-        // Only the three user actions wrote; both unattended attempts stopped before writing.
-        Assert.Equal(3, backend.Applied.Count);
+        // Only the two user actions wrote; both unattended attempts stopped before writing.
+        Assert.Equal(2, backend.Applied.Count);
         Assert.All(backend.Applied, r => Assert.True(r.AllowElevationPrompt));
     }
 
@@ -120,7 +127,8 @@ public class ChargeIntentTests : IDisposable
         string otherFolder = Path.Combine(_folder, "elevated");
         var controller = new ChargeLimitController(elevated, new OriginalStateStore(otherFolder), new ChargeIntentStore(otherFolder), _time, _lock);
         await controller.SetLimitAsync(true, 80);
-        await controller.StartTopUpAsync(TimeSpan.FromHours(12));
+        new ChargeIntentStore(otherFolder).TrySave(controller.LoadIntent()! with { TopUpActive = true, TopUpUntil = _time.GetUtcNow().AddHours(12) });
+        elevated.Limit = 100;
         int writes = elevated.Applied.Count;
         ChargeActionResult result = controller.ReapplyOnSessionEnd(ChargeLimitController.DefaultExitBudget);
         Assert.Equal(ChargeActionStatus.NothingToDo, result.Status);

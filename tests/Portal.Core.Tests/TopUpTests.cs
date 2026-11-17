@@ -17,7 +17,7 @@ public class TopUpTests : IDisposable
         try { Directory.Delete(_folder, recursive: true); } catch { }
     }
 
-    private ChargeLimitController New(TestBackend backend) =>
+    private ChargeLimitController New(IChargeLimitBackend backend) =>
         new(backend, new OriginalStateStore(_folder), new ChargeIntentStore(_folder), _time, _lock);
 
     private static ChargeIntent Running(DateTimeOffset? until, bool needsReapply = false, bool failed = false) => new()
@@ -56,16 +56,33 @@ public class TopUpTests : IDisposable
     public void Top_up_is_offered_only_when_the_apps_limit_is_on_and_in_place()
     {
         var on = new ChargeIntent { BackendId = "test", Managed = true, LimitOn = true, Limit = 80 };
-        Assert.True(TopUpPolicy.CanStart(on, 80, 60));
-        Assert.True(TopUpPolicy.CanStart(on, 80, null));
-        Assert.False(TopUpPolicy.CanStart(on, 100, 60));
-        Assert.False(TopUpPolicy.CanStart(on, null, 60));
-        Assert.False(TopUpPolicy.CanStart(on, 80, 100));
-        Assert.False(TopUpPolicy.CanStart(null, 80, 60));
-        Assert.False(TopUpPolicy.CanStart(on with { Managed = false }, 80, 60));
-        Assert.False(TopUpPolicy.CanStart(on with { TopUpActive = true }, 80, 60));
-        Assert.False(TopUpPolicy.CanStart(on with { NeedsReapply = true }, 80, 60));
-        Assert.False(TopUpPolicy.CanStart(on with { ReapplyFailed = true }, 80, 60));
+        Assert.True(TopUpPolicy.CanStart(on, 80, 60, true));
+        Assert.True(TopUpPolicy.CanStart(on, 80, null, true));
+        Assert.False(TopUpPolicy.CanStart(on, 100, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on, null, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on, 80, 100, true));
+        Assert.False(TopUpPolicy.CanStart(null, 80, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on with { Managed = false }, 80, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on with { TopUpActive = true }, 80, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on with { NeedsReapply = true }, 80, 60, true));
+        Assert.False(TopUpPolicy.CanStart(on with { ReapplyFailed = true }, 80, 60, true));
+    }
+
+    [Fact]
+    public void Top_up_is_not_offered_where_it_could_not_end_by_itself() =>
+        Assert.False(TopUpPolicy.CanStart(new ChargeIntent { BackendId = "test", Managed = true, LimitOn = true, Limit = 80 }, 80, 60, false));
+
+    [Fact]
+    public void Top_up_is_not_offered_when_the_firmware_shows_another_limit() =>
+        Assert.False(TopUpPolicy.CanStart(new ChargeIntent { BackendId = "test", Managed = true, LimitOn = true, Limit = 80 }, 70, 60, true));
+
+    [Fact]
+    public void Stop_top_up_is_offered_whenever_a_top_up_is_saved_as_running()
+    {
+        Assert.True(TopUpPolicy.CanStop(Running(Start)));
+        Assert.True(TopUpPolicy.CanStop(Running(Start, needsReapply: true)));
+        Assert.False(TopUpPolicy.CanStop(Running(Start) with { TopUpActive = false }));
+        Assert.False(TopUpPolicy.CanStop(null));
     }
 
     [Fact]
@@ -117,13 +134,185 @@ public class TopUpTests : IDisposable
         Assert.False(controller.LoadIntent()!.TopUpActive);
     }
 
+    private ChargeIntent? Saved() => new ChargeIntentStore(_folder).Load(out ChargeIntent? i) == AtomicJsonFile.ReadStatus.Ok ? i : null;
+
+    private async Task<(TestBackend Backend, ChargeLimitController Controller)> LimitOnAt80()
+    {
+        var backend = new TestBackend(Continuous);
+        ChargeLimitController controller = New(backend);
+        Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
+        return (backend, controller);
+    }
+
     [Fact]
-    public async Task Needing_elevation_never_prompts_leaves_it_to_the_user_and_tells_once()
+    public async Task Top_up_never_starts_on_a_backend_that_needs_elevation()
     {
         var backend = new TestBackend(Continuous, requiresElevation: true);
         ChargeLimitController controller = New(backend);
         Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
+        int writes = backend.Applied.Count;
+
+        Assert.False(controller.TopUpSupported);
+        ChargeActionResult result = await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        Assert.False(result.Succeeded);
+        Assert.True(result.NotAttempted);
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.Equal(80, backend.Limit);
+        Assert.False(Saved()!.TopUpActive);
+    }
+
+    [Fact]
+    public async Task Top_up_does_not_start_when_the_in_process_write_is_denied()
+    {
+        var driver = new FakeEnergyDriver();
+        var wmi = new FakeWmiReader();
+        wmi.Add("Win32_ComputerSystem", new() { ["Manufacturer"] = "LENOVO", ["SystemFamily"] = "IdeaPad 5", ["Model"] = "82FG" });
+        var executor = new RecordingExecutor();
+        var backend = new Portal.Core.Battery.Backends.LenovoConservationBackend(wmi, executor, driver);
+        Assert.True(backend.Detect());
+        ChargeLimitController controller = New(backend);
+        Assert.True((await controller.SetLimitAsync(true)).Succeeded);
+        Assert.True(controller.TopUpSupported);
+
+        driver.FailWritesWith = Portal.Core.Battery.Backends.DeviceIoResult.ErrorAccessDenied;
+        ChargeActionResult result = await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        Assert.Equal(ChargeActionStatus.NeedsElevation, result.Status);
+        Assert.True(result.NotAttempted);
+        Assert.Empty(executor.Plans);
+        Assert.True(Portal.Core.Battery.Backends.LenovoConservationBackend.IsConservationOn(driver.ModeWord));
+        Assert.False(Saved()!.TopUpActive);
+    }
+
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public async Task Top_up_does_not_start_while_anything_is_pending(bool topUp, bool needsReapply, bool failed)
+    {
+        var (backend, controller) = await LimitOnAt80();
+        ChargeIntent pending = Saved()! with { TopUpActive = topUp, TopUpUntil = topUp ? Start.AddHours(1) : null, NeedsReapply = needsReapply, ReapplyFailed = failed };
+        Assert.True(new ChargeIntentStore(_folder).TrySave(pending));
+        int writes = backend.Applied.Count;
+
+        ChargeActionResult result = await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        Assert.False(result.Succeeded);
+        Assert.True(result.NotAttempted);
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.Equal(pending, Saved());
+    }
+
+    [Fact]
+    public async Task Top_up_does_not_start_when_the_firmware_shows_another_limit()
+    {
+        var (backend, controller) = await LimitOnAt80();
+        backend.Limit = 70;
+        int writes = backend.Applied.Count;
+
+        ChargeActionResult result = await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        Assert.True(result.NotAttempted);
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.Equal(70, backend.Limit);
+        Assert.False(Saved()!.TopUpActive);
+    }
+
+    [Fact]
+    public async Task Started_top_up_saves_a_fresh_intent_and_never_prompts()
+    {
+        var (backend, controller) = await LimitOnAt80();
+        Assert.True((await controller.StartTopUpAsync(TimeSpan.FromHours(2))).Succeeded);
+        Assert.False(backend.Applied[^1].AllowElevationPrompt);
+        ChargeIntent saved = Saved()!;
+        Assert.Equal(new ChargeIntent
+        {
+            BackendId = "test", Managed = true, LimitOn = true, Limit = 80, TopUpActive = true, TopUpUntil = Start.AddHours(2), UpdatedUtc = Start,
+        }, saved);
+    }
+
+    [Fact]
+    public async Task Error_after_the_unattended_write_started_is_never_retried_and_tells_the_user()
+    {
+        var (backend, controller) = await LimitOnAt80();
         Assert.True((await controller.StartTopUpAsync(TopUpPolicy.MaxDuration)).Succeeded);
+        backend.WriteThrows = new IOException("device gone");
+        int writes = backend.Applied.Count;
+
+        var monitor = new TopUpMonitor(controller, _time);
+        TopUpCheckResult? ended = await monitor.CheckAsync(100);
+        Assert.Equal(ChargeActionStatus.Failed, ended!.Result.Status);
+        Assert.False(ended.Result.NotAttempted);
+        Assert.True(ended.NeedsUser);
+        Assert.Equal(writes + 1, backend.Applied.Count);
+        ChargeIntent saved = Saved()!;
+        Assert.True(saved.ReapplyFailed);
+        Assert.False(saved.TopUpActive);
+
+        Assert.Null(await monitor.CheckAsync(100));
+        Assert.Null(await new TopUpMonitor(controller, _time).CheckAsync(100));
+        Assert.Equal(writes + 1, backend.Applied.Count);
+    }
+
+    [Fact]
+    public async Task Error_before_the_unattended_write_leaves_it_pending_and_tells_the_user()
+    {
+        var (backend, controller) = await LimitOnAt80();
+        Assert.True((await controller.StartTopUpAsync(TopUpPolicy.MaxDuration)).Succeeded);
+        backend.ReadThrows = new IOException("busy");
+        int writes = backend.Applied.Count;
+
+        TopUpCheckResult? ended = await new TopUpMonitor(controller, _time).CheckAsync(100);
+        Assert.Equal(ChargeActionStatus.Failed, ended!.Result.Status);
+        Assert.True(ended.Result.NotAttempted);
+        Assert.True(ended.NeedsUser);
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.True(Saved()!.NeedsReapply);
+        Assert.False(Saved()!.ReapplyFailed);
+    }
+
+    [Fact]
+    public async Task Unwritable_intent_file_never_makes_the_monitor_write_twice()
+    {
+        var (backend, controller) = await LimitOnAt80();
+        Assert.True((await controller.StartTopUpAsync(TopUpPolicy.MaxDuration)).Succeeded);
+        int writes = backend.Applied.Count;
+
+        var monitor = new TopUpMonitor(controller, _time);
+        // Readable but not replaceable: every save of the intent fails.
+        using (new FileStream(Path.Combine(_folder, ChargeIntentStore.FileName), FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.NotNull(await monitor.CheckAsync(100));
+            Assert.True(Saved()!.TopUpActive);
+            _time.Advance(TimeSpan.FromSeconds(30));
+            Assert.Null(await monitor.CheckAsync(100));
+            Assert.Null(await monitor.CheckAsync(100));
+        }
+        Assert.Equal(writes + 1, backend.Applied.Count);
+    }
+
+    [Fact]
+    public async Task Unattended_end_keeps_a_limit_another_tool_set_during_the_top_up()
+    {
+        var (backend, controller) = await LimitOnAt80();
+        Assert.True((await controller.StartTopUpAsync(TopUpPolicy.MaxDuration)).Succeeded);
+        backend.Limit = 70;
+        int writes = backend.Applied.Count;
+
+        TopUpCheckResult? ended = await new TopUpMonitor(controller, _time).CheckAsync(100);
+        Assert.Equal(ChargeActionStatus.ChangedElsewhere, ended!.Result.Status);
+        Assert.False(ended.NeedsUser);
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.Equal(70, backend.Limit);
+        Assert.False(Saved()!.TopUpActive);
+    }
+
+    [Fact]
+    public async Task Saved_top_up_on_an_elevated_backend_never_prompts_and_tells_once()
+    {
+        var backend = new TestBackend(Continuous, requiresElevation: true);
+        ChargeLimitController controller = New(backend);
+        Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
+        // A top-up saved by an older build; this backend can no longer start one.
+        Assert.True(new ChargeIntentStore(_folder).TrySave(Saved()! with { TopUpActive = true, TopUpUntil = Start.AddHours(8) }));
+        backend.Limit = 100;
         int writes = backend.Applied.Count;
 
         var monitor = new TopUpMonitor(controller, _time);

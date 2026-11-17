@@ -30,10 +30,14 @@ public sealed class TestBackend : IChargeLimitBackend
     public int? Limit { get; set; } = 100;
     public int? Start { get; set; }
     public bool Paused { get; set; }
+    /// <summary>Thrown by <see cref="GetState"/> when set.</summary>
+    public Exception? ReadThrows { get; set; }
+    /// <summary>Thrown by <see cref="ApplyAsync"/> after the request was recorded (the write may have happened).</summary>
+    public Exception? WriteThrows { get; set; }
 
     public bool Detect() => true;
 
-    public ChargeLimitState GetState() => new() { Limit = Limit, StartThreshold = Start, ChargingPaused = Paused };
+    public ChargeLimitState GetState() => ReadThrows is { } ex ? throw ex : new() { Limit = Limit, StartThreshold = Start, ChargingPaused = Paused };
 
     public BackendOriginalState CaptureOriginal() => new()
     {
@@ -45,6 +49,7 @@ public sealed class TestBackend : IChargeLimitBackend
     {
         if (RequiresElevation && !request.AllowElevationPrompt) return Task.FromResult(BackendWriteResult.ElevationNeeded());
         Applied.Add(request);
+        if (WriteThrows is { } ex) throw ex;
         if (request.Limit is int l) Limit = l;
         if (request.ResetStartThreshold) Start = null;
         else if (request.StartThreshold is int s) Start = s;

@@ -414,4 +414,99 @@ public class BatterySettingsStoreTests : IDisposable
         Assert.False(s.BetaOtherBrandsOptIn);
         Assert.Equal(80, s.Limit);
     }
+
+    private string SettingsPath => Path.Combine(_folder, BatterySettingsStore.FileName);
+
+    [Fact]
+    public void Update_on_a_missing_file_starts_from_the_defaults()
+    {
+        BatterySettings saved = new BatterySettingsStore(_folder).Update(s => s.NotifyPlugIn = false);
+        Assert.False(saved.NotifyPlugIn);
+        Assert.Equal(80, saved.Limit);
+        Assert.Single(Directory.GetFiles(_folder));
+    }
+
+    [Fact]
+    public void Update_on_an_unreadable_file_keeps_it_aside_under_a_unique_name()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, "{ not json");
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero));
+        string taken = SettingsPath + ".corrupt-20261117T090000Z";
+        File.WriteAllText(taken, "older");
+
+        BatterySettings saved = new BatterySettingsStore(_folder, time).Update(s => s.NotifyPlugIn = false);
+        Assert.False(saved.NotifyPlugIn);
+        Assert.Equal("older", File.ReadAllText(taken));
+        Assert.Equal("{ not json", File.ReadAllText(taken + " (2)"));
+        Assert.False(new BatterySettingsStore(_folder).Load().NotifyPlugIn);
+    }
+
+    [Fact]
+    public async Task Update_reads_a_briefly_locked_file_again_instead_of_replacing_it()
+    {
+        new BatterySettingsStore(_folder).Update(s => s.NotifyWhenLimitReached = false);
+        var locked = new FileStream(SettingsPath, FileMode.Open, FileAccess.Read, FileShare.None);
+        Task release = Task.Run(async () => { await Task.Delay(30); locked.Dispose(); });
+
+        BatterySettings saved = new BatterySettingsStore(_folder).Update(s => s.NotifyPlugIn = false);
+        await release;
+        Assert.False(saved.NotifyWhenLimitReached);
+        Assert.False(saved.NotifyPlugIn);
+        Assert.Single(Directory.GetFiles(_folder));
+    }
+
+    [Fact]
+    public void Update_never_writes_over_a_file_it_cannot_rename()
+    {
+        new BatterySettingsStore(_folder).Update(s => s.NotifyWhenLimitReached = false);
+        using (new FileStream(SettingsPath, FileMode.Open, FileAccess.Read, FileShare.None))
+            Assert.ThrowsAny<IOException>(() => new BatterySettingsStore(_folder).Update(s => s.NotifyPlugIn = false));
+        BatterySettings kept = new BatterySettingsStore(_folder).Load();
+        Assert.False(kept.NotifyWhenLimitReached);
+        Assert.True(kept.NotifyPlugIn);
+        Assert.Single(Directory.GetFiles(_folder));
+    }
+
+    [Fact]
+    public void Background_load_keeps_the_last_good_settings_through_a_read_error()
+    {
+        var store = new BatterySettingsStore(_folder);
+        store.Update(s => s.NotifyWhenLimitReached = false);
+        Assert.False(store.LoadLastGood().NotifyWhenLimitReached);
+        using (new FileStream(SettingsPath, FileMode.Open, FileAccess.Read, FileShare.None))
+            Assert.False(store.LoadLastGood().NotifyWhenLimitReached);
+    }
+
+    [Fact]
+    public void Background_load_without_a_good_read_keeps_notifications_off()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, "{ not json");
+        BatterySettings s = new BatterySettingsStore(_folder).LoadLastGood();
+        Assert.False(s.NotifyWhenLimitReached);
+        Assert.False(s.NotifyPlugIn);
+        Assert.False(s.NotifyTopUpFinished);
+        Assert.True(new BatterySettingsStore(Path.Combine(_folder, "empty")).LoadLastGood().NotifyPlugIn);
+    }
+}
+
+public class AppLifetimeTests
+{
+    [Fact]
+    public void Session_end_does_not_stop_the_app_or_use_up_the_quit_reapply()
+    {
+        var lifetime = new Portal.Core.Services.AppLifetime();
+        Assert.True(lifetime.BeginSessionEnd());
+        Assert.False(lifetime.BeginSessionEnd());
+        lifetime.EndSessionEnd();
+        Assert.False(lifetime.Stopping);
+
+        Assert.True(lifetime.BeginSessionEnd());
+        lifetime.EndSessionEnd();
+        Assert.True(lifetime.BeginQuit());
+        Assert.True(lifetime.Stopping);
+        Assert.False(lifetime.BeginQuit());
+        Assert.False(lifetime.BeginSessionEnd());
+    }
 }

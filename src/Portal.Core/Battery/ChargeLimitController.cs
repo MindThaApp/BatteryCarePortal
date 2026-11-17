@@ -147,39 +147,64 @@ public sealed class ChargeLimitController
     }
 
     /// <summary>
-    /// Turns the limit off for a while. The intent (limit on, top-up active) is saved before the write, so a quit, crash
-    /// or sleep during the top-up puts the limit back.
+    /// True when the backend writes in-process without the administrator helper, so the running app can end a top-up by
+    /// itself without a prompt. Top up is offered and started only then.
     /// </summary>
-    public async Task<ChargeActionResult> StartTopUpAsync(TimeSpan duration, bool allowPrompt = true, CancellationToken cancellationToken = default)
+    public bool TopUpSupported => !Backend.RequiresElevation;
+
+    /// <summary>
+    /// Turns the limit off for a while. Only on a backend that writes without elevation, only while the app's own limit is
+    /// on and in place with nothing pending, and never with a prompt. The intent (limit on, top-up active) is saved before
+    /// the write, so a quit, crash or sleep during the top-up puts the limit back.
+    /// </summary>
+    public async Task<ChargeActionResult> StartTopUpAsync(TimeSpan duration, CancellationToken cancellationToken = default)
     {
+        if (!TopUpSupported)
+            return TopUpRefused("This laptop needs administrator approval to change the limit, so the app could not end a top-up by itself. Nothing was changed.");
         if (!_writeLock.TryEnter()) return Busy();
         try
         {
             if (!TryLoadIntent(out ChargeIntent? previous)) return StateFileUnavailable();
-            if (previous is not { Managed: true, LimitOn: true }) return new(ChargeActionStatus.NothingToDo, "The charge limit is not on, so there is nothing to top up.");
+            if (previous is not { Managed: true, LimitOn: true }) return TopUpRefused("The charge limit is not on, so there is nothing to top up.");
+            if (previous.TopUpActive) return TopUpRefused("A top-up is already running.");
+            if (previous.NeedsReapply || previous.ReapplyFailed)
+                return TopUpRefused("The charge limit has to be put back first, so the top-up did not start.");
             WriteGateResult gate = EvaluateGate();
             if (!gate.Allowed) return Refused(gate.Refusal, gate.Message);
+            ChargeLimitState state = Backend.GetState();
+            if (state.Limit != previous.Limit)
+                return TopUpRefused("The laptop does not report the app's charge limit right now, so the top-up did not start.") with { State = state };
             if (EnsureOriginals() is { } failed) return failed;
 
-            var next = previous with { TopUpActive = true, TopUpUntil = _time.GetUtcNow() + duration, UpdatedUtc = _time.GetUtcNow() };
+            DateTimeOffset now = _time.GetUtcNow();
+            var next = new ChargeIntent
+            {
+                BackendId = Backend.Id, Managed = true, LimitOn = true, Limit = previous.Limit,
+                TopUpActive = true, TopUpUntil = now + duration, UpdatedUtc = now,
+            };
             if (!_intents.TrySave(next)) return StateFileUnavailable();
 
-            ChargeActionResult result = await WriteLimitAsync(100, allowPrompt, cancellationToken).ConfigureAwait(false);
+            // Never with a prompt: a write that needs the administrator helper now (Lenovo access denied) could not be undone unattended either.
+            ChargeActionResult result = await WriteLimitAsync(100, allowPrompt: false, cancellationToken).ConfigureAwait(false);
             if (!WriteMayHaveHappened(result)) RevertIntent(previous);
             return result;
         }
         finally { _writeLock.Exit(); }
     }
 
-    /// <summary>Ends a top-up by putting the steady-state limit back.</summary>
+    /// <summary>
+    /// Ends a top-up by putting the steady-state limit back. Unattended (<paramref name="allowPrompt"/> false) it never
+    /// replaces a limit another tool set during the top-up (<see cref="ChargeActionStatus.ChangedElsewhere"/>).
+    /// </summary>
     public async Task<ChargeActionResult> EndTopUpAsync(bool allowPrompt = true, CancellationToken cancellationToken = default)
     {
         if (!_writeLock.TryEnter()) return Busy();
         try
         {
             if (!TryLoadIntent(out ChargeIntent? intent)) return StateFileUnavailable();
-            if (intent is not { Managed: true, LimitOn: true, TopUpActive: true }) return new(ChargeActionStatus.NothingToDo, "No top-up is running.");
-            return await PutSteadyLimitBackAsync(intent, allowPrompt, cancellationToken).ConfigureAwait(false);
+            if (intent is not { Managed: true, LimitOn: true, TopUpActive: true })
+                return new(ChargeActionStatus.NothingToDo, "No top-up is running.") { NotAttempted = true };
+            return await PutSteadyLimitBackAsync(intent, allowPrompt, keepLimitSetElsewhere: !allowPrompt, cancellationToken).ConfigureAwait(false);
         }
         finally { _writeLock.Exit(); }
     }
@@ -303,7 +328,7 @@ public sealed class ChargeLimitController
                     : new(ChargeActionStatus.ChangedElsewhere, "The charge limit is off, but the app had it on.", state);
             }
 
-            return await PutSteadyLimitBackAsync(intent, allowPrompt: false, cancellationToken).ConfigureAwait(false);
+            return await PutSteadyLimitBackAsync(intent, allowPrompt: false, keepLimitSetElsewhere: false, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -356,21 +381,49 @@ public sealed class ChargeLimitController
         finally { _writeLock.Exit(); }
     }
 
-    private async Task<ChargeActionResult> PutSteadyLimitBackAsync(ChargeIntent intent, bool allowPrompt, CancellationToken cancellationToken)
+    /// <summary>
+    /// An exception before the write leaves "needs re-apply"; one after the write may have started leaves "re-apply failed",
+    /// which is never retried unattended. Either way the result is a failure the user is told about.
+    /// </summary>
+    private async Task<ChargeActionResult> PutSteadyLimitBackAsync(ChargeIntent intent, bool allowPrompt, bool keepLimitSetElsewhere,
+        CancellationToken cancellationToken)
     {
         // Last guard before the write: putting the limit back must turn a valid limit on, never off.
         if (!intent.LimitOn || intent.Limit >= 100 || !Capabilities.IsValidLimit(intent.Limit))
             return new(ChargeActionStatus.Failed, "The saved charge limit is not a limit this laptop supports, so nothing was changed.") { NotAttempted = true };
-        WriteGateResult gate = EvaluateGate();
-        ChargeActionResult result = gate.Allowed
-            ? await WriteLimitAsync(intent.Limit, allowPrompt, cancellationToken).ConfigureAwait(false)
-            : Refused(gate.Refusal, gate.Message);
-        DateTimeOffset now = _time.GetUtcNow();
-        ChargeIntent next = result.Succeeded ? Settled(intent)
-            : !WriteMayHaveHappened(result) ? intent with { NeedsReapply = true, UpdatedUtc = now }
-            : intent with { TopUpActive = false, TopUpUntil = null, NeedsReapply = false, ReapplyFailed = true, UpdatedUtc = now };
-        _intents.TrySave(next);
-        return result;
+        bool writeStarted = false;
+        try
+        {
+            if (keepLimitSetElsewhere && Backend.GetState() is { Limit: int now } state && now < 100)
+            {
+                _intents.TrySave(Settled(intent));
+                return now == intent.Limit
+                    ? new(ChargeActionStatus.AlreadySet, "The charge limit is in place.", state)
+                    : new(ChargeActionStatus.ChangedElsewhere, $"The laptop reports a charge limit of {now} %, which the app did not set.", state) { NotAttempted = true };
+            }
+
+            WriteGateResult gate = EvaluateGate();
+            ChargeActionResult result;
+            if (gate.Allowed)
+            {
+                writeStarted = true;
+                result = await WriteLimitAsync(intent.Limit, allowPrompt, cancellationToken).ConfigureAwait(false);
+            }
+            else result = Refused(gate.Refusal, gate.Message);
+
+            DateTimeOffset time = _time.GetUtcNow();
+            ChargeIntent next = result.Succeeded ? Settled(intent)
+                : !WriteMayHaveHappened(result) ? intent with { NeedsReapply = true, UpdatedUtc = time }
+                : intent with { TopUpActive = false, TopUpUntil = null, NeedsReapply = false, ReapplyFailed = true, UpdatedUtc = time };
+            _intents.TrySave(next);
+            return result;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            if (writeStarted) MarkReapplyFailed();
+            else MarkNeedsReapply();
+            return new(ChargeActionStatus.Failed, $"Putting the charge limit back stopped with an error ({ex.Message}).") { NotAttempted = !writeStarted };
+        }
     }
 
     private static bool HasPendingFlags(ChargeIntent intent) => intent.TopUpActive || intent.NeedsReapply || intent.ReapplyFailed;
@@ -476,6 +529,8 @@ public sealed class ChargeLimitController
     }
 
     private static ChargeActionResult Busy() => new(ChargeActionStatus.Busy, "Another change is still running.") { NotAttempted = true };
+
+    private static ChargeActionResult TopUpRefused(string message) => new(ChargeActionStatus.NothingToDo, message) { NotAttempted = true };
 
     private static ChargeActionResult StateFileUnavailable() =>
         new(ChargeActionStatus.StateFileUnavailable, "The app could not read or save its charge-limit state file, so nothing was changed.") { NotAttempted = true };

@@ -16,12 +16,17 @@ public static class TopUpPolicy
     public const int FullPercent = 100;
 
     /// <summary>
-    /// The app's own limit is on and in place on the firmware, nothing is pending, and the battery is not full yet.
+    /// The backend writes without elevation (so the app can end the top-up by itself), the app's own limit is on and is
+    /// the value the firmware reports, nothing is pending, and the battery is not full yet.
     /// </summary>
-    public static bool CanStart(ChargeIntent? intent, int? firmwareLimit, int? percent) =>
+    public static bool CanStart(ChargeIntent? intent, int? firmwareLimit, int? percent, bool writesWithoutElevation) =>
+        writesWithoutElevation &&
         intent is { Managed: true, LimitOn: true, TopUpActive: false, NeedsReapply: false, ReapplyFailed: false } &&
-        firmwareLimit is int limit && limit < 100 &&
+        firmwareLimit is int limit && limit < 100 && limit == intent.Limit &&
         percent is not >= FullPercent;
+
+    /// <summary>"Stop top-up" stays available while a top-up is saved as running, whatever the write gate says; the controller answers.</summary>
+    public static bool CanStop(ChargeIntent? intent) => intent is { Managed: true, LimitOn: true, TopUpActive: true };
 
     /// <summary>A top-up the running app should end now. Never one that is already waiting for the user to put the limit back.</summary>
     public static TopUpEndReason ShouldEnd(ChargeIntent? intent, int? percent, DateTimeOffset now)
@@ -37,19 +42,20 @@ public static class TopUpPolicy
 /// <summary>What one top-up check did.</summary>
 public sealed record TopUpCheckResult(TopUpEndReason Reason, ChargeActionResult Result, int Limit)
 {
-    /// <summary>The limit is still off and the app will not try again by itself; tell the user once.</summary>
+    /// <summary>The limit may still be off and the app will not try again by itself; tell the user once.</summary>
     public bool NeedsUser { get; init; }
 }
 
 /// <summary>
 /// Ends a running top-up when the battery is full or the top-up has expired, while the app runs. It only calls
-/// <see cref="ChargeLimitController.EndTopUpAsync"/> without an elevation prompt, which can only put the steady limit back on.
+/// <see cref="ChargeLimitController.EndTopUpAsync"/> without an elevation prompt, which can only put the steady limit back on,
+/// and tries at most once per saved top-up.
 /// </summary>
 public sealed class TopUpMonitor
 {
     private readonly ChargeLimitController _controller;
     private readonly TimeProvider _time;
-    private DateTimeOffset? _reportedFor;
+    private DateTimeOffset? _attemptedFor;
 
     public TopUpMonitor(ChargeLimitController controller, TimeProvider? time = null)
     {
@@ -66,12 +72,15 @@ public sealed class TopUpMonitor
         TopUpEndReason reason = TopUpPolicy.ShouldEnd(intent, percent, _time.GetUtcNow());
         if (reason == TopUpEndReason.None) return null;
 
+        // When the intent file cannot be updated after a try, the same saved top-up is still there next time; it is never written twice unattended.
+        if (_attemptedFor == intent!.UpdatedUtc) return null;
+
         ChargeActionResult result = await _controller.EndTopUpAsync(allowPrompt: false, cancellationToken).ConfigureAwait(false);
         if (result.Status is ChargeActionStatus.Busy or ChargeActionStatus.NothingToDo) return null;
+        _attemptedFor = intent.UpdatedUtc;
 
-        // One notice per saved top-up: a failure that leaves the flags clear (state file not writable) would otherwise repeat every check.
-        bool needsUser = !result.Succeeded && _reportedFor != intent!.UpdatedUtc;
-        if (needsUser) _reportedFor = intent!.UpdatedUtc;
-        return new TopUpCheckResult(reason, result, intent!.Limit) { NeedsUser = needsUser };
+        // A limit another tool set is not off; the Charging page asks the user which one to keep.
+        bool needsUser = !result.Succeeded && result.Status != ChargeActionStatus.ChangedElsewhere;
+        return new TopUpCheckResult(reason, result, intent.Limit) { NeedsUser = needsUser };
     }
 }

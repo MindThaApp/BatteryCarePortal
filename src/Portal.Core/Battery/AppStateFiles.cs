@@ -33,11 +33,33 @@ public sealed class ChargeWriteLock
 
     public bool IsHeld => _semaphore.CurrentCount == 0;
 
-    public bool TryEnter() => _semaphore.Wait(0);
+    /// <summary>Raised with the new held state when a write starts or ends, on the thread that took or released the lock. Handlers must not block.</summary>
+    public event Action<bool>? HeldChanged;
 
-    public Task EnterAsync(CancellationToken cancellationToken = default) => _semaphore.WaitAsync(cancellationToken);
+    public bool TryEnter()
+    {
+        if (!_semaphore.Wait(0)) return false;
+        RaiseHeldChanged(true);
+        return true;
+    }
 
-    public void Exit() => _semaphore.Release();
+    public async Task EnterAsync(CancellationToken cancellationToken = default)
+    {
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        RaiseHeldChanged(true);
+    }
+
+    public void Exit()
+    {
+        _semaphore.Release();
+        RaiseHeldChanged(false);
+    }
+
+    private void RaiseHeldChanged(bool held)
+    {
+        try { HeldChanged?.Invoke(held); }
+        catch (Exception) { }
+    }
 }
 
 /// <summary>
@@ -86,6 +108,20 @@ public static class AtomicJsonFile
             // Only the uniquely named temp file this call created, when the move did not happen.
             try { if (File.Exists(temp)) File.Delete(temp); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>
+    /// Renames the app's own state file at <paramref name="path"/> to a unique "&lt;name&gt;.corrupt-&lt;UTC time&gt;" next to it
+    /// and returns the new path. Never deletes and never overwrites: a taken name gets " (2)", " (3)" and so on. Throws on I/O failure.
+    /// </summary>
+    public static string RenameAside(string path, DateTimeOffset now)
+    {
+        string stem = $"{path}.corrupt-{now.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", System.Globalization.CultureInfo.InvariantCulture)}";
+        string target = stem;
+        for (int n = 2; File.Exists(target) || Directory.Exists(target); n++) target = $"{stem} ({n})";
+        // Same-folder rename; overwrite: false so a name that appeared meanwhile is never replaced.
+        File.Move(path, target, overwrite: false);
+        return target;
     }
 }
 
@@ -225,13 +261,7 @@ public sealed class ChargeIntentStore
             AtomicJsonFile.ReadStatus status = AtomicJsonFile.TryRead(Path, out ChargeIntent? intent);
             if (status == AtomicJsonFile.ReadStatus.Missing) return null;
             if (status == AtomicJsonFile.ReadStatus.Ok && isUsable(intent!)) return null;
-
-            string stem = $"{Path}.corrupt-{now.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", System.Globalization.CultureInfo.InvariantCulture)}";
-            string target = stem;
-            for (int n = 2; File.Exists(target) || Directory.Exists(target); n++) target = $"{stem} ({n})";
-            // Same-folder rename of the app's own file; overwrite: false so a name that appeared meanwhile is never replaced.
-            File.Move(Path, target, overwrite: false);
-            return target;
+            return AtomicJsonFile.RenameAside(Path, now);
         }
     }
 }
@@ -240,12 +270,19 @@ public sealed class ChargeIntentStore
 public sealed class BatterySettingsStore
 {
     public const string FileName = "battery-settings.json";
-    private readonly object _gate;
 
-    public BatterySettingsStore(string folder)
+    /// <summary>How long <see cref="Update"/> waits before reading an unreadable file a second time.</summary>
+    public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
+
+    private readonly object _gate;
+    private readonly TimeProvider _time;
+    private BatterySettings? _lastGood;
+
+    public BatterySettingsStore(string folder, TimeProvider? time = null)
     {
         Path = System.IO.Path.Combine(folder, FileName);
         _gate = AppStateFileLock.For(Path);
+        _time = time ?? TimeProvider.System;
     }
 
     public string Path { get; }
@@ -255,25 +292,74 @@ public sealed class BatterySettingsStore
     {
         lock (_gate)
         {
-            return AtomicJsonFile.TryRead(Path, out BatterySettings? settings) == AtomicJsonFile.ReadStatus.Ok
-                ? settings!.Normalize()
-                : new BatterySettings().Normalize();
+            return Read(out BatterySettings? settings) == AtomicJsonFile.ReadStatus.Ok ? settings! : new BatterySettings().Normalize();
+        }
+    }
+
+    /// <summary>
+    /// For background checks. Never throws. An unreadable file gives the last settings read, or the defaults with every
+    /// notification off, so a passing read error never turns notifications the user switched off back on.
+    /// </summary>
+    public BatterySettings LoadLastGood()
+    {
+        lock (_gate)
+        {
+            return Read(out BatterySettings? settings) switch
+            {
+                AtomicJsonFile.ReadStatus.Ok => settings!,
+                AtomicJsonFile.ReadStatus.Missing => new BatterySettings().Normalize(),
+                _ => _lastGood?.Clone().Normalize() ?? Quiet(),
+            };
         }
     }
 
     public void Save(BatterySettings settings)
     {
-        lock (_gate) AtomicJsonFile.Write(Path, settings.Clone().Normalize());
+        lock (_gate)
+        {
+            AtomicJsonFile.Write(Path, settings.Clone().Normalize());
+            _lastGood = settings.Clone().Normalize();
+        }
     }
 
+    /// <summary>
+    /// Reads, changes and saves. A missing file starts from the defaults. An unreadable file is read once more after
+    /// <see cref="RetryDelay"/>; when it still cannot be read it is renamed aside to a unique "&lt;name&gt;.corrupt-&lt;time&gt;"
+    /// before the defaults are written, never overwritten. Throws when the file cannot be renamed or written.
+    /// </summary>
     public BatterySettings Update(Action<BatterySettings> change)
     {
         lock (_gate)
         {
-            BatterySettings settings = Load();
-            change(settings);
-            Save(settings);
-            return settings.Clone().Normalize();
+            AtomicJsonFile.ReadStatus status = Read(out BatterySettings? settings);
+            if (status == AtomicJsonFile.ReadStatus.Unreadable)
+            {
+                Thread.Sleep(RetryDelay);
+                status = Read(out settings);
+            }
+            if (status == AtomicJsonFile.ReadStatus.Unreadable) AtomicJsonFile.RenameAside(Path, _time.GetUtcNow());
+            if (status != AtomicJsonFile.ReadStatus.Ok) settings = new BatterySettings().Normalize();
+
+            change(settings!);
+            Save(settings!);
+            return settings!.Clone().Normalize();
         }
+    }
+
+    private AtomicJsonFile.ReadStatus Read(out BatterySettings? settings)
+    {
+        AtomicJsonFile.ReadStatus status = AtomicJsonFile.TryRead(Path, out settings);
+        if (status == AtomicJsonFile.ReadStatus.Ok)
+        {
+            settings!.Normalize();
+            _lastGood = settings.Clone();
+        }
+        return status;
+    }
+
+    private static BatterySettings Quiet()
+    {
+        var settings = new BatterySettings { NotifyWhenLimitReached = false, NotifyPlugIn = false, NotifyTopUpFinished = false, RemindersEnabled = false };
+        return settings.Normalize();
     }
 }

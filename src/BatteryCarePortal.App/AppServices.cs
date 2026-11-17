@@ -17,8 +17,7 @@ internal static class AppServices
     private static DispatcherQueue? _dispatcher;
     private static bool _startupReapplyDone;
     private static bool _checking;
-    private static volatile bool _stopping;
-    private static int _exitReapplyDone;
+    private static readonly AppLifetime Lifetime = new();
     private static TopUpMonitor? _topUpMonitor;
     private static readonly BatteryToastPlanner Toasts = new();
 
@@ -69,12 +68,16 @@ internal static class AppServices
     /// <summary>Raised on the UI thread when a battery notification is due (already rate-limited and allowed by the settings).</summary>
     public static event Action<BatteryToast>? ToastDue;
 
+    /// <summary>Raised on the UI thread when a charge-limit write starts or ends, whoever started it; read <see cref="ChargeLimitController.IsBusy"/>.</summary>
+    public static event Action? ChargeWriteChanged;
+
     public static PowerPlanManagerStatus CheckPowerPlanManager() =>
         BatteryEnvironment.IsFakeBatteryEnabled ? PowerPlanManagerStatus.None : Ppm.Check();
 
     public static void Start()
     {
         _dispatcher = DispatcherQueue.GetForCurrentThread();
+        ChargeWriteLock.Process.HeldChanged += _ => _dispatcher?.TryEnqueue(() => ChargeWriteChanged?.Invoke());
         Battery.SnapshotChanged += OnSnapshotForHistory;
         Battery.Start();
         try { SystemEvents.PowerModeChanged += OnPowerModeChanged; } catch (Exception) { }
@@ -87,9 +90,9 @@ internal static class AppServices
     private static async Task CareLoopAsync()
     {
         using var timer = new PeriodicTimer(CareInterval);
-        while (!_stopping && await timer.WaitForNextTickAsync())
+        while (!Lifetime.Stopping && await timer.WaitForNextTickAsync())
         {
-            if (_stopping) return;
+            if (Lifetime.Stopping) return;
             try { await CareTickAsync(); } catch (Exception) { }
         }
     }
@@ -105,10 +108,10 @@ internal static class AppServices
         (TopUpCheckResult? ended, BatteryToastInput? input, BatterySettings settings) = await Task.Run(async () =>
         {
             TopUpCheckResult? result = monitor is null ? null : await monitor.CheckAsync(snapshot.Percent);
-            BatterySettings loaded = Settings.Load();
+            BatterySettings loaded = Settings.LoadLastGood();
             return (result, ToastInputFor(snapshot, support, controller, loaded), loaded);
         });
-        if (_stopping) return;
+        if (Lifetime.Stopping) return;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         if (ended is not null)
@@ -140,9 +143,13 @@ internal static class AppServices
         catch (Exception) { return null; }
     }
 
-    /// <summary>On the UI thread. A limit that could not be put back without a prompt is left to the user, like a failed re-apply.</summary>
+    /// <summary>
+    /// On the UI thread. A limit that could not be put back without a prompt is left to the user, like a failed re-apply;
+    /// a limit another tool set during the top-up is shown on the Charging page like one found at start or wake.
+    /// </summary>
     private static void ReportTopUpEnded(TopUpCheckResult ended)
     {
+        if (ended.Result.Status == ChargeActionStatus.ChangedElsewhere) LastReapply = ended.Result;
         ChargeStateChanged?.Invoke();
         if (ended.NeedsUser) ReapplyNeedsUser?.Invoke(ended.Result);
     }
@@ -158,7 +165,7 @@ internal static class AppServices
         {
             if (!SafeShouldRetry()) return;
             await Task.Delay(delay);
-            if (_stopping) return;
+            if (Lifetime.Stopping) return;
             if (await TryCheckDeviceAsync()) return;
         }
     }
@@ -219,7 +226,7 @@ internal static class AppServices
     // The logger throttles itself (on change, otherwise once a minute); the file write stays off the event thread.
     private static void OnSnapshotForHistory(object? sender, BatterySnapshot snapshot)
     {
-        if (_stopping) return;
+        if (Lifetime.Stopping) return;
         _ = Task.Run(() => { try { History.Record(snapshot); } catch (Exception) { } });
     }
 
@@ -262,18 +269,19 @@ internal static class AppServices
     /// <summary>Runs once on quit, on the UI thread. Bounded: never holds up the exit for longer than the budget.</summary>
     public static void OnExit()
     {
-        _stopping = true;
+        bool first = Lifetime.BeginQuit();
         try { SystemEvents.PowerModeChanged -= OnPowerModeChanged; } catch (Exception) { }
         try { SystemEvents.SessionEnding -= OnSessionEnding; } catch (Exception) { }
-        if (Interlocked.Exchange(ref _exitReapplyDone, 1) == 1) return;
+        if (!first) return;
         try { Charge?.ReapplyOnExit(ChargeLimitController.DefaultExitBudget); } catch (Exception) { }
     }
 
-    // Sign-out or shutdown: bounded, in-process only (no administrator helper), never prompts.
+    // Sign-out or shutdown: bounded, in-process only (no administrator helper), never prompts. The user can still cancel
+    // it, so the care loop, the history and a later quit re-apply all carry on.
     private static void OnSessionEnding(object? sender, SessionEndingEventArgs e)
     {
-        _stopping = true;
-        if (Interlocked.Exchange(ref _exitReapplyDone, 1) == 1) return;
+        if (!Lifetime.BeginSessionEnd()) return;
         try { Charge?.ReapplyOnSessionEnd(ChargeLimitController.DefaultExitBudget); } catch (Exception) { }
+        finally { Lifetime.EndSessionEnd(); }
     }
 }

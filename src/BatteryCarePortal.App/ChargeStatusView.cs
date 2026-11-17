@@ -59,14 +59,29 @@ internal sealed record ChargeStatusView(ChargeStatusKind Kind, int? Limit)
         return new ChargeStatusView(ChargeStatusSentence.Resolve(input), state.Limit)
         {
             Intent = intent,
-            CanStartTopUp = topUpOffered && TopUpPolicy.CanStart(intent, state.Limit, AppServices.Battery.Current.Percent),
-            CanStopTopUp = gate.Allowed && intent is { Managed: true, LimitOn: true, TopUpActive: true },
+            CanStartTopUp = topUpOffered &&
+                TopUpPolicy.CanStart(intent, state.Limit, AppServices.Battery.Current.Percent, controller.TopUpSupported),
+            CanStopTopUp = TopUpPolicy.CanStop(intent),
         };
     }
 
-    /// <summary>Show "Top up to 100%": the app's limit is on and in place, and the write gate allows a change.</summary>
+    /// <summary>
+    /// Show "Top up to 100%": the backend writes without elevation, the app's limit is on and in place, and the write gate
+    /// allows a change.
+    /// </summary>
     public bool CanStartTopUp { get; init; }
 
-    /// <summary>Show "Stop top-up": a top-up is saved as running.</summary>
+    /// <summary>Show "Stop top-up": a top-up is saved as running, even when the write gate refuses (the click then shows why).</summary>
     public bool CanStopTopUp { get; init; }
+
+    /// <summary>The user-facing text for a write-gate refusal.</summary>
+    public static string RefusalText(WriteRefusal refusal, string fallback) => refusal switch
+    {
+        WriteRefusal.OtherOwner => Strings.Get("ChargeStatusPpmOwns"),
+        WriteRefusal.OtherOwnerUnconfirmed => Strings.Get("ChargeStatusPpmUnconfirmed"),
+        WriteRefusal.BetaOff => Strings.Get("ChargeStatusBetaOff"),
+        WriteRefusal.NoReadBack => Strings.Get("ChargeStatusNotVerified"),
+        WriteRefusal.NotDetected => Strings.Get("ChargeStatusNotDetected"),
+        _ => fallback,
+    };
 }
