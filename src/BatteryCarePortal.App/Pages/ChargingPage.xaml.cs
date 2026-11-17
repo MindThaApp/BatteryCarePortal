@@ -22,12 +22,14 @@ public sealed partial class ChargingPage : Page
         {
             AppServices.SupportChanged += Refresh;
             AppServices.ChargeStateChanged += Refresh;
+            AppServices.ChargeWriteChanged += Refresh;
             Refresh();
         };
         Unloaded += (_, _) =>
         {
             AppServices.SupportChanged -= Refresh;
             AppServices.ChargeStateChanged -= Refresh;
+            AppServices.ChargeWriteChanged -= Refresh;
         };
     }
 
@@ -54,9 +56,10 @@ public sealed partial class ChargingPage : Page
             return;
         }
 
+        bool busy = _busy || controller.IsBusy;
         (ChargeLimitState state, WriteGateResult gate, ChargeIntent? intent, IntentFileState intentState, ChargeStatusView view) =
             await Task.Run(() => (controller.ReadState(), controller.EvaluateGate(), controller.LoadIntent(), controller.IntentState,
-                ChargeStatusView.Build(_lastAction, _busy)));
+                ChargeStatusView.Build(_lastAction, busy)));
         if (!ReferenceEquals(controller, AppServices.Charge)) return;
 
         LimitCard.Visibility = RestoreCard.Visibility = Visibility.Visible;
@@ -91,16 +94,6 @@ public sealed partial class ChargingPage : Page
         _notice = Notice.None;
         NoticeInfo.IsOpen = false;
     }
-
-    private static string RefusalText(WriteRefusal refusal, string fallback) => refusal switch
-    {
-        WriteRefusal.OtherOwner => Strings.Get("ChargeStatusPpmOwns"),
-        WriteRefusal.OtherOwnerUnconfirmed => Strings.Get("ChargeStatusPpmUnconfirmed"),
-        WriteRefusal.BetaOff => Strings.Get("ChargeStatusBetaOff"),
-        WriteRefusal.NoReadBack => Strings.Get("ChargeStatusNotVerified"),
-        WriteRefusal.NotDetected => Strings.Get("ChargeStatusNotDetected"),
-        _ => fallback,
-    };
 
     // The value control appears only when the firmware takes a value; conservation mode is on/off at a fixed level.
     private void ConfigureCapabilities(ChargeLimitCapabilities caps, ChargeLimitState state, ChargeIntent? intent)
@@ -255,7 +248,8 @@ public sealed partial class ChargingPage : Page
         finally
         {
             SetBusy(false);
-            Refresh();
+            // Refreshes this page (subscribed while loaded), the flyout, the Overview page and the tray.
+            AppServices.NotifyChargeChanged();
         }
     }
 
@@ -277,7 +271,7 @@ public sealed partial class ChargingPage : Page
                 ShowStatus(InfoBarSeverity.Informational, Strings.Get("ChargeResultCancelled"));
                 break;
             case ChargeActionStatus.Refused:
-                ShowStatus(InfoBarSeverity.Warning, RefusalText(r.Refusal, r.Message));
+                ShowStatus(InfoBarSeverity.Warning, ChargeStatusView.RefusalText(r.Refusal, r.Message));
                 break;
             case ChargeActionStatus.ReadBackMismatch:
                 ShowStatus(InfoBarSeverity.Error, string.Format(Strings.Get("ChargeResultMismatch"), r.Message));
@@ -317,14 +311,18 @@ public sealed partial class ChargingPage : Page
 
     private void UpdateEnabled()
     {
-        bool canWrite = !_busy && _gateAllowed;
+        // Any write in the app (flyout, unattended re-apply) holds the controller busy, not only this page's own.
+        bool idle = !_busy && AppServices.Charge is { IsBusy: false };
+        bool canWrite = idle && _gateAllowed;
         LimitSwitch.IsEnabled = canWrite;
         ApplyValueButton.IsEnabled = canWrite && LimitSwitch.IsOn;
         ValueSlider.IsEnabled = ValueCombo.IsEnabled = canWrite;
         RestoreButton.IsEnabled = canWrite;
-        ResetStateButton.IsEnabled = !_busy;
+        ResetStateButton.IsEnabled = idle;
         NoticePrimaryButton.IsEnabled = canWrite;
-        NoticeSecondaryButton.IsEnabled = !_busy;
-        TopUpButton.IsEnabled = StopTopUpButton.IsEnabled = canWrite;
+        NoticeSecondaryButton.IsEnabled = idle;
+        TopUpButton.IsEnabled = canWrite;
+        // Stop top-up does not need the gate: the controller answers, and a refusal is shown.
+        StopTopUpButton.IsEnabled = idle;
     }
 }

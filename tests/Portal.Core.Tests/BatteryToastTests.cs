@@ -39,6 +39,15 @@ public class BatteryToastTests
     }
 
     [Fact]
+    public void Still_charging_past_the_limit_is_not_holding()
+    {
+        At(70, onAc: true, charging: true, hold: 80);
+        Assert.Empty(At(80, onAc: true, charging: true, hold: 80));
+        Assert.Empty(At(84, onAc: true, charging: true, hold: 80));
+        Assert.Equal(BatteryToastKind.LimitReached, Assert.Single(At(80, onAc: true, charging: false, hold: 80)).Kind);
+    }
+
+    [Fact]
     public void Limit_reached_needs_a_charge_up_first_so_a_start_at_the_limit_is_quiet()
     {
         Assert.Empty(At(80, onAc: true, hold: 80));

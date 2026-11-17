@@ -39,6 +39,11 @@ public sealed partial class TrayFlyoutPanel : UserControl
         AppServices.Battery.SnapshotChanged += (_, _) => DispatcherQueue.TryEnqueue(RefreshIfShown);
         AppServices.SupportChanged += RefreshIfShown;
         AppServices.ChargeStateChanged += RefreshIfShown;
+        AppServices.ChargeWriteChanged += () =>
+        {
+            UpdateEnabled();
+            RefreshIfShown();
+        };
     }
 
     private void RefreshIfShown()
@@ -55,7 +60,7 @@ public sealed partial class TrayFlyoutPanel : UserControl
             BatterySnapshot s = AppServices.Battery.Current;
             DeviceSupport? support = AppServices.Support;
             ChargeLimitController? controller = AppServices.Charge;
-            bool busy = _busy;
+            bool busy = _busy || controller?.IsBusy == true;
 
             ChargeStatusView? view = null;
             ChargeLimitState? state = null;
@@ -101,14 +106,18 @@ public sealed partial class TrayFlyoutPanel : UserControl
         finally
         {
             Volatile.Write(ref _refreshing, 0);
-            ContentChanged?.Invoke();
+            try { ContentChanged?.Invoke(); } catch (Exception) { }
             if (_again) { _again = false; Refresh(); }
         }
     }
 
-    private void UpdateEnabled() =>
-        LimitSwitch.IsEnabled = TopUpButton.IsEnabled = StopTopUpButton.IsEnabled =
-            !_busy && _gateAllowed && AppServices.Charge is { IsBusy: false };
+    // Stop top-up does not need the gate: the controller answers, and a refusal is shown.
+    private void UpdateEnabled()
+    {
+        bool idle = !_busy && AppServices.Charge is { IsBusy: false };
+        LimitSwitch.IsEnabled = TopUpButton.IsEnabled = idle && _gateAllowed;
+        StopTopUpButton.IsEnabled = idle;
+    }
 
     private void OnLimitToggled(object sender, RoutedEventArgs e)
     {
@@ -137,16 +146,19 @@ public sealed partial class TrayFlyoutPanel : UserControl
         {
             ChargeActionResult result = await Task.Run(() => action(controller));
             if (result.Succeeded) AppServices.ClearReapplyNotice();
-            else if (result.Status != ChargeActionStatus.Cancelled)
+            ShowFailure(ChargeResultNotices.For(result) switch
             {
-                FailedText.Text = Strings.Get("FlyoutLimitFailed");
-                FailedText.Visibility = Visibility.Visible;
-            }
+                ChargeResultNotice.None => null,
+                ChargeResultNotice.Busy => Strings.Get("FlyoutBusy"),
+                ChargeResultNotice.Refused => ChargeStatusView.RefusalText(result.Refusal, result.Message),
+                ChargeResultNotice.Message => result.Message,
+                ChargeResultNotice.NotChanged => Strings.Get("FlyoutLimitFailed"),
+                _ => Strings.Get("FlyoutMayHaveChanged"),
+            });
         }
         catch (Exception)
         {
-            FailedText.Text = Strings.Get("FlyoutLimitFailed");
-            FailedText.Visibility = Visibility.Visible;
+            ShowFailure(Strings.Get("FlyoutMayHaveChanged"));
         }
         finally
         {
@@ -156,6 +168,13 @@ public sealed partial class TrayFlyoutPanel : UserControl
             AppServices.NotifyChargeChanged();
             Refresh();
         }
+    }
+
+    private void ShowFailure(string? text)
+    {
+        if (text is null) return;
+        FailedText.Text = text;
+        FailedText.Visibility = Visibility.Visible;
     }
 
     private void OnOpen(object sender, RoutedEventArgs e) => OpenRequested?.Invoke();

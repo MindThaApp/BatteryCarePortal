@@ -158,18 +158,36 @@ public sealed class BatteryHistoryLogger
         }
     }
 
+    /// <summary>
+    /// A health file that cannot be read now (locked, no access) is left alone and this point is skipped; one that is
+    /// damaged is renamed aside to a unique "health-trend.json.corrupt-&lt;time&gt;" first. The trend is never replaced by one point.
+    /// </summary>
     private void RecordHealth(DateOnly day, double health, int? cycles)
     {
         var latest = new BatteryHealthPoint(day, health, cycles);
         if (_lastHealthWritten == latest) return;
-        List<BatteryHealthPoint> points = LoadHealth().Where(p => p.Date != day).ToList();
-        _lastHealthWritten = latest;
-        points.Add(new BatteryHealthPoint(day, health, cycles));
-        points = points.OrderBy(p => p.Date).TakeLast(MaxHealthPoints).ToList();
         string path = Path.Combine(_folder, HealthFileName);
+        List<BatteryHealthPoint>? loaded;
+        try
+        {
+            loaded = File.Exists(path) ? JsonSerializer.Deserialize<List<BatteryHealthPoint>>(File.ReadAllText(path)) : new();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
+        catch (JsonException) { loaded = null; }
+        if (loaded is null)
+        {
+            try { AtomicJsonFile.RenameAside(path, _time.GetUtcNow()); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return; }
+            loaded = new();
+        }
+
+        List<BatteryHealthPoint> points = loaded.Where(p => p.Date != day).ToList();
+        points.Add(latest);
+        points = points.OrderBy(p => p.Date).TakeLast(MaxHealthPoints).ToList();
         string temp = path + ".tmp";
         File.WriteAllText(temp, JsonSerializer.Serialize(points));
         File.Move(temp, path, overwrite: true);
+        _lastHealthWritten = latest;
     }
 
     private List<BatteryHealthPoint> LoadHealth()
@@ -185,18 +203,40 @@ public sealed class BatteryHistoryLogger
         }
     }
 
+    /// <summary>More days than this between the newest earlier day file and today counts as a clock jump: nothing is pruned that day.</summary>
+    public const int MaxPruneGapDays = 2;
+
+    /// <summary>
+    /// Once per day. Keeps the retention window counted back from today and from the newest earlier day on file, whichever
+    /// keeps more, and skips the day entirely when today is more than <see cref="MaxPruneGapDays"/> past that newest day,
+    /// so a clock that jumps forward never empties the history.
+    /// </summary>
     private void PruneIfNewDay(DateOnly today)
     {
         if (_lastPrunedDay == today) return;
         _lastPrunedDay = today;
-        DateOnly oldestKept = today.AddDays(-(_retentionDays - 1));
+        var files = new List<(DateOnly Day, string Path)>();
         foreach (string file in Directory.EnumerateFiles(_folder, "????-??-??.jsonl"))
         {
             if (DateOnly.TryParseExact(Path.GetFileNameWithoutExtension(file), "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out DateOnly day) && day < oldestKept)
-            {
-                try { File.Delete(file); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-            }
+                    DateTimeStyles.None, out DateOnly day))
+                files.Add((day, file));
+        }
+
+        DateOnly oldestKept = today.AddDays(-(_retentionDays - 1));
+        DateOnly[] earlier = files.Where(f => f.Day < today).Select(f => f.Day).ToArray();
+        if (earlier.Length > 0)
+        {
+            DateOnly newest = earlier.Max();
+            if (today.DayNumber - newest.DayNumber > MaxPruneGapDays) return;
+            DateOnly fromNewest = newest.AddDays(-(_retentionDays - 1));
+            if (fromNewest < oldestKept) oldestKept = fromNewest;
+        }
+
+        foreach ((DateOnly day, string file) in files)
+        {
+            if (day >= oldestKept) continue;
+            try { File.Delete(file); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
     }
 

@@ -49,6 +49,37 @@ public sealed record ChargeStatusInput
     public int? Limit { get; init; }
 }
 
+/// <summary>Which short text a compact surface (the tray flyout) shows after a change.</summary>
+public enum ChargeResultNotice
+{
+    /// <summary>Done, or cancelled by the user: nothing to show.</summary>
+    None,
+    Busy,
+    /// <summary>The write gate refused; show its reason.</summary>
+    Refused,
+    /// <summary>Nothing needed doing or the request did not apply; show the result's own message.</summary>
+    Message,
+    /// <summary>Stopped before any firmware write.</summary>
+    NotChanged,
+    /// <summary>A write was attempted and did not finish as expected; the limit may have changed.</summary>
+    MayHaveChanged,
+}
+
+public static class ChargeResultNotices
+{
+    public static ChargeResultNotice For(ChargeActionResult result)
+    {
+        if (result.Succeeded || result.Status == ChargeActionStatus.Cancelled) return ChargeResultNotice.None;
+        return result.Status switch
+        {
+            ChargeActionStatus.Busy => ChargeResultNotice.Busy,
+            ChargeActionStatus.Refused => ChargeResultNotice.Refused,
+            ChargeActionStatus.NothingToDo => ChargeResultNotice.Message,
+            _ => result.NotAttempted ? ChargeResultNotice.NotChanged : ChargeResultNotice.MayHaveChanged,
+        };
+    }
+}
+
 public static class ChargeStatusSentence
 {
     public const string KeyPrefix = "ChargeStatus";

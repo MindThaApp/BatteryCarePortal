@@ -55,6 +55,30 @@ public class ChargeLimitControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task Every_write_raises_one_started_and_one_ended_event()
+    {
+        var seen = new List<bool>();
+        _lock.HeldChanged += held => seen.Add(held);
+        var backend = new TestBackend(new ChargeLimitCapabilities { Kind = ChargeLimitKind.ContinuousRange, MinLimit = 50, MaxLimit = 100 });
+        ChargeLimitController controller = New(backend);
+
+        Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
+        Assert.Equal(new[] { true, false }, seen);
+        Assert.Equal(ChargeActionStatus.AlreadySet, (await controller.ReapplyAsync(ReapplyReason.Resume)).Status);
+        Assert.Equal(new[] { true, false, true, false }, seen);
+    }
+
+    [Fact]
+    public async Task A_throwing_write_listener_never_breaks_the_lock()
+    {
+        _lock.HeldChanged += _ => throw new InvalidOperationException();
+        var backend = new TestBackend(new ChargeLimitCapabilities { Kind = ChargeLimitKind.ContinuousRange, MinLimit = 50, MaxLimit = 100 });
+        ChargeLimitController controller = New(backend);
+        Assert.True((await controller.SetLimitAsync(true, 80)).Succeeded);
+        Assert.False(controller.IsBusy);
+    }
+
+    [Fact]
     public async Task Ungated_backend_that_is_not_simulated_is_refused()
     {
         var backend = new TestBackend(new ChargeLimitCapabilities { Kind = ChargeLimitKind.ContinuousRange, MinLimit = 50, MaxLimit = 100 })

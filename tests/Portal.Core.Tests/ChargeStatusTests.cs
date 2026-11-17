@@ -37,6 +37,20 @@ public class ChargeStatusTests
     public void ReapplyNoticesIgnoredWhenAppDoesNotManageTheLimit() =>
         Assert.Equal(ChargeStatusKind.On, ChargeStatusSentence.Resolve(Ready() with { NeedsReapply = true, ReapplyFailed = true }));
 
+    [Theory]
+    [InlineData(ChargeActionStatus.Applied, false, ChargeResultNotice.None)]
+    [InlineData(ChargeActionStatus.Cancelled, true, ChargeResultNotice.None)]
+    [InlineData(ChargeActionStatus.Busy, true, ChargeResultNotice.Busy)]
+    [InlineData(ChargeActionStatus.Refused, true, ChargeResultNotice.Refused)]
+    [InlineData(ChargeActionStatus.NothingToDo, true, ChargeResultNotice.Message)]
+    [InlineData(ChargeActionStatus.NeedsElevation, true, ChargeResultNotice.NotChanged)]
+    [InlineData(ChargeActionStatus.StateFileUnavailable, true, ChargeResultNotice.NotChanged)]
+    [InlineData(ChargeActionStatus.Failed, true, ChargeResultNotice.NotChanged)]
+    [InlineData(ChargeActionStatus.Failed, false, ChargeResultNotice.MayHaveChanged)]
+    [InlineData(ChargeActionStatus.ReadBackMismatch, false, ChargeResultNotice.MayHaveChanged)]
+    public void Flyout_text_follows_whether_a_write_may_have_happened(ChargeActionStatus status, bool notAttempted, ChargeResultNotice expected) =>
+        Assert.Equal(expected, ChargeResultNotices.For(new ChargeActionResult(status, "m") { NotAttempted = notAttempted }));
+
     [Fact]
     public void ResourceKeyUsesPrefix() => Assert.Equal("ChargeStatusPpmOwns", ChargeStatusSentence.ResourceKey(ChargeStatusKind.PpmOwns));
 
@@ -56,6 +70,9 @@ public class ChargeStatusTests
     [InlineData("ChargeTopUpStop.Content")]
     [InlineData("FlyoutTopUp")]
     [InlineData("FlyoutStopTopUp")]
+    [InlineData("FlyoutLimitFailed")]
+    [InlineData("FlyoutBusy")]
+    [InlineData("FlyoutMayHaveChanged")]
     [InlineData("ToastLimitReachedTitle")]
     [InlineData("ToastLimitReachedText")]
     [InlineData("ToastUnplugTitle")]

@@ -59,7 +59,8 @@ public sealed class BatteryToastPlanner
         if (input.HoldLimit is int limit && limit < 100)
         {
             if (input.OnAc && input.Charging && p < limit) _limitArmed = true;
-            bool holding = input.OnAc && (p >= limit || (!input.Charging && p >= limit - HoldTolerance));
+            // Still charging at or above the limit is not holding: the limit is not stopping the charge.
+            bool holding = input.OnAc && !input.Charging && p >= limit - HoldTolerance;
             if (_limitArmed && holding)
             {
                 _limitArmed = false;

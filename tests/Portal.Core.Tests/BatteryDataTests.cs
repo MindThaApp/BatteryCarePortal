@@ -330,10 +330,76 @@ public class HistoryLoggerTests : IDisposable
         IReadOnlyList<BatteryHealthPoint> trend = logger.ReadHealthTrend();
         Assert.Equal(new[] { 90.5, 90.4 }, trend.Select(p => p.HealthPercent));
 
+        // The first day after a long gap prunes nothing (it may be a clock jump); the next day does.
         time.Advance(TimeSpan.FromDays(40));
         Assert.True(logger.Record(snapshot));
-        Assert.Single(Directory.GetFiles(logger.Folder, "*.jsonl"));
-        Assert.Equal(3, logger.ReadHealthTrend().Count);
+        Assert.Equal(3, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+        time.Advance(TimeSpan.FromDays(1));
+        Assert.True(logger.Record(snapshot));
+        Assert.Equal(2, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+        Assert.Equal(4, logger.ReadHealthTrend().Count);
+    }
+
+    [Fact]
+    public void Forward_clock_jump_never_empties_the_history()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+        var logger = new BatteryHistoryLogger(_folder, time, retentionDays: 30);
+        BatterySnapshot snapshot = Snap.At(60, onAc: true);
+        for (int day = 0; day < 10; day++)
+        {
+            Assert.True(logger.Record(snapshot));
+            time.Advance(TimeSpan.FromDays(1));
+        }
+        Assert.Equal(10, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+
+        // A new logger (an app start) with the clock a year ahead, then put right again.
+        time.Advance(TimeSpan.FromDays(365));
+        Assert.True(new BatteryHistoryLogger(_folder, time, retentionDays: 30).Record(snapshot));
+        Assert.Equal(11, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+        time.Advance(TimeSpan.FromDays(-365));
+        Assert.True(new BatteryHistoryLogger(_folder, time, retentionDays: 30).Record(snapshot));
+        Assert.Equal(12, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+    }
+
+    [Fact]
+    public void Day_after_a_short_gap_keeps_the_window_counted_from_the_newest_recorded_day()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+        var logger = new BatteryHistoryLogger(_folder, time, retentionDays: 3);
+        BatterySnapshot snapshot = Snap.At(60, onAc: true);
+        for (int day = 0; day < 3; day++)
+        {
+            Assert.True(logger.Record(snapshot));
+            time.Advance(TimeSpan.FromDays(1));
+        }
+        // Two days without a sample: Oct 3 is the newest earlier day, so Oct 1-3 stay.
+        time.Advance(TimeSpan.FromDays(1));
+        Assert.True(logger.Record(snapshot));
+        Assert.Equal(4, Directory.GetFiles(logger.Folder, "*.jsonl").Length);
+    }
+
+    [Fact]
+    public void Locked_health_file_is_skipped_and_a_damaged_one_kept_aside()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
+        var logger = new BatteryHistoryLogger(_folder, time);
+        BatterySnapshot snapshot = Snap.At(60, onAc: true) with { HealthPercent = 92 };
+        Assert.True(logger.Record(snapshot));
+        time.Advance(TimeSpan.FromDays(1));
+        Assert.True(logger.Record(snapshot with { HealthPercent = 91.9 }));
+        string health = Path.Combine(logger.Folder, "health-trend.json");
+
+        time.Advance(TimeSpan.FromDays(1));
+        using (new FileStream(health, FileMode.Open, FileAccess.Read, FileShare.None))
+            logger.Record(snapshot with { HealthPercent = 91.8 });
+        Assert.Equal(2, logger.ReadHealthTrend().Count);
+
+        File.WriteAllText(health, "{ damaged");
+        time.Advance(TimeSpan.FromMinutes(2));
+        Assert.True(logger.Record(snapshot with { HealthPercent = 91.7 }));
+        Assert.Equal("{ damaged", File.ReadAllText(Assert.Single(Directory.GetFiles(logger.Folder, "health-trend.json.corrupt-*"))));
+        Assert.Single(logger.ReadHealthTrend());
     }
 
     [Fact]

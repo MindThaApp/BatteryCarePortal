@@ -88,7 +88,7 @@
   <data name="ChargeStatusChangedElsewhere" xml:space="preserve"><value>Your laptop's charge limit was changed outside this app. Choose which setting to keep.</value></data>
   <data name="ChargeStatusReapplyFailed" xml:space="preserve"><value>The app tried to put your charge limit back and your laptop did not take it. The app will not try again by itself.</value></data>
   <data name="ChargeStatusNeedsReapply" xml:space="preserve"><value>Your charge limit is not back on yet. Put it back when you are ready.</value></data>
-  <data name="ChargeStatusTopUp" xml:space="preserve"><value>Topping up to 100%. Your {0}% limit comes back when the battery is full or at {1}, whichever is first.</value></data>
+  <data name="ChargeStatusTopUp" xml:space="preserve"><value>Topping up to 100%. While the app runs, your {0}% limit comes back when the battery is full or at {1}.</value></data>
   <data name="ChargeStatusUnreadable" xml:space="preserve"><value>The app can't read the charge limit from your laptop right now, so it can't say whether it is on.</value></data>
   <data name="ChargeStatusOn" xml:space="preserve"><value>Charge limit is on. Your laptop stops charging near {0}% and holds there, even when this app is closed.</value></data>
   <data name="ChargeStatusOff" xml:space="preserve"><value>Charge limit is off. Your laptop charges to 100%.</value></data>
@@ -134,12 +134,14 @@
   <data name="FlyoutLimitOn" xml:space="preserve"><value>Holds near {0}% on this laptop</value></data>
   <data name="FlyoutLimitOff" xml:space="preserve"><value>Charges to 100%</value></data>
   <data name="FlyoutLimitFailed" xml:space="preserve"><value>The limit was not changed. Open Battery Care Portal for details.</value></data>
+  <data name="FlyoutBusy" xml:space="preserve"><value>Another change is still running. Try again in a moment.</value></data>
+  <data name="FlyoutMayHaveChanged" xml:space="preserve"><value>The change did not finish, so the limit may have changed. Open Battery Care Portal to check it.</value></data>
   <data name="FlyoutOpen" xml:space="preserve"><value>Open Battery Care Portal</value></data>
   <data name="FlyoutNoBattery" xml:space="preserve"><value>No battery found.</value></data>
   <data name="TrayTipSentence" xml:space="preserve"><value>{0}% · {1}</value></data>
   <data name="ChargeTopUpTitle.Text" xml:space="preserve"><value>Top up</value></data>
-  <data name="ChargeTopUpText" xml:space="preserve"><value>Charge to 100% once, then go back to the limit. It stops when the battery is full or after {0} hours. Keep the app running in the tray.</value></data>
-  <data name="ChargeTopUpRunning" xml:space="preserve"><value>Topping up now. The limit comes back when the battery is full or at {0}.</value></data>
+  <data name="ChargeTopUpText" xml:space="preserve"><value>Charge to 100% once, then go back to the limit. While the app runs in the tray, the limit comes back when the battery is full or after {0} hours.</value></data>
+  <data name="ChargeTopUpRunning" xml:space="preserve"><value>Topping up now. While the app runs, the limit comes back when the battery is full or at {0}. Stop top-up puts it back now.</value></data>
   <data name="ChargeTopUpButton.Content" xml:space="preserve"><value>Top up to 100%</value></data>
   <data name="ChargeTopUpStop.Content" xml:space="preserve"><value>Stop top-up</value></data>
   <data name="FlyoutTopUp" xml:space="preserve"><value>Top up to 100%</value></data>

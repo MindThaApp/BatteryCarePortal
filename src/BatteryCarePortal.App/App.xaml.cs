@@ -32,6 +32,8 @@ public partial class App : Application
         CreateTrayIcon();
         AppServices.Battery.SnapshotChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray);
         AppServices.SupportChanged += UpdateTray;
+        AppServices.ChargeStateChanged += UpdateTray;
+        AppServices.ChargeWriteChanged += UpdateTray;
         try { Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => _mainWindow.DispatcherQueue.TryEnqueue(UpdateTray); } catch (Exception) { }
         AppServices.ReapplyNeedsUser += ShowLimitOffNotification;
         AppServices.ToastDue += toast => { if (!_exiting) AppToasts.Show(toast); };
@@ -118,7 +120,8 @@ public partial class App : Application
         if (snapshot.Percent is not int percent || !snapshot.Present || AppServices.Support is null) return;
         try
         {
-            ChargeStatusView view = await Task.Run(() => ChargeStatusView.Build(null, false));
+            bool busy = AppServices.Charge?.IsBusy == true;
+            ChargeStatusView view = await Task.Run(() => ChargeStatusView.Build(null, busy));
             if (_exiting || _trayIcon is null) return;
             string tip = string.Format(Strings.Get("TrayTipSentence"), percent, view.Sentence);
             _trayIcon.ToolTipText = tip.Length <= 127 ? tip : tip[..126] + "…"; // the tray tooltip holds 127 characters
