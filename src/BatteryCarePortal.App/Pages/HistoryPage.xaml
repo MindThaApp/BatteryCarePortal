@@ -3,7 +3,21 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Padding="32,24">
-        <TextBlock x:Uid="TitleHistory" Style="{StaticResource TitleTextBlockStyle}" />
-    </Grid>
+    <ScrollViewer>
+        <StackPanel x:Name="Column" Padding="32,24" Spacing="16" MaxWidth="760">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock x:Uid="TitleHistory" Style="{StaticResource TitleTextBlockStyle}" />
+                <Border x:Name="SimulatedChip" Visibility="Collapsed" Padding="8,2" CornerRadius="4" VerticalAlignment="Center"
+                        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}">
+                    <TextBlock x:Uid="OverviewSimulated" Style="{StaticResource CaptionTextBlockStyle}" />
+                </Border>
+            </StackPanel>
+
+            <RadioButtons x:Name="RangeButtons" MaxColumns="3" SelectionChanged="OnRangeChanged" />
+            <TextBlock x:Name="NoteText" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <StackPanel x:Name="Cards" Spacing="16" />
+        </StackPanel>
+    </ScrollViewer>
 </Page>

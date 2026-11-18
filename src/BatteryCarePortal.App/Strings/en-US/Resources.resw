@@ -190,5 +190,34 @@
   <data name="HeatScaleThreshold" xml:space="preserve"><value>{0} threshold</value></data>
   <data name="HeatScaleAria" xml:space="preserve"><value>Temperature scale from 20 to 60 degrees, battery at {0}, threshold at {1}</value></data>
   <data name="HeatUnknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="HistoryRangeDay" xml:space="preserve"><value>Last 24 hours</value></data>
+  <data name="HistoryRangeWeek" xml:space="preserve"><value>Last 7 days</value></data>
+  <data name="HistoryRangeMonth" xml:space="preserve"><value>Last 30 days</value></data>
+  <data name="HistoryLevelTitle" xml:space="preserve"><value>Charge level</value></data>
+  <data name="HistoryWattsTitle" xml:space="preserve"><value>Battery power</value></data>
+  <data name="HistoryHealthTitle" xml:space="preserve"><value>Battery health</value></data>
+  <data name="HistoryShowTable" xml:space="preserve"><value>Show as table</value></data>
+  <data name="HistoryShowChart" xml:space="preserve"><value>Show as chart</value></data>
+  <data name="HistoryNoData" xml:space="preserve"><value>Nothing has been recorded for this time yet. The app records once a minute while it runs.</value></data>
+  <data name="HistoryNoWatts" xml:space="preserve"><value>This laptop does not report battery power, so there is nothing to chart.</value></data>
+  <data name="HistoryNoHealth" xml:space="preserve"><value>No health value has been recorded yet. One is saved per day when the laptop reports it.</value></data>
+  <data name="HistoryStartedNote" xml:space="preserve"><value>History starts {0}. Time before that is empty.</value></data>
+  <data name="HistorySimulatedNote" xml:space="preserve"><value>Sample data for the simulated battery. It is not saved.</value></data>
+  <data name="HistoryLevelSummary" xml:space="preserve"><value>Charge level, {0}. Latest {1}, lowest {2}, highest {3}.</value></data>
+  <data name="HistoryWattsSummary" xml:space="preserve"><value>Battery power, {0}. Latest {1}, lowest {2}, highest {3}. Above zero the battery is charging, below zero it is powering the laptop.</value></data>
+  <data name="HistoryHealthSummary" xml:space="preserve"><value>Battery health since {0}: {1}, now {2}, a change of {3} points{4}.</value></data>
+  <data name="HistoryHealthSingle" xml:space="preserve"><value>Battery health: {0} on {1}. A trend needs at least two days.</value></data>
+  <data name="HistoryHealthNote" xml:space="preserve"><value>Health is the battery's own estimate: full charge capacity compared with design capacity. The chart uses a full 0 to 100 scale on purpose, so a small loss looks small. Small moves up and down are normal.</value></data>
+  <data name="HistoryCyclesPart" xml:space="preserve"><value>, {0} cycles</value></data>
+  <data name="HistoryColTime" xml:space="preserve"><value>Time</value></data>
+  <data name="HistoryColDate" xml:space="preserve"><value>Date</value></data>
+  <data name="HistoryColAverage" xml:space="preserve"><value>Average</value></data>
+  <data name="HistoryColLowest" xml:space="preserve"><value>Lowest</value></data>
+  <data name="HistoryColHighest" xml:space="preserve"><value>Highest</value></data>
+  <data name="HistoryColHealth" xml:space="preserve"><value>Health</value></data>
+  <data name="HistoryColCycles" xml:space="preserve"><value>Cycles</value></data>
+  <data name="HistoryCharging" xml:space="preserve"><value>charging</value></data>
+  <data name="HistoryDischarging" xml:space="preserve"><value>discharging</value></data>
+  <data name="HistoryTableName" xml:space="preserve"><value>{0} as a table</value></data>
 </root>
 

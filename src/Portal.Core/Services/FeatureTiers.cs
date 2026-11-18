@@ -43,6 +43,11 @@ public static class FeatureTiers
     public const int FreeHistoryDays = 7;
     public const int ProHistoryDays = 30;
 
+    /// <summary>What the History page shows: 24 hours free, 30 days Pro. Recording keeps <see cref="HistoryRetentionDays"/> so an upgrade shows past data.</summary>
+    public const int FreeHistoryWindowDays = 1;
+
+    public static int HistoryWindowDays(bool hasPro) => EverythingFree || hasPro ? ProHistoryDays : FreeHistoryWindowDays;
+
     public static int HistoryRetentionDays(bool hasPro) => EverythingFree || hasPro ? ProHistoryDays : FreeHistoryDays;
 
     public static bool IsAvailable(PortalFeature feature, bool hasPro) => EverythingFree || hasPro || TierOf(feature) == FeatureTier.Free;
