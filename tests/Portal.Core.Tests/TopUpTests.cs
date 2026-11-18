@@ -358,4 +358,73 @@ public class TopUpTests : IDisposable
         Assert.Equal(80, backend.Limit);
         Assert.Null(await new TopUpMonitor(controller, _time).CheckAsync(100));
     }
-}
+
+    [Fact]
+    public void Hot_counter_grows_only_while_a_top_up_runs_and_the_action_is_on()
+    {
+        Assert.Equal(1, TopUpPolicy.NextHotTicks(0, true, true, 41, 40));
+        Assert.Equal(2, TopUpPolicy.NextHotTicks(1, true, true, 40, 40));
+        Assert.Equal(0, TopUpPolicy.NextHotTicks(1, true, true, 39.9, 40));
+        Assert.Equal(0, TopUpPolicy.NextHotTicks(1, true, true, null, 40));
+        Assert.Equal(0, TopUpPolicy.NextHotTicks(1, false, true, 50, 40));
+        Assert.Equal(0, TopUpPolicy.NextHotTicks(1, true, false, 50, 40));
+    }
+
+    [Fact]
+    public void Heat_ends_a_top_up_only_after_two_hot_checks_and_after_full_or_expiry_are_considered()
+    {
+        Assert.Equal(TopUpEndReason.None, TopUpPolicy.ShouldEnd(Running(Start.AddHours(8)), 80, Start, 1));
+        Assert.Equal(TopUpEndReason.TooHot, TopUpPolicy.ShouldEnd(Running(Start.AddHours(8)), 80, Start, 2));
+        Assert.Equal(TopUpEndReason.Full, TopUpPolicy.ShouldEnd(Running(Start.AddHours(8)), 100, Start, 5));
+        Assert.Equal(TopUpEndReason.None, TopUpPolicy.ShouldEnd(Running(Start.AddHours(8), needsReapply: true), 80, Start, 5));
+        Assert.Equal(TopUpEndReason.None, TopUpPolicy.ShouldEnd(null, 80, Start, 5));
+    }
+
+    [Fact]
+    public async Task Two_hot_checks_in_a_row_end_the_top_up_through_the_unattended_path()
+    {
+        var backend = new TestBackend(Continuous);
+        ChargeLimitController controller = New(backend);
+        await controller.SetLimitAsync(true, 80);
+        await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        var monitor = new TopUpMonitor(controller, _time);
+
+        Assert.Null(await monitor.CheckAsync(70, 45, 40));
+        Assert.Null(await monitor.CheckAsync(70, 35, 40));
+        Assert.Null(await monitor.CheckAsync(70, 45, 40));
+        Assert.Equal(100, backend.Limit);
+        TopUpCheckResult? ended = await monitor.CheckAsync(70, 46, 40);
+
+        Assert.Equal(TopUpEndReason.TooHot, ended!.Reason);
+        Assert.True(ended.Result.Succeeded);
+        Assert.Equal(80, backend.Limit);
+        Assert.False(backend.Applied[^1].AllowElevationPrompt);
+        Assert.False(controller.LoadIntent()!.TopUpActive);
+    }
+
+    [Fact]
+    public async Task Hot_battery_does_nothing_when_the_action_is_off_or_no_top_up_runs()
+    {
+        var backend = new TestBackend(Continuous);
+        ChargeLimitController controller = New(backend);
+        await controller.SetLimitAsync(true, 80);
+        var monitor = new TopUpMonitor(controller, _time);
+        int writes = backend.Applied.Count;
+        for (int i = 0; i < 4; i++) Assert.Null(await monitor.CheckAsync(70, 50, 40));
+        Assert.Equal(writes, backend.Applied.Count);
+
+        await controller.StartTopUpAsync(TopUpPolicy.MaxDuration);
+        writes = backend.Applied.Count;
+        for (int i = 0; i < 4; i++) Assert.Null(await monitor.CheckAsync(70, 50, null));
+        Assert.Equal(writes, backend.Applied.Count);
+        Assert.Equal(100, backend.Limit);
+    }
+
+    [Fact]
+    public void Heat_ended_top_up_toast_says_it_was_warm()
+    {
+        var ended = new TopUpCheckResult(TopUpEndReason.TooHot, new ChargeActionResult(ChargeActionStatus.Applied, ""), 80);
+        BatteryToast? toast = new BatteryToastPlanner().TopUpEnded(ended, 70, new BatterySettings(), Start);
+        Assert.True(toast!.TooHot);
+        Assert.False(toast.Full);
+    }}

@@ -107,8 +107,9 @@ internal static class AppServices
 
         (TopUpCheckResult? ended, BatteryToastInput? input, BatterySettings settings) = await Task.Run(async () =>
         {
-            TopUpCheckResult? result = monitor is null ? null : await monitor.CheckAsync(snapshot.Percent);
             BatterySettings loaded = Settings.LoadLastGood();
+            double? hotAbove = loaded.HeatProtection.EndTopUpWhenHot ? loaded.HeatProtection.MaxTempC : null;
+            TopUpCheckResult? result = monitor is null ? null : await monitor.CheckAsync(snapshot.Percent, snapshot.TemperatureC, hotAbove);
             return (result, ToastInputFor(snapshot, support, controller, loaded), loaded);
         });
         if (Lifetime.Stopping) return;

@@ -109,6 +109,9 @@ public sealed class HeatProtectionSettings
 {
     public bool Enabled { get; set; }
     public double MaxTempC { get; set; } = 40;
+
+    /// <summary>End a running top-up early while the battery is above <see cref="MaxTempC"/>. The only automatic heat action.</summary>
+    public bool EndTopUpWhenHot { get; set; } = true;
 }
 
 public enum CalibrationStep

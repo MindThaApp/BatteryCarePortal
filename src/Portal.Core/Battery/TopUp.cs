@@ -5,6 +5,8 @@ public enum TopUpEndReason
     None,
     Full,
     Expired,
+    /// <summary>The battery stayed above the heat threshold for <see cref="TopUpPolicy.HotTicksToEnd"/> checks in a row.</summary>
+    TooHot,
 }
 
 /// <summary>When a top-up may start and when it is over. Plain values only, so it can be tested without hardware.</summary>
@@ -14,6 +16,9 @@ public static class TopUpPolicy
     public static readonly TimeSpan MaxDuration = TimeSpan.FromHours(8);
 
     public const int FullPercent = 100;
+
+    /// <summary>Consecutive care checks above the threshold before a top-up is ended for heat.</summary>
+    public const int HotTicksToEnd = 2;
 
     /// <summary>
     /// The backend writes without elevation (so the app can end the top-up by itself), the app's own limit is on and is
@@ -29,14 +34,22 @@ public static class TopUpPolicy
     public static bool CanStop(ChargeIntent? intent) => intent is { Managed: true, LimitOn: true, TopUpActive: true };
 
     /// <summary>A top-up the running app should end now. Never one that is already waiting for the user to put the limit back.</summary>
-    public static TopUpEndReason ShouldEnd(ChargeIntent? intent, int? percent, DateTimeOffset now)
+    public static TopUpEndReason ShouldEnd(ChargeIntent? intent, int? percent, DateTimeOffset now, int consecutiveHotTicks = 0)
     {
         if (intent is not { Managed: true, LimitOn: true, TopUpActive: true, NeedsReapply: false, ReapplyFailed: false })
             return TopUpEndReason.None;
         if (percent is >= FullPercent) return TopUpEndReason.Full;
         if (intent.TopUpUntil is not DateTimeOffset until || now >= until) return TopUpEndReason.Expired;
+        if (consecutiveHotTicks >= HotTicksToEnd) return TopUpEndReason.TooHot;
         return TopUpEndReason.None;
     }
+
+    /// <summary>Above the saved threshold (the same test as the Heat protection page). A missing reading is never hot.</summary>
+    public static bool IsHot(double? temperatureC, double maxTempC) => temperatureC is double t && t >= maxTempC;
+
+    /// <summary>Next count of consecutive hot checks: it grows only while a top-up runs and the action is on; any other check resets it.</summary>
+    public static int NextHotTicks(int current, bool topUpRunning, bool actionOn, double? temperatureC, double maxTempC) =>
+        topUpRunning && actionOn && IsHot(temperatureC, maxTempC) ? current + 1 : 0;
 }
 
 /// <summary>What one top-up check did.</summary>
@@ -56,6 +69,7 @@ public sealed class TopUpMonitor
     private readonly ChargeLimitController _controller;
     private readonly TimeProvider _time;
     private DateTimeOffset? _attemptedFor;
+    private int _hotTicks;
 
     public TopUpMonitor(ChargeLimitController controller, TimeProvider? time = null)
     {
@@ -66,10 +80,13 @@ public sealed class TopUpMonitor
     public ChargeLimitController Controller => _controller;
 
     /// <summary>Null when there is nothing to end.</summary>
-    public async Task<TopUpCheckResult?> CheckAsync(int? percent, CancellationToken cancellationToken = default)
+    /// <param name="endWhenHotAbove">The saved heat threshold when ending a top-up for heat is switched on; null when it is off.</param>
+    public async Task<TopUpCheckResult?> CheckAsync(int? percent, double? temperatureC = null, double? endWhenHotAbove = null,
+        CancellationToken cancellationToken = default)
     {
         ChargeIntent? intent = _controller.LoadIntent();
-        TopUpEndReason reason = TopUpPolicy.ShouldEnd(intent, percent, _time.GetUtcNow());
+        _hotTicks = TopUpPolicy.NextHotTicks(_hotTicks, TopUpPolicy.CanStop(intent), endWhenHotAbove is not null, temperatureC, endWhenHotAbove ?? 0);
+        TopUpEndReason reason = TopUpPolicy.ShouldEnd(intent, percent, _time.GetUtcNow(), _hotTicks);
         if (reason == TopUpEndReason.None) return null;
 
         // When the intent file cannot be updated after a try, the same saved top-up is still there next time; it is never written twice unattended.
@@ -78,6 +95,7 @@ public sealed class TopUpMonitor
         ChargeActionResult result = await _controller.EndTopUpAsync(allowPrompt: false, cancellationToken).ConfigureAwait(false);
         if (result.Status is ChargeActionStatus.Busy or ChargeActionStatus.NothingToDo) return null;
         _attemptedFor = intent.UpdatedUtc;
+        _hotTicks = 0;
 
         // A limit another tool set is not off; the Charging page asks the user which one to keep.
         bool needsUser = !result.Succeeded && result.Status != ChargeActionStatus.ChangedElsewhere;

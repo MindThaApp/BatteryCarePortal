@@ -179,10 +179,13 @@
   <data name="HeatThresholdTitle" xml:space="preserve"><value>Threshold</value></data>
   <data name="HeatThresholdRange" xml:space="preserve"><value>30 to 60 °C</value></data>
   <data name="HeatWhatTitle" xml:space="preserve"><value>What it does on this laptop</value></data>
-  <data name="HeatBehPause" xml:space="preserve"><value>It pauses charging while the battery is hot, resumes at {0}, and tells you.</value></data>
-  <data name="HeatBehTopUp" xml:space="preserve"><value>It ends a top-up early and puts the limit back while the battery is hot, and it tells you. This laptop cannot pause charging, so the app does not claim to.</value></data>
+  <data name="HeatBehPause" xml:space="preserve"><value>While a top-up is running and the battery stays above your threshold for two checks in a row, it ends the top-up early and puts your charge limit back on, and it tells you. It does not pause charging and does not change anything else.</value></data>
+  <data name="HeatBehTopUp" xml:space="preserve"><value>While a top-up is running and the battery stays above your threshold for two checks in a row, it ends the top-up early and puts your charge limit back on, and it tells you. This laptop cannot pause charging, so the app does not claim to, and it does nothing else.</value></data>
   <data name="HeatBehMonitor" xml:space="preserve"><value>The app cannot change the charge limit on this laptop, so it can only show the temperature and remind you.</value></data>
-  <data name="HeatNotActive" xml:space="preserve"><value>Automatic heat protection is not switched on in this version. This page shows the live temperature and keeps your threshold.</value></data>
+  <data name="HeatEndTopUpSwitch.Header" xml:space="preserve"><value>End a top-up early when the battery is warm</value></data>
+  <data name="ToastTopUpHotTitle" xml:space="preserve"><value>Top-up ended early because the battery was warm</value></data>
+  <data name="ToastTopUpHotText" xml:space="preserve"><value>Your {0}% limit is back on.</value></data>
+  <data name="HeatNotActive" xml:space="preserve"><value>This is the only automatic action. Outside a top-up the app only shows the temperature and keeps your threshold.</value></data>
   <data name="HeatScaleNow" xml:space="preserve"><value>{0} now</value></data>
   <data name="HeatScaleThreshold" xml:space="preserve"><value>{0} threshold</value></data>
   <data name="HeatScaleAria" xml:space="preserve"><value>Temperature scale from 20 to 60 degrees, battery at {0}, threshold at {1}</value></data>

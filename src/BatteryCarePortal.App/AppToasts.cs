@@ -58,6 +58,7 @@ internal static class AppToasts
         BatteryToastKind.LimitReached => (Fmt("ToastLimitReachedTitle", t.Percent), Strings.Get("ToastLimitReachedText"), "Charging"),
         BatteryToastKind.Unplug => (Fmt("ToastUnplugTitle", t.Percent), Strings.Get("ToastUnplugText"), "Charging"),
         BatteryToastKind.PlugIn => (Fmt("ToastPlugInTitle", t.Percent), Strings.Get("ToastPlugInText"), "Overview"),
+        _ when t.TooHot => (Strings.Get("ToastTopUpHotTitle"), Fmt("ToastTopUpHotText", t.Limit ?? 0), "Charging"),
         _ when t.Full => (Strings.Get("ToastTopUpFullTitle"), Fmt("ToastTopUpFullText", t.Limit ?? 0), "Charging"),
         _ => (Strings.Get("ToastTopUpEndedTitle"), Fmt("ToastTopUpEndedText", t.Limit ?? 0, t.Percent), "Charging"),
     };

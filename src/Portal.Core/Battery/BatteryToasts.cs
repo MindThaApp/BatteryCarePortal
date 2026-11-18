@@ -17,6 +17,9 @@ public sealed record BatteryToast(BatteryToastKind Kind, int Percent, int? Limit
 {
     /// <summary>For <see cref="BatteryToastKind.TopUpFinished"/>: the battery was full, not just out of time.</summary>
     public bool Full { get; init; }
+
+    /// <summary>For <see cref="BatteryToastKind.TopUpFinished"/>: ended early because the battery was warm.</summary>
+    public bool TooHot { get; init; }
 }
 
 /// <summary>What the toast decision is worked out from. Plain values only, so it can be tested without hardware.</summary>
@@ -99,7 +102,7 @@ public sealed class BatteryToastPlanner
     {
         if (!ended.Result.Succeeded || !settings.NotifyTopUpFinished) return null;
         if (!TryShow(BatteryToastKind.TopUpFinished, now)) return null;
-        return new BatteryToast(BatteryToastKind.TopUpFinished, percent ?? 0, ended.Limit) { Full = ended.Reason == TopUpEndReason.Full };
+        return new BatteryToast(BatteryToastKind.TopUpFinished, percent ?? 0, ended.Limit) { Full = ended.Reason == TopUpEndReason.Full, TooHot = ended.Reason == TopUpEndReason.TooHot };
     }
 
     private bool TryShow(BatteryToastKind kind, DateTimeOffset now)

@@ -47,14 +47,18 @@ public sealed partial class HeatProtectionPage : Page
             BatterySnapshot battery = AppServices.Battery.Current;
             ChargeLimitCapabilities? caps = AppServices.Charge?.Capabilities;
             HeatProtectionSettings heat = await Task.Run(() => AppServices.Settings.LoadLastGood().HeatProtection);
-            Show(HeatProtectionModel.Build(battery, heat, caps), battery.IsSimulated);
+            Show(HeatProtectionModel.Build(battery, heat, caps), battery.IsSimulated, heat.EndTopUpWhenHot);
         }
         catch (Exception) { }
     }
 
-    private void Show(HeatProtectionModel m, bool simulated)
+    private void Show(HeatProtectionModel m, bool simulated, bool endTopUpWhenHot)
     {
         _model = m;
+        _updatingSwitch = true;
+        EndTopUpSwitch.IsOn = endTopUpWhenHot;
+        _updatingSwitch = false;
+        EndTopUpSwitch.Visibility = m.Behaviour is HeatBehaviour.PausesCharging or HeatBehaviour.EndsTopUp ? Visibility.Visible : Visibility.Collapsed;
         SimulatedChip.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
         ThresholdValue.Text = BatteryFormat.Temperature(m.ThresholdC);
         LessButton.IsEnabled = m.ThresholdC > HeatProtectionModel.MinThresholdC;
@@ -72,11 +76,22 @@ public sealed partial class HeatProtectionPage : Page
             BatteryFormat.Temperature(m.ThresholdC), BatteryFormat.Temperature(m.ResumeC));
         WhatText.Text = m.Behaviour switch
         {
-            HeatBehaviour.PausesCharging => string.Format(Strings.Get("HeatBehPause"), BatteryFormat.Temperature(m.ResumeC)),
+            HeatBehaviour.PausesCharging => Strings.Get("HeatBehPause"),
             HeatBehaviour.EndsTopUp => Strings.Get("HeatBehTopUp"),
             _ => Strings.Get("HeatBehMonitor"),
         };
         DrawScale();
+    }
+
+    private bool _updatingSwitch;
+
+    // Only the saved setting changes here; nothing is sent to the charge limit controller.
+    private async void OnEndTopUpToggled(object sender, RoutedEventArgs e)
+    {
+        if (_updatingSwitch) return;
+        bool on = EndTopUpSwitch.IsOn;
+        try { await Task.Run(() => AppServices.Settings.Update(s => s.HeatProtection.EndTopUpWhenHot = on)); }
+        catch (Exception) { }
     }
 
     // Only the threshold in the settings file changes here; nothing is sent to the charge limit controller.
