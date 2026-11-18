@@ -74,6 +74,10 @@ internal static class AppServices
     public static PowerPlanManagerStatus CheckPowerPlanManager() =>
         BatteryEnvironment.IsFakeBatteryEnabled ? PowerPlanManagerStatus.None : Ppm.Check();
 
+    /// <summary>Read-only: how to open Power Plan Manager (or its Store page when it is not installed).</summary>
+    public static PowerPlanManagerLaunch ResolvePowerPlanManager() =>
+        PowerPlanManagerLink.Resolve(BatteryEnvironment.IsFakeBatteryEnabled ? Array.Empty<string>() : Ppm.InstalledFamilies());
+
     public static void Start()
     {
         _dispatcher = DispatcherQueue.GetForCurrentThread();

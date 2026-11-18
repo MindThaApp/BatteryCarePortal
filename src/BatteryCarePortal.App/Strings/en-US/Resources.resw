@@ -219,5 +219,48 @@
   <data name="HistoryCharging" xml:space="preserve"><value>charging</value></data>
   <data name="HistoryDischarging" xml:space="preserve"><value>discharging</value></data>
   <data name="HistoryTableName" xml:space="preserve"><value>{0} as a table</value></data>
+  <data name="PpmCardTitle.Text" xml:space="preserve"><value>Power plans</value></data>
+  <data name="PpmCardText.Text" xml:space="preserve"><value>Battery Care Portal handles charging. Power Plan Manager handles power plans and fans.</value></data>
+  <data name="PpmOpen.Content" xml:space="preserve"><value>Open Power Plan Manager</value></data>
+  <data name="PpmGet.Content" xml:space="preserve"><value>Get Power Plan Manager</value></data>
+  <data name="PpmOpenFailed" xml:space="preserve"><value>Power Plan Manager could not be opened. {0}</value></data>
+  <data name="SettingsWelcomeAgain.Content" xml:space="preserve"><value>Show the welcome again</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>Skip</value></data>
+  <data name="FirstRunBack" xml:space="preserve"><value>Back</value></data>
+  <data name="FirstRunNext" xml:space="preserve"><value>Next</value></data>
+  <data name="FirstRunDone" xml:space="preserve"><value>Done</value></data>
+  <data name="FirstRunStepOf" xml:space="preserve"><value>Step {0} of {1}</value></data>
+  <data name="FirstRunWelcomeTitle" xml:space="preserve"><value>Welcome to Battery Care Portal</value></data>
+  <data name="FirstRunWelcomeText" xml:space="preserve"><value>This app keeps your laptop battery healthy. It can hold the charge at a lower level, remind you when to unplug, and show how the battery is doing. Nothing is changed until you choose it, and you can skip any step.</value></data>
+  <data name="FirstRunCheckTitle" xml:space="preserve"><value>Your laptop</value></data>
+  <data name="FirstRunChecking" xml:space="preserve"><value>Checking what your laptop supports. Nothing is changed.</value></data>
+  <data name="FirstRunActionOfferChargeLimit" xml:space="preserve"><value>Good news: the charge limit works on this laptop. The next step lets you turn it on.</value></data>
+  <data name="FirstRunActionPowerPlanManagerOwnsCharging" xml:space="preserve"><value>The charge limit works on this laptop, but Power Plan Manager is already handling charging. Only one app should set the limit, so this app leaves it to Power Plan Manager.</value></data>
+  <data name="FirstRunActionInstallMakerDriver" xml:space="preserve"><value>One step is missing: the maker&apos;s battery software or driver was not found. Install it from your laptop maker or Windows Update, then use Check again on the Overview page. Until then the app shows your battery and sends reminders.</value></data>
+  <data name="FirstRunActionConsiderBetaTesting" xml:space="preserve"><value>Your laptop is on our test list, so the charge limit stays off for now. You can help test it in Settings. Until then the app shows your battery and sends reminders.</value></data>
+  <data name="FirstRunActionUseReminders" xml:space="preserve"><value>This laptop has no charge limit the app can use. It will show your battery and remind you to unplug.</value></data>
+  <data name="FirstRunActionNothingToDo" xml:space="preserve"><value>No battery was found, so there is nothing to look after on this device.</value></data>
+  <data name="FirstRunLimitTitle" xml:space="preserve"><value>Turn on the charge limit?</value></data>
+  <data name="FirstRunLimitText" xml:space="preserve"><value>The laptop keeps the limit by itself, even when this app is closed. You can top up to 100% any time, and Restore laptop defaults is always available. Windows may ask for permission.</value></data>
+  <data name="FirstRunLimitTurnOn" xml:space="preserve"><value>Turn on the charge limit</value></data>
+  <data name="FirstRunLimitDone" xml:space="preserve"><value>The charge limit is on.</value></data>
+  <data name="FirstRunLimitNotDone" xml:space="preserve"><value>The limit was not changed. {0} You can try again on the Charging page.</value></data>
+  <data name="FirstRunLimitNotDoneNoReason" xml:space="preserve"><value>The limit was not changed. You can try again on the Charging page.</value></data>
+  <data name="FirstRunPpmTitle" xml:space="preserve"><value>Power Plan Manager</value></data>
+  <data name="FirstRunPpmText" xml:space="preserve"><value>Power Plan Manager is installed and has its battery care on, so it sets the charge limit. Battery Care Portal will not write the limit while it does. You can turn that off in Power Plan Manager if you want this app to take over.</value></data>
+  <data name="FirstRunStartupTitle" xml:space="preserve"><value>Start with Windows?</value></data>
+  <data name="FirstRunStartupText" xml:space="preserve"><value>Start in the tray when you sign in, so reminders and the charge limit are looked after. This is off unless you turn it on.</value></data>
+  <data name="FirstRunStartupSwitch" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="FirstRunStartupBlocked" xml:space="preserve"><value>Windows has this turned off in Startup settings, so it cannot be turned on from here.</value></data>
+  <data name="FirstRunStartupFailed" xml:space="preserve"><value>Start with Windows could not be turned on. {0}</value></data>
+  <data name="FirstRunNotifyTitle" xml:space="preserve"><value>Notifications</value></data>
+  <data name="FirstRunNotifyText" xml:space="preserve"><value>Choose which reminders you want. They make no sound.</value></data>
+  <data name="FirstRunNotifyLimit" xml:space="preserve"><value>Limit reached</value></data>
+  <data name="FirstRunNotifyPlugIn" xml:space="preserve"><value>Plug in on low battery</value></data>
+  <data name="FirstRunNotifyTopUp" xml:space="preserve"><value>Top-up finished</value></data>
+  <data name="FirstRunCrashTitle" xml:space="preserve"><value>Crash reports</value></data>
+  <data name="FirstRunCrashText" xml:space="preserve"><value>Help fix problems by sending anonymous crash reports. Off unless you turn it on.</value></data>
+  <data name="FirstRunCrashSwitch" xml:space="preserve"><value>Send anonymous crash reports</value></data>
+  <data name="FirstRunFinishTitle" xml:space="preserve"><value>You are set</value></data>
+  <data name="FirstRunFinishText" xml:space="preserve"><value>Find the app in the tray at any time. You can change everything in Settings, and Show the welcome again is there too.</value></data>
 </root>
-

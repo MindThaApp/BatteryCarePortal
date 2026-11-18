@@ -142,6 +142,12 @@ public partial class App : Application
 
     public void ShowMainWindow() => _mainWindow?.ShowAndActivate();
 
+    public void ShowWelcome()
+    {
+        _mainWindow?.ShowAndActivate();
+        _mainWindow?.ShowWelcome();
+    }
+
     internal bool IsExiting => _exiting;
 
     // A second launch lands here on the first instance's UI thread via the instance redirection.

@@ -27,6 +27,7 @@ public sealed partial class OverviewPage : Page
             RefreshSupport();
             RefreshStatus();
             RefreshToday();
+            RefreshPowerPlans();
         };
         Unloaded += (_, _) =>
         {
@@ -180,6 +181,49 @@ public sealed partial class OverviewPage : Page
             ShowInfo(InfoBarSeverity.Error, string.Format(Strings.Get("SupportReportFailed"), ex.Message));
         }
         finally { SetBusy(false); }
+    }
+
+    private PowerPlanManagerLaunch? _ppm;
+
+    // Read-only package check off the UI thread: shows Open when Power Plan Manager is installed, otherwise Get.
+    private async void RefreshPowerPlans()
+    {
+        try
+        {
+            _ppm = await Task.Run(AppServices.ResolvePowerPlanManager);
+            bool installed = _ppm.AppsFolderTarget is not null;
+            PpmOpenButton.Visibility = installed ? Visibility.Visible : Visibility.Collapsed;
+            PpmGetButton.Visibility = installed ? Visibility.Collapsed : Visibility.Visible;
+        }
+        catch (Exception) { }
+    }
+
+    private async void OnPpmOpen(object sender, RoutedEventArgs e)
+    {
+        PpmInfo.IsOpen = false;
+        try
+        {
+            if (_ppm is null) return;
+            bool launched = _ppm.ProtocolUri is { } protocol && await Windows.System.Launcher.LaunchUriAsync(new Uri(protocol));
+            if (!launched && _ppm.AppsFolderTarget is { } target)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "shell:AppsFolder\\" + target) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            PpmInfo.Message = string.Format(Strings.Get("PpmOpenFailed"), ex.Message);
+            PpmInfo.IsOpen = true;
+        }
+    }
+
+    private async void OnPpmGet(object sender, RoutedEventArgs e)
+    {
+        PpmInfo.IsOpen = false;
+        try { await Windows.System.Launcher.LaunchUriAsync(new Uri(PowerPlanManagerLink.StoreUri)); }
+        catch (Exception ex)
+        {
+            PpmInfo.Message = string.Format(Strings.Get("PpmOpenFailed"), ex.Message);
+            PpmInfo.IsOpen = true;
+        }
     }
 
     private void SetBusy(bool busy)

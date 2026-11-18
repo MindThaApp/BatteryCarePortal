@@ -52,6 +52,17 @@
                     <InfoBar x:Name="ReportInfo" IsOpen="False" IsClosable="True" />
                 </StackPanel>
             </Border>
+            <Border Padding="20" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="PpmCardTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Uid="PpmCardText" TextWrapping="Wrap" />
+                    <Button x:Name="PpmOpenButton" x:Uid="PpmOpen" Click="OnPpmOpen" Visibility="Collapsed" />
+                    <Button x:Name="PpmGetButton" x:Uid="PpmGet" Click="OnPpmGet" Visibility="Collapsed" />
+                    <InfoBar x:Name="PpmInfo" IsOpen="False" IsClosable="True" Severity="Warning" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

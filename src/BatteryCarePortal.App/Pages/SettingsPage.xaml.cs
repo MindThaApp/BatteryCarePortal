@@ -27,6 +27,8 @@ public sealed partial class SettingsPage : Page
         _updating = false;
     }
 
+    private void OnShowWelcome(object sender, RoutedEventArgs e) => App.Instance?.ShowWelcome();
+
     private void OnNotifyToggled(object sender, RoutedEventArgs e)
     {
         if (_updating) return;

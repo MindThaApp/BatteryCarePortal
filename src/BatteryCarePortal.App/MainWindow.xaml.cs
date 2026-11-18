@@ -18,9 +18,12 @@ public sealed partial class MainWindow : Window
         ["Settings"] = typeof(SettingsPage),
     };
 
+    private readonly WelcomePanel Welcome = new() { Visibility = Visibility.Collapsed };
+
     public MainWindow()
     {
         InitializeComponent();
+        Root.Children.Add(Welcome);
         bool simulated = Portal.Core.Battery.BatteryEnvironment.IsFakeBatteryEnabled;
         Title = simulated ? Strings.Get("AppName") + " - " + Strings.Get("WindowTitleSimulated") : Strings.Get("AppName");
         SimulatedBadge.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
@@ -33,6 +36,26 @@ public sealed partial class MainWindow : Window
             AppWindow.Hide();
         };
         Nav.SelectedItem = Nav.MenuItems[0];
+        Welcome.Finished += () => Welcome.Visibility = Visibility.Collapsed;
+        if (Portal.Core.Battery.FirstRunLogic.ShouldShow(AppServices.Settings.Load())) ShowWelcome();
+    }
+
+    /// <summary>Shows the welcome flow over the window once the device check has finished.</summary>
+    public void ShowWelcome()
+    {
+        if (Welcome.Visibility == Visibility.Visible) return;
+        if (AppServices.Support is null)
+        {
+            void Ready()
+            {
+                AppServices.SupportChanged -= Ready;
+                DispatcherQueue.TryEnqueue(ShowWelcome);
+            }
+            AppServices.SupportChanged += Ready;
+            return;
+        }
+        Welcome.Visibility = Visibility.Visible;
+        _ = Welcome.StartAsync();
     }
 
     public void ShowAndActivate()

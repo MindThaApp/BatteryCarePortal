@@ -31,6 +31,7 @@
                     <TextBlock x:Uid="SettingsBetaReadOnly" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
             </Border>
+            <HyperlinkButton x:Name="WelcomeLink" x:Uid="SettingsWelcomeAgain" Click="OnShowWelcome" />
         </StackPanel>
     </ScrollViewer>
 </Page>
