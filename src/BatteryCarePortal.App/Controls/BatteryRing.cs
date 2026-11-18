@@ -57,8 +57,9 @@ public sealed class BatteryRing : UserControl
         // The settings object outlives the control, so listen only while the control is in the tree.
         Windows.Foundation.TypedEventHandler<Windows.UI.ViewManagement.AccessibilitySettings, object> onContrast =
             (_, _) => DispatcherQueue?.TryEnqueue(Redraw);
-        Loaded += (_, _) => Access.HighContrastChanged += onContrast;
-        Unloaded += (_, _) => Access.HighContrastChanged -= onContrast;
+        // Some systems refuse the subscription (E_NOTFOUND); the ring then just redraws on theme changes only.
+        Loaded += (_, _) => { try { Access.HighContrastChanged += onContrast; } catch (System.Runtime.InteropServices.COMException) { } };
+        Unloaded += (_, _) => { try { Access.HighContrastChanged -= onContrast; } catch (System.Runtime.InteropServices.COMException) { } };
         Loaded += (_, _) => Redraw();
         Redraw();
     }
