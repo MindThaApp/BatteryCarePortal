@@ -175,7 +175,8 @@ internal static class CrashReporting
         evt.ServerName = null;
         evt.User.Username = null;
         evt.User.Email = null;
-        evt.User.IpAddress = null;
+        // An explicit placeholder stops the server inferring a location from the sending connection.
+        evt.User.IpAddress = "0.0.0.0";
         evt.Contexts.Device.Name = null;
         evt.Contexts.Device.Timezone = null;
         evt.Contexts.Device.BootTime = null;
