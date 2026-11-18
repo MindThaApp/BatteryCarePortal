@@ -24,6 +24,7 @@ public sealed partial class SettingsPage : Page
         NotifyPlugInSwitch.IsOn = settings.NotifyPlugIn;
         NotifyPlugInSwitch.Header = string.Format(Strings.Get("SettingsNotifyPlugIn"), settings.LowReminderPercent);
         NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
+        CrashSwitch.IsOn = settings.SendCrashReports;
         _updating = false;
     }
 
@@ -41,6 +42,24 @@ public sealed partial class SettingsPage : Page
                 s.NotifyPlugIn = plugIn;
                 s.NotifyTopUpFinished = topUp;
             });
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Severity = InfoBarSeverity.Error;
+            StatusInfo.Message = string.Format(Strings.Get("SettingsNotifyFailed"), ex.Message);
+            StatusInfo.IsOpen = true;
+            try { ShowStoredValue(); } catch (Exception) { }
+        }
+    }
+
+    private void OnCrashToggled(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+        bool on = CrashSwitch.IsOn;
+        try
+        {
+            AppServices.Settings.Update(s => s.SendCrashReports = on);
+            CrashReporting.Apply(on);
         }
         catch (Exception ex)
         {

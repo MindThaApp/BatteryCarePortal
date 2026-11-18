@@ -23,10 +23,14 @@ public partial class App : Application
     {
         Instance = this;
         InitializeComponent();
+        UnhandledException += (_, e) => CrashReporting.CaptureCrash(e.Exception, "Application.UnhandledException", handled: false);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashReporting.CaptureCrash(e.ExceptionObject as Exception, "AppDomain.UnhandledException", handled: false);
+        TaskScheduler.UnobservedTaskException += (_, e) => CrashReporting.CaptureCrash(e.Exception, "TaskScheduler.UnobservedTaskException", handled: true);
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        try { CrashReporting.Apply(AppServices.Settings.Load().SendCrashReports); } catch (Exception) { }
         _mainWindow = new MainWindow();
         _flyout = new TrayFlyoutWindow();
         CreateTrayIcon();
@@ -165,6 +169,7 @@ public partial class App : Application
     private void OnAppExiting()
     {
         AppServices.OnExit();
+        CrashReporting.Shutdown();
     }
 
     public void ExitApplication()

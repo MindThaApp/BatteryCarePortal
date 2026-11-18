@@ -37,7 +37,7 @@ try {
     $patched = $text -replace 'Publisher="[^"]*"', "Publisher=`"$Publisher`""
     [IO.File]::WriteAllText($manifestPath, $patched, (New-Object Text.UTF8Encoding($false)))
     & $msbuild $project /restore /t:Build /nr:false /m /v:m /nologo /p:Configuration=Release /p:Platform=x64 `
-        /p:MakeTestPackage=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never `
+        /p:MakeTestPackage=true /p:BcpChannel=beta /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never `
         /p:AppxPackageSigningEnabled=false "/p:AppxPackageDir=$pkgDir" 2>&1 | Select-String 'error|Build succeeded'
     if ($LASTEXITCODE -ne 0) { throw "build failed ($LASTEXITCODE)" }
 }

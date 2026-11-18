@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
@@ -10,6 +10,9 @@ public static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+#if DEBUG
+        if (args.Contains("--crash-test")) return CrashReporting.RunCrashTest();
+#endif
         WinRT.ComWrappersSupport.InitializeComWrappers();
         if (RedirectToRunningInstance()) return 0;
 

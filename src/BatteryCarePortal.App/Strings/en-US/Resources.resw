@@ -117,6 +117,11 @@
   <data name="ChargeNoticeUseApp" xml:space="preserve"><value>Use the app's setting</value></data>
   <data name="ChargeNoticeKeepLaptop" xml:space="preserve"><value>Keep the laptop's setting</value></data>
   <data name="SettingsDeviceSupportTitle.Text" xml:space="preserve"><value>Device support</value></data>
+  <data name="SettingsCrashTitle.Text" xml:space="preserve"><value>Crash reports</value></data>
+  <data name="SettingsCrashSwitch.Header" xml:space="preserve"><value>Send anonymous crash reports</value></data>
+  <data name="SettingsCrashSwitch.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SettingsCrashSwitch.OffContent" xml:space="preserve"><value>Off</value></data>
+  <data name="SettingsCrashNote.Text" xml:space="preserve"><value>Off unless you turn it on. A report holds the error and where in the app it happened. It never holds your name, your PC name, file names, battery serial numbers or battery history.</value></data>
   <data name="SettingsBetaSwitch.Header" xml:space="preserve"><value>Help test charge limit on other brands (beta)</value></data>
   <data name="SettingsBetaSwitch.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="SettingsBetaSwitch.OffContent" xml:space="preserve"><value>Off</value></data>

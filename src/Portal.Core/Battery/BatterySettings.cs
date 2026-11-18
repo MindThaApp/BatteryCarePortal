@@ -49,6 +49,9 @@ public sealed class BatterySettings
     /// <summary>When the user finished or skipped the welcome flow. Null means it is still to be shown.</summary>
     public DateTimeOffset? FirstRunCompletedUtc { get; set; }
 
+    /// <summary>"Send anonymous crash reports". Off until the user turns it on (welcome flow or Settings); nothing is sent without it.</summary>
+    public bool SendCrashReports { get; set; }
+
     public CalibrationProgress Calibration { get; set; } = new();
 
     public ScheduledTopUpSettings ScheduledTopUp { get; set; } = new();

@@ -14,8 +14,7 @@ public sealed partial class WelcomePanel : UserControl
 {
     private const string StartupTaskId = "BatteryCarePortalStartup";
 
-    /// <summary>The crash-report slot has no behind-the-scenes setting yet; keep it hidden until it is wired.</summary>
-    private const bool CrashSlotWired = false;
+    private const bool CrashSlotWired = true;
 
     private FirstRunPlan _plan = new(FirstRunNextAction.NothingToDo, Array.Empty<FirstRunStep>());
     private List<FirstRunStep> _steps = new();
@@ -53,7 +52,7 @@ public sealed partial class WelcomePanel : UserControl
         NotifyPlugInSwitch.IsOn = settings.NotifyPlugIn;
         NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
         StartupSwitch.IsOn = false;
-        CrashSwitch.IsOn = false;
+        CrashSwitch.IsOn = settings.SendCrashReports;
         await LoadStartupStateAsync();
         Show();
     }
@@ -188,6 +187,7 @@ public sealed partial class WelcomePanel : UserControl
         {
             if (Current == FirstRunStep.StartWithWindows && !await ApplyStartupAsync()) return;
             if (Current == FirstRunStep.Notifications) SaveNotifications();
+            if (Current == FirstRunStep.CrashReports) SaveCrashReports();
             if (Current == FirstRunStep.Finish) { Complete(); return; }
             _index++;
             Show();
@@ -245,6 +245,15 @@ public sealed partial class WelcomePanel : UserControl
             s.NotifyPlugIn = plugIn;
             s.NotifyTopUpFinished = topUp;
         });
+    }
+
+    // Only an explicit switch on Next opts in; Skip and Back leave the setting as it was (off by default).
+    private void SaveCrashReports()
+    {
+        bool on = CrashSwitch.IsOn;
+        if (AppServices.Settings.Load().SendCrashReports == on) return;
+        AppServices.Settings.Update(s => s.SendCrashReports = on);
+        CrashReporting.Apply(on);
     }
 
     private void Complete()

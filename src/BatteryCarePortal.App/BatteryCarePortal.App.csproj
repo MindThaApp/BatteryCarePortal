@@ -22,7 +22,39 @@
     <GenerateAppxPackageOnBuild Condition="'$(MakeTestPackage)' == 'true'">true</GenerateAppxPackageOnBuild>
     <NeutralLanguage>en-US</NeutralLanguage>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Crash reports: no global `using Sentry;`, no native crash handler (it would send past the consent gate and the redaction),
+         and no source generator (it stamps this machine's project folder into the assembly). -->
+    <SentryImplicitUsings>false</SentryImplicitUsings>
+    <SentryNative>false</SentryNative>
+    <SentryDisableSourceGenerator>true</SentryDisableSourceGenerator>
+    <!-- store / beta / dev: plain Debug build = dev, Release = store; make-test-package.ps1 passes beta. -->
+    <BcpChannel Condition="'$(BcpChannel)' == '' and '$(Configuration)' == 'Debug'">dev</BcpChannel>
+    <BcpChannel Condition="'$(BcpChannel)' == ''">store</BcpChannel>
   </PropertyGroup>
+
+  <!-- The package stamps the build machine's project folder into the assembly (Sentry.ProjectDirectory); ship no build paths. -->
+  <Target Name="BcpDropSentryAttributes" AfterTargets="WriteSentryAttributes" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Remove="$(IntermediateOutputPath)$(SentryAttributesFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The repository is public: the DSN is not committed. It is read at build time from secrets\sentry-dsn.txt (git-ignored) and
+       written into a generated file under obj\. No file means an empty DSN and crash reporting stays off. -->
+  <PropertyGroup>
+    <BcpDsnFile>$(MSBuildThisFileDirectory)..\..\secrets\sentry-dsn.txt</BcpDsnFile>
+  </PropertyGroup>
+  <Target Name="BcpGenerateCrashConfig" BeforeTargets="MarkupCompilePass1;XamlPreCompile;CoreCompile">
+    <PropertyGroup>
+      <BcpDsnConfigFile>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)BcpCrashConfig.g.cs</BcpDsnConfigFile>
+      <BcpDsnValue Condition="Exists('$(BcpDsnFile)')">$([System.IO.File]::ReadAllText('$(BcpDsnFile)').Trim())</BcpDsnValue>
+      <BcpDsnValue Condition="'$(BcpDsnValue)' == ''"></BcpDsnValue>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(BcpDsnConfigFile)" Lines="namespace BatteryCarePortal%3B internal static class CrashReportConfig { public const string Dsn = &quot;$(BcpDsnValue)&quot;%3B public const string Channel = &quot;$(BcpChannel)&quot;%3B }" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(BcpDsnConfigFile)" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -35,6 +67,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250108002" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.2.0" />
+    <PackageReference Include="Sentry" Version="6.12.1" />
   </ItemGroup>
 
   <ItemGroup>
