@@ -46,6 +46,9 @@ public sealed class BatterySettings
     /// <summary>Notify when the app ends a top-up and the limit is back on.</summary>
     public bool NotifyTopUpFinished { get; set; } = true;
 
+    /// <summary>When the user finished or skipped the welcome flow. Null means it is still to be shown.</summary>
+    public DateTimeOffset? FirstRunCompletedUtc { get; set; }
+
     public CalibrationProgress Calibration { get; set; } = new();
 
     public ScheduledTopUpSettings ScheduledTopUp { get; set; } = new();

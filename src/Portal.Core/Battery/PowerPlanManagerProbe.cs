@@ -80,6 +80,19 @@ public sealed class PowerPlanManagerProbe
         return new PowerPlanManagerStatus(true, SafeRunning(), Combine(seen));
     }
 
+    /// <summary>Read-only: the installed package family folder names. Never throws.</summary>
+    public IReadOnlyList<string> InstalledFamilies()
+    {
+        try
+        {
+            string packages = Path.Combine(_localAppData, "Packages");
+            return Directory.Exists(packages)
+                ? Directory.GetDirectories(packages, PackageNamePrefix + "*").Select(Path.GetFileName).OfType<string>().ToArray()
+                : Array.Empty<string>();
+        }
+        catch (Exception) { return Array.Empty<string>(); }
+    }
+
     /// <summary>
     /// For <see cref="WriteGateContext.OtherOwner"/>: null only when Power Plan Manager is absent or its charge control
     /// is confirmed off; otherwise a claim that refuses writes.
