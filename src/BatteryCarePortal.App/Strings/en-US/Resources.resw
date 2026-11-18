@@ -162,5 +162,30 @@
   <data name="SettingsNotifyTopUp.Header" xml:space="preserve"><value>Top-up finished</value></data>
   <data name="SettingsNotificationsNote.Text" xml:space="preserve"><value>Notifications need the app running in the tray. They make no sound, and each kind shows at most once every 30 minutes. On a laptop without a charge limit the app can use, "Limit reached" reminds you to unplug instead.</value></data>
   <data name="SettingsNotifyFailed" xml:space="preserve"><value>The setting could not be saved. {0}</value></data>
+  <data name="PFStateCharging" xml:space="preserve"><value>Charging</value></data>
+  <data name="PFStatePluggedIn" xml:space="preserve"><value>Plugged in</value></data>
+  <data name="PFStateOnBattery" xml:space="preserve"><value>On battery</value></data>
+  <data name="PFStateNoBattery" xml:space="preserve"><value>No battery</value></data>
+  <data name="PFLineCharging" xml:space="preserve"><value>The charger sends {0} to the battery.</value></data>
+  <data name="PFLinePluggedIn" xml:space="preserve"><value>The charger is connected and the battery is not taking charge.</value></data>
+  <data name="PFLineOnBattery" xml:space="preserve"><value>The battery sends {0} to the laptop.</value></data>
+  <data name="PFLineNoBattery" xml:space="preserve"><value>This PC has no battery, so there is no power flow to show.</value></data>
+  <data name="PFSystemNotReported" xml:space="preserve"><value>Power to the laptop is not reported by this laptop.</value></data>
+  <data name="PFBatteryNotReported" xml:space="preserve"><value>The battery does not report its power.</value></data>
+  <data name="PFTimeLeft" xml:space="preserve"><value>{0} left on battery.</value></data>
+  <data name="HeatSwitchHeader" xml:space="preserve"><value>Go easy on charging when the battery is hot</value></data>
+  <data name="HeatNow" xml:space="preserve"><value>Battery now {0} · acts above {1} · back to normal at {2}</value></data>
+  <data name="HeatNoReading" xml:space="preserve"><value>This laptop does not report battery temperature, so heat protection is not available here.</value></data>
+  <data name="HeatThresholdTitle" xml:space="preserve"><value>Threshold</value></data>
+  <data name="HeatThresholdRange" xml:space="preserve"><value>30 to 60 °C</value></data>
+  <data name="HeatWhatTitle" xml:space="preserve"><value>What it does on this laptop</value></data>
+  <data name="HeatBehPause" xml:space="preserve"><value>It pauses charging while the battery is hot, resumes at {0}, and tells you.</value></data>
+  <data name="HeatBehTopUp" xml:space="preserve"><value>It ends a top-up early and puts the limit back while the battery is hot, and it tells you. This laptop cannot pause charging, so the app does not claim to.</value></data>
+  <data name="HeatBehMonitor" xml:space="preserve"><value>The app cannot change the charge limit on this laptop, so it can only show the temperature and remind you.</value></data>
+  <data name="HeatNotActive" xml:space="preserve"><value>Automatic heat protection is not switched on in this version. This page shows the live temperature and keeps your threshold.</value></data>
+  <data name="HeatScaleNow" xml:space="preserve"><value>{0} now</value></data>
+  <data name="HeatScaleThreshold" xml:space="preserve"><value>{0} threshold</value></data>
+  <data name="HeatScaleAria" xml:space="preserve"><value>Temperature scale from 20 to 60 degrees, battery at {0}, threshold at {1}</value></data>
+  <data name="HeatUnknown" xml:space="preserve"><value>unknown</value></data>
 </root>
 
