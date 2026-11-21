@@ -230,7 +230,12 @@
   <data name="PpmGet.Content" xml:space="preserve"><value>Get Power Plan Manager</value></data>
   <data name="PpmOpenFailed" xml:space="preserve"><value>Power Plan Manager could not be opened. {0}</value></data>
   <data name="SettingsWelcomeAgain.Content" xml:space="preserve"><value>Show the welcome again</value></data>
-  <data name="FirstRunSkip" xml:space="preserve"><value>Skip</value></data>
+  <data name="FirstRunSkip" xml:space="preserve"><value>Skip for now</value></data>
+  <data name="FirstRunRecommended" xml:space="preserve"><value>Start with recommended settings</value></data>
+  <data name="FirstRunWindowTitle" xml:space="preserve"><value>Welcome to Battery Care Portal</value></data>
+  <data name="FirstRunPrefsTitle" xml:space="preserve"><value>Make it yours</value></data>
+  <data name="FirstRunTrayText" xml:space="preserve"><value>Battery Care Portal lives in the system tray, next to the clock. If you do not see its battery icon, open the arrow for hidden icons. Click it for the quick pop-up, or right-click it for the menu.</value></data>
+  <data name="FirstRunFreeText" xml:space="preserve"><value>Everything in the app is free. Nothing to buy and nothing to unlock.</value></data>
   <data name="FirstRunBack" xml:space="preserve"><value>Back</value></data>
   <data name="FirstRunNext" xml:space="preserve"><value>Next</value></data>
   <data name="FirstRunDone" xml:space="preserve"><value>Done</value></data>

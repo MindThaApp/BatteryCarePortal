@@ -33,6 +33,29 @@ internal static class AppAppearance
     private static AppearanceSettings _current = new();
     private static ResourceDictionary? _density;
     private static bool _flipping;
+    private static readonly List<(Window Window, FrameworkElement Root)> Extras = new();
+
+    /// <summary>Gives a secondary window (welcome, What's new) the same theme, material and corners as the main window.</summary>
+    public static void AttachExtra(Window window, FrameworkElement root)
+    {
+        Extras.Add((window, root));
+        root.ActualThemeChanged += (_, _) => { if (!_flipping && _current.Accent != AccentChoice.Windows) Apply(_current); };
+        window.Closed += (_, _) => Extras.RemoveAll(e => e.Window == window);
+        ApplyExtra(window, root, _current, IsHighContrast());
+    }
+
+    private static ElementTheme ThemeOf(ThemeChoice theme) => theme switch
+    {
+        ThemeChoice.Light => ElementTheme.Light,
+        ThemeChoice.Dark => ElementTheme.Dark,
+        _ => ElementTheme.Default,
+    };
+
+    private static void ApplyExtra(Window window, FrameworkElement root, AppearanceSettings settings, bool highContrast)
+    {
+        root.RequestedTheme = ThemeOf(settings.Theme);
+        ApplyMaterial(window, highContrast ? MaterialChoice.Solid : settings.Material);
+    }
 
     /// <summary>Remembers the window and applies the settings before it is shown.</summary>
     public static void Attach(Window window, FrameworkElement root, AppearanceSettings settings)
@@ -61,7 +84,8 @@ internal static class AppAppearance
         ApplyAccent(settings.Accent, highContrast);
         ApplyCorners(settings.Corners);
         ApplyDensity(settings.Density);
-        ApplyMaterial(highContrast ? MaterialChoice.Solid : settings.Material);
+        ApplyMaterial(_window, highContrast ? MaterialChoice.Solid : settings.Material);
+        foreach ((Window w, FrameworkElement r) in Extras.ToArray()) ApplyExtra(w, r, settings, highContrast);
         UiMotion.Mode = settings.Motion switch
         {
             MotionChoice.Reduced => UiMotionMode.Reduced,
@@ -160,12 +184,12 @@ internal static class AppAppearance
     }
 
     // Mica and acrylic need transparency effects; where the system has them off or the OS lacks them, the window stays solid.
-    private static void ApplyMaterial(MaterialChoice choice)
+    private static void ApplyMaterial(Window? window, MaterialChoice choice)
     {
-        if (_window is null) return;
+        if (window is null) return;
         try
         {
-            _window.SystemBackdrop = choice switch
+            window.SystemBackdrop = choice switch
             {
                 MaterialChoice.Mica when MicaController.IsSupported() => new MicaBackdrop(),
                 MaterialChoice.Acrylic when DesktopAcrylicController.IsSupported() => new DesktopAcrylicBackdrop(),
@@ -174,7 +198,7 @@ internal static class AppAppearance
         }
         catch (Exception)
         {
-            _window.SystemBackdrop = null;
+            window.SystemBackdrop = null;
         }
     }
 
@@ -188,6 +212,12 @@ internal static class AppAppearance
             ElementTheme wanted = _root.RequestedTheme;
             _root.RequestedTheme = wanted == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
             _root.RequestedTheme = wanted;
+            foreach ((Window _, FrameworkElement r) in Extras.ToArray())
+            {
+                ElementTheme w = r.RequestedTheme;
+                r.RequestedTheme = w == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+                r.RequestedTheme = w;
+            }
         }
         finally { _flipping = false; }
     }
