@@ -58,6 +58,9 @@ public sealed class BatterySettings
 
     public ScheduledTopUpSettings ScheduledTopUp { get; set; } = new();
 
+    /// <summary>Order and visibility of the tray pop-up tiles (see <see cref="Portal.Core.Tray.TrayTileLayout"/>); empty = default.</summary>
+    public string TrayTiles { get; set; } = "";
+
     /// <summary>Remind to calibrate when the last calibration is older than this many days (0 = off).</summary>
     public int CalibrationReminderDays { get; set; }
 
@@ -104,6 +107,7 @@ public sealed class BatterySettings
         HeatProtection.MaxTempC = Math.Clamp(HeatProtection.MaxTempC, 30, 60);
         Calibration ??= new CalibrationProgress();
         Appearance = (Appearance ?? new Portal.Core.Theming.AppearanceSettings()).Normalize();
+        TrayTiles ??= "";
         ScheduledTopUp ??= new ScheduledTopUpSettings();
         ScheduledTopUp.LeadHours = Math.Clamp(ScheduledTopUp.LeadHours, 1, 12);
         CalibrationReminderDays = CalibrationReminderDays <= 0 ? 0 : Math.Clamp(CalibrationReminderDays, 7, 180);
