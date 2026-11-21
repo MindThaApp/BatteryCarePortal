@@ -54,6 +54,8 @@ public sealed class BatterySettings
 
     public CalibrationProgress Calibration { get; set; } = new();
 
+    public Portal.Core.Theming.AppearanceSettings Appearance { get; set; } = new();
+
     public ScheduledTopUpSettings ScheduledTopUp { get; set; } = new();
 
     /// <summary>Remind to calibrate when the last calibration is older than this many days (0 = off).</summary>
@@ -101,6 +103,7 @@ public sealed class BatterySettings
         HeatProtection ??= new HeatProtectionSettings();
         HeatProtection.MaxTempC = Math.Clamp(HeatProtection.MaxTempC, 30, 60);
         Calibration ??= new CalibrationProgress();
+        Appearance = (Appearance ?? new Portal.Core.Theming.AppearanceSettings()).Normalize();
         ScheduledTopUp ??= new ScheduledTopUpSettings();
         ScheduledTopUp.LeadHours = Math.Clamp(ScheduledTopUp.LeadHours, 1, 12);
         CalibrationReminderDays = CalibrationReminderDays <= 0 ? 0 : Math.Clamp(CalibrationReminderDays, 7, 180);

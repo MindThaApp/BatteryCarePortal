@@ -25,7 +25,56 @@ public sealed partial class SettingsPage : Page
         NotifyPlugInSwitch.Header = string.Format(Strings.Get("SettingsNotifyPlugIn"), settings.LowReminderPercent);
         NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
         CrashSwitch.IsOn = settings.SendCrashReports;
+        ShowAppearance(settings.Appearance);
         _updating = false;
+    }
+
+    private void ShowAppearance(Portal.Core.Theming.AppearanceSettings a)
+    {
+        ThemeCombo.SelectedIndex = (int)a.Theme;
+        AccentCombo.SelectedIndex = (int)a.Accent;
+        MaterialCombo.SelectedIndex = (int)a.Material;
+        CornersCombo.SelectedIndex = (int)a.Corners;
+        DensityCombo.SelectedIndex = (int)a.Density;
+        MotionCombo.SelectedIndex = (int)a.Motion;
+    }
+
+    private static int Choice(ComboBox box) => box.SelectedItem is ComboBoxItem { Tag: string tag } && int.TryParse(tag, out int v) ? v : 0;
+
+    private void OnAppearanceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updating) return;
+        SaveAppearance(a =>
+        {
+            a.Theme = (Portal.Core.Theming.ThemeChoice)Choice(ThemeCombo);
+            a.Accent = (Portal.Core.Theming.AccentChoice)Choice(AccentCombo);
+            a.Material = (Portal.Core.Theming.MaterialChoice)Choice(MaterialCombo);
+            a.Corners = (Portal.Core.Theming.CornerChoice)Choice(CornersCombo);
+            a.Density = (Portal.Core.Theming.DensityChoice)Choice(DensityCombo);
+            a.Motion = (Portal.Core.Theming.MotionChoice)Choice(MotionCombo);
+        });
+    }
+
+    private void OnResetAppearance(object sender, RoutedEventArgs e) =>
+        SaveAppearance(a => a.Reset());
+
+    // Applies first so the change shows at once; a failed save is reported and the saved values come back on screen.
+    private void SaveAppearance(Action<Portal.Core.Theming.AppearanceSettings> change)
+    {
+        try
+        {
+            Portal.Core.Battery.BatterySettings saved = AppServices.Settings.Update(s => change(s.Appearance));
+            AppAppearance.Apply(saved.Appearance);
+            _updating = true;
+            try { ShowAppearance(saved.Appearance); } finally { _updating = false; }
+        }
+        catch (Exception ex)
+        {
+            StatusInfo.Severity = InfoBarSeverity.Error;
+            StatusInfo.Message = string.Format(Strings.Get("SettingsAppearanceFailed"), ex.Message);
+            StatusInfo.IsOpen = true;
+            try { ShowStoredValue(); } catch (Exception) { }
+        }
     }
 
     private void OnShowWelcome(object sender, RoutedEventArgs e) => App.Instance?.ShowWelcome();

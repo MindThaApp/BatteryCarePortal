@@ -20,7 +20,7 @@ internal static class Motion
         get
         {
             // A safe start (after a crash loop) runs no optional animation.
-            if (UiSafeMode.Enabled) return false;
+            if (UiSafeMode.Enabled || UiMotion.Mode == UiMotionMode.Off) return false;
             try { return new Windows.UI.ViewManagement.UISettings().AnimationsEnabled; }
             catch { return true; }
         }
@@ -50,7 +50,7 @@ internal static class Motion
             slide.Duration = SlideDuration;
 
             visual.StartAnimation("Opacity", fade);
-            visual.StartAnimation("Translation", slide);
+            if (UiMotion.Mode != UiMotionMode.Reduced) visual.StartAnimation("Translation", slide);
         }
         catch
         {

@@ -7,7 +7,7 @@
         <StackPanel x:Name="Column" Padding="32,24" Spacing="16" MaxWidth="720">
             <TextBlock x:Uid="TitleHeatProtection" Style="{StaticResource TitleTextBlockStyle}" />
 
-            <Border x:Name="ReadingCard" Padding="20" CornerRadius="8"
+            <Border x:Name="ReadingCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
@@ -33,7 +33,7 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="WhatCard" Padding="20" CornerRadius="8"
+            <Border x:Name="WhatCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">

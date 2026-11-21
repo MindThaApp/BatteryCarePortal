@@ -1,6 +1,7 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using BatteryCarePortal.Pages;
 using WinRT.Interop;
 
@@ -24,6 +25,8 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Root.Children.Add(Welcome);
+        try { AppAppearance.Attach(this, Root, AppServices.Settings.Load().Appearance); } catch (Exception) { }
+        AddNavigationShortcuts();
         bool simulated = Portal.Core.Battery.BatteryEnvironment.IsFakeBatteryEnabled;
         Title = simulated ? Strings.Get("AppName") + " - " + Strings.Get("WindowTitleSimulated") : Strings.Get("AppName");
         SimulatedBadge.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
@@ -38,6 +41,29 @@ public sealed partial class MainWindow : Window
         Nav.SelectedItem = Nav.MenuItems[0];
         Welcome.Finished += () => Welcome.Visibility = Visibility.Collapsed;
         if (Portal.Core.Battery.FirstRunLogic.ShouldShow(AppServices.Settings.Load())) ShowWelcome();
+    }
+
+    // Ctrl+, opens Settings, Ctrl+1..5 the top-level pages in pane order; each key shows in the item's tooltip.
+    private void AddNavigationShortcuts()
+    {
+        const Windows.System.VirtualKey comma = (Windows.System.VirtualKey)188;
+        void Add(Windows.System.VirtualKey key, NavigationViewItem item, string shortcut)
+        {
+            var accelerator = new KeyboardAccelerator { Key = key, Modifiers = Windows.System.VirtualKeyModifiers.Control };
+            accelerator.Invoked += (_, args) =>
+            {
+                args.Handled = true;
+                Nav.SelectedItem = item;
+            };
+            Root.KeyboardAccelerators.Add(accelerator);
+            ToolTipService.SetToolTip(item, $"{item.Content} ({shortcut})");
+        }
+
+        for (int i = 0; i < Nav.MenuItems.Count && i < 5; i++)
+            if (Nav.MenuItems[i] is NavigationViewItem item)
+                Add(Windows.System.VirtualKey.Number1 + i, item, $"Ctrl+{i + 1}");
+        if (Nav.FooterMenuItems.OfType<NavigationViewItem>().FirstOrDefault() is { } settings)
+            Add(comma, settings, "Ctrl+,");
     }
 
     /// <summary>Shows the welcome flow over the window once the device check has finished.</summary>

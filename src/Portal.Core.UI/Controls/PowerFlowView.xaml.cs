@@ -109,7 +109,7 @@ public sealed partial class PowerFlowView : UserControl
     private static bool ReadAnimationsEnabled()
     {
         // A safe start (after a crash loop) runs no optional animation.
-        if (UiSafeMode.Enabled) return false;
+        if (UiSafeMode.Enabled || UiMotion.Mode == UiMotionMode.Off) return false;
         try { return SharedUiSettings.AnimationsEnabled; }
         catch { return true; }
     }

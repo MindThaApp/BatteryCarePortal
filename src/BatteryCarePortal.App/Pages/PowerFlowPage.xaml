@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="BatteryCarePortal.Pages.PowerFlowPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -7,7 +7,7 @@
         <StackPanel x:Name="Column" Padding="32,24" Spacing="16" MaxWidth="720">
             <TextBlock x:Uid="TitlePowerFlow" Style="{StaticResource TitleTextBlockStyle}" />
 
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">

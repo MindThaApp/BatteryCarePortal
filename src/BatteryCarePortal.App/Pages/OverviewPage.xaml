@@ -7,7 +7,7 @@
         <StackPanel x:Name="Column" Padding="32,24" Spacing="16" MaxWidth="720">
             <TextBlock x:Uid="TitleOverview" Style="{StaticResource TitleTextBlockStyle}" />
 
-            <Border x:Name="BatteryCard" Padding="20" CornerRadius="8"
+            <Border x:Name="BatteryCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Orientation="Horizontal" Spacing="24">
@@ -25,7 +25,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -35,7 +35,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -52,7 +52,7 @@
                     <InfoBar x:Name="ReportInfo" IsOpen="False" IsClosable="True" />
                 </StackPanel>
             </Border>
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">

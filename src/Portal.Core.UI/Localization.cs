@@ -32,6 +32,14 @@ public static class Localization
     }
 }
 
+/// <summary>The user's motion choice. Windows leaves it to the system animation switch; Reduced keeps fades only; Off runs no optional animation.</summary>
+public enum UiMotionMode { FollowWindows, Reduced, Off }
+
+public static class UiMotion
+{
+    public static UiMotionMode Mode { get; set; }
+}
+
 /// <summary>Lets the host app tell the shared controls to skip animation (for example after a crash loop).</summary>
 public static class UiSafeMode
 {

@@ -20,7 +20,7 @@
 
             <TextBlock x:Name="UnavailableText" TextWrapping="Wrap" Visibility="Collapsed" />
 
-            <Border x:Name="LimitCard" Padding="20" CornerRadius="8" Visibility="Collapsed"
+            <Border x:Name="LimitCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -45,7 +45,7 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="TopUpCard" Padding="20" CornerRadius="8" Visibility="Collapsed"
+            <Border x:Name="TopUpCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -58,7 +58,7 @@
                 </StackPanel>
             </Border>
 
-            <Border x:Name="RestoreCard" Padding="20" CornerRadius="8" Visibility="Collapsed"
+            <Border x:Name="RestoreCard" Padding="20" CornerRadius="{ThemeResource BcpCardRadius}" Visibility="Collapsed"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">

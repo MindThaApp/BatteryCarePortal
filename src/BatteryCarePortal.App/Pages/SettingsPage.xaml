@@ -9,7 +9,110 @@
 
             <InfoBar x:Name="StatusInfo" IsOpen="False" IsClosable="True" />
 
-            <Border Padding="20" CornerRadius="8"
+            <StackPanel Spacing="8">
+                <TextBlock x:Uid="SettingsAppearanceTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceThemeTitle" />
+                            <TextBlock x:Uid="AppearanceThemeDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="ThemeCombo" x:Uid="AppearanceThemeCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceThemeSystem" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceThemeLight" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceThemeDark" Tag="2" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceAccentTitle" />
+                            <TextBlock x:Uid="AppearanceAccentDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="AccentCombo" x:Uid="AppearanceAccentCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceAccentWindows" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceAccentBlue" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceAccentTeal" Tag="2" />
+                            <ComboBoxItem x:Uid="AppearanceAccentGreen" Tag="3" />
+                            <ComboBoxItem x:Uid="AppearanceAccentPurple" Tag="4" />
+                            <ComboBoxItem x:Uid="AppearanceAccentOrange" Tag="5" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceMaterialTitle" />
+                            <TextBlock x:Uid="AppearanceMaterialDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="MaterialCombo" x:Uid="AppearanceMaterialCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceMaterialMica" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceMaterialAcrylic" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceMaterialSolid" Tag="2" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceCornersTitle" />
+                            <TextBlock x:Uid="AppearanceCornersDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="CornersCombo" x:Uid="AppearanceCornersCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceCornersRounded" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceCornersSquare" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceCornersExtraRound" Tag="2" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceDensityTitle" />
+                            <TextBlock x:Uid="AppearanceDensityDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="DensityCombo" x:Uid="AppearanceDensityCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceDensityStandard" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceDensityCompact" Tag="1" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceMotionTitle" />
+                            <TextBlock x:Uid="AppearanceMotionDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="MotionCombo" x:Uid="AppearanceMotionCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceMotionFollowWindows" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceMotionReduced" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceMotionOff" Tag="2" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+                <Button x:Name="ResetAppearanceButton" x:Uid="SettingsAppearanceReset" Click="OnResetAppearance" />
+            </StackPanel>
+
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -21,7 +124,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
@@ -31,7 +134,7 @@
                     <TextBlock x:Uid="SettingsBetaReadOnly" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
             </Border>
-            <Border Padding="20" CornerRadius="8"
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">

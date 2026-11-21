@@ -268,4 +268,45 @@
   <data name="FirstRunCrashSwitch" xml:space="preserve"><value>Send anonymous crash reports</value></data>
   <data name="FirstRunFinishTitle" xml:space="preserve"><value>You are set</value></data>
   <data name="FirstRunFinishText" xml:space="preserve"><value>Find the app in the tray at any time. You can change everything in Settings, and Show the welcome again is there too.</value></data>
+  <data name="SettingsAppearanceTitle.Text" xml:space="preserve"><value>Appearance</value></data>
+  <data name="AppearanceThemeSystem.Content" xml:space="preserve"><value>Use Windows setting</value></data>
+  <data name="AppearanceThemeLight.Content" xml:space="preserve"><value>Light</value></data>
+  <data name="AppearanceThemeDark.Content" xml:space="preserve"><value>Dark</value></data>
+  <data name="AppearanceThemeTitle.Text" xml:space="preserve"><value>Theme</value></data>
+  <data name="AppearanceThemeDesc.Text" xml:space="preserve"><value>Light, dark, or follow Windows.</value></data>
+  <data name="AppearanceThemeCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Theme</value></data>
+  <data name="AppearanceAccentWindows.Content" xml:space="preserve"><value>Windows accent</value></data>
+  <data name="AppearanceAccentBlue.Content" xml:space="preserve"><value>Blue</value></data>
+  <data name="AppearanceAccentTeal.Content" xml:space="preserve"><value>Teal</value></data>
+  <data name="AppearanceAccentGreen.Content" xml:space="preserve"><value>Green</value></data>
+  <data name="AppearanceAccentPurple.Content" xml:space="preserve"><value>Purple</value></data>
+  <data name="AppearanceAccentOrange.Content" xml:space="preserve"><value>Orange</value></data>
+  <data name="AppearanceAccentTitle.Text" xml:space="preserve"><value>Accent colour</value></data>
+  <data name="AppearanceAccentDesc.Text" xml:space="preserve"><value>Follow the Windows accent or pick a preset.</value></data>
+  <data name="AppearanceAccentCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Accent colour</value></data>
+  <data name="AppearanceMaterialMica.Content" xml:space="preserve"><value>Mica</value></data>
+  <data name="AppearanceMaterialAcrylic.Content" xml:space="preserve"><value>Acrylic</value></data>
+  <data name="AppearanceMaterialSolid.Content" xml:space="preserve"><value>Solid</value></data>
+  <data name="AppearanceMaterialTitle.Text" xml:space="preserve"><value>Window material</value></data>
+  <data name="AppearanceMaterialDesc.Text" xml:space="preserve"><value>What shows behind the app. Solid is used when transparency is off.</value></data>
+  <data name="AppearanceMaterialCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Window material</value></data>
+  <data name="AppearanceCornersRounded.Content" xml:space="preserve"><value>Rounded</value></data>
+  <data name="AppearanceCornersSquare.Content" xml:space="preserve"><value>Square</value></data>
+  <data name="AppearanceCornersExtraRound.Content" xml:space="preserve"><value>Extra round</value></data>
+  <data name="AppearanceCornersTitle.Text" xml:space="preserve"><value>Corners</value></data>
+  <data name="AppearanceCornersDesc.Text" xml:space="preserve"><value>How round cards and controls are.</value></data>
+  <data name="AppearanceCornersCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Corners</value></data>
+  <data name="AppearanceDensityStandard.Content" xml:space="preserve"><value>Standard</value></data>
+  <data name="AppearanceDensityCompact.Content" xml:space="preserve"><value>Compact</value></data>
+  <data name="AppearanceDensityTitle.Text" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceDensityDesc.Text" xml:space="preserve"><value>Compact fits more on screen.</value></data>
+  <data name="AppearanceDensityCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceMotionFollowWindows.Content" xml:space="preserve"><value>Follow Windows</value></data>
+  <data name="AppearanceMotionReduced.Content" xml:space="preserve"><value>Reduced</value></data>
+  <data name="AppearanceMotionOff.Content" xml:space="preserve"><value>Off</value></data>
+  <data name="AppearanceMotionTitle.Text" xml:space="preserve"><value>Motion</value></data>
+  <data name="AppearanceMotionDesc.Text" xml:space="preserve"><value>Reduced keeps fades only; Off turns optional animation off.</value></data>
+  <data name="AppearanceMotionCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Motion</value></data>
+  <data name="SettingsAppearanceReset.Content" xml:space="preserve"><value>Reset appearance</value></data>
+  <data name="SettingsAppearanceFailed" xml:space="preserve"><value>Could not save the appearance: {0}</value></data>
 </root>
