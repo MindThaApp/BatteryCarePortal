@@ -91,7 +91,7 @@ public sealed partial class TrayFlyoutPanel : UserControl
         _failedText.Visibility = Visibility.Collapsed;
 
         var limitExtra = new StackPanel { Spacing = 6 };
-        limitExtra.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { _busyRing, _limitSwitch } });
+        limitExtra.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { _limitSwitch, _busyRing } });
         limitExtra.Children.Add(_failedText);
         var topUpExtra = new StackPanel { Spacing = 6 };
         topUpExtra.Children.Add(_topUpButton);
@@ -210,6 +210,7 @@ public sealed partial class TrayFlyoutPanel : UserControl
     private void ApplyEditState()
     {
         EditButton.Content = Strings.Get(IsEditing ? "TrayDoneEditing" : "TrayEditWidgets");
+        AutomationProperties.SetName(EditButton, Strings.Get(IsEditing ? "TrayDoneEditing" : "TrayEditWidgets"));
         _updating = true;
         foreach (Tile t in _tiles.Values)
         {

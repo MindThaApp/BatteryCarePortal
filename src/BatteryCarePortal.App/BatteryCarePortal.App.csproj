@@ -71,6 +71,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="WhatsNew\*.json" LogicalName="WhatsNew.%(Filename)%(Extension)" />
     <Content Include="Assets\**\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
