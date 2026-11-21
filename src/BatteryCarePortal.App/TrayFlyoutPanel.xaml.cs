@@ -524,6 +524,11 @@ public sealed partial class TrayFlyoutPanel : UserControl
     private void ShowFailure(string? text)
     {
         if (text is null) return;
+        if (!IsShown)
+        {
+            AppToasts.ShowFailure(text);
+            return;
+        }
         _failedText.Text = text;
         _failedText.Visibility = Visibility.Visible;
     }

@@ -53,6 +53,28 @@ internal static class AppToasts
         catch (Exception) { }
     }
 
+    private static DateTime _lastFailureUtc = DateTime.MinValue;
+
+    /// <summary>A failed action the user could not see (tray menu with the pop-up hidden). Same sentence as the pop-up; at most one per 10 s; a click opens the Charging page.</summary>
+    public static void ShowFailure(string text)
+    {
+        if (!_registered || (DateTime.UtcNow - _lastFailureUtc).TotalSeconds < 10) return;
+        _lastFailureUtc = DateTime.UtcNow;
+        try
+        {
+            AppNotification notification = new AppNotificationBuilder()
+                .AddArgument(PageArgument, "Charging")
+                .AddText(Strings.Get("AppName"))
+                .AddText(text)
+                .MuteAudio()
+                .BuildNotification();
+            notification.Tag = "ChargeActionFailed";
+            notification.Group = "battery";
+            AppNotificationManager.Default.Show(notification);
+        }
+        catch (Exception) { }
+    }
+
     private static (string Title, string Text, string Page) Content(BatteryToast t) => t.Kind switch
     {
         BatteryToastKind.LimitReached => (Fmt("ToastLimitReachedTitle", t.Percent), Strings.Get("ToastLimitReachedText"), "Charging"),
