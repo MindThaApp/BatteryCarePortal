@@ -273,6 +273,21 @@
   <data name="FirstRunCrashSwitch" xml:space="preserve"><value>Send anonymous crash reports</value></data>
   <data name="FirstRunFinishTitle" xml:space="preserve"><value>You are set</value></data>
   <data name="FirstRunFinishText" xml:space="preserve"><value>Find the app in the tray at any time. You can change everything in Settings, and Show the welcome again is there too.</value></data>
+  <data name="SettingsAboutTitle.Text" xml:space="preserve"><value>About</value></data>
+  <data name="SettingsAboutVersion" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="SettingsAboutLicence" xml:space="preserve"><value>Free - all features included</value></data>
+  <data name="SettingsAboutCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="SettingsAboutCopyName" xml:space="preserve"><value>Copy version</value></data>
+  <data name="SettingsAboutWhatsNew" xml:space="preserve"><value>What&apos;s new</value></data>
+  <data name="SettingsAboutFeedback" xml:space="preserve"><value>Send feedback</value></data>
+  <data name="SettingsAboutPrivacy" xml:space="preserve"><value>Privacy policy</value></data>
+  <data name="SettingsAboutDataFolder" xml:space="preserve"><value>Open data folder</value></data>
+  <data name="SettingsAboutFailed" xml:space="preserve"><value>That could not be opened. {0}</value></data>
+  <data name="WhatsNewTitle" xml:space="preserve"><value>What&apos;s new</value></data>
+  <data name="WhatsNewHeading" xml:space="preserve"><value>What&apos;s new in {0}</value></data>
+  <data name="WhatsNewClose" xml:space="preserve"><value>Close</value></data>
+  <data name="WhatsNewShowMe" xml:space="preserve"><value>Show me</value></data>
+  <data name="WhatsNewShowMeNamed" xml:space="preserve"><value>Show me: {0}</value></data>
   <data name="SettingsAppearanceTitle.Text" xml:space="preserve"><value>Appearance</value></data>
   <data name="AppearanceThemeSystem.Content" xml:space="preserve"><value>Use Windows setting</value></data>
   <data name="AppearanceThemeLight.Content" xml:space="preserve"><value>Light</value></data>

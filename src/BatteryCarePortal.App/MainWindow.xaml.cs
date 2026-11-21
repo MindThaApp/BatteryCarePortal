@@ -19,12 +19,12 @@ public sealed partial class MainWindow : Window
         ["Settings"] = typeof(SettingsPage),
     };
 
-    private readonly WelcomePanel Welcome = new() { Visibility = Visibility.Collapsed };
+    private WelcomeWindow? _welcome;
+    private bool _whatsNewPending;
 
     public MainWindow()
     {
         InitializeComponent();
-        Root.Children.Add(Welcome);
         try { AppAppearance.Attach(this, Root, AppServices.Settings.Load().Appearance); } catch (Exception) { }
         AddNavigationShortcuts();
         bool simulated = Portal.Core.Battery.BatteryEnvironment.IsFakeBatteryEnabled;
@@ -39,9 +39,27 @@ public sealed partial class MainWindow : Window
             AppWindow.Hide();
         };
         Nav.SelectedItem = Nav.MenuItems[0];
-        Welcome.Finished += () => Welcome.Visibility = Visibility.Collapsed;
-        if (Portal.Core.Battery.FirstRunLogic.ShouldShow(AppServices.Settings.Load())) ShowWelcome();
+        Portal.Core.Battery.BatterySettings stored = AppServices.Settings.Load();
+        bool welcome = Portal.Core.Battery.FirstRunLogic.ShouldShow(stored);
+        // One screen at launch: the welcome on a new install, else What's new after an update (opened when the window is first shown).
+        _whatsNewPending = Portal.Core.Battery.WhatsNewLogic.ShouldShow(stored.WhatsNewSeenVersion, AppVersion.Short, welcome);
+        if (welcome)
+        {
+            MarkWhatsNewSeen();
+            ShowWelcome();
+        }
     }
+
+    private static void MarkWhatsNewSeen()
+    {
+        string version = AppVersion.Short;
+        if (version.Length == 0) return;
+        try { AppServices.Settings.Update(s => s.WhatsNewSeenVersion = version); }
+        catch (Exception) { }
+    }
+
+    /// <summary>Opens What's new for the running version (from About, or once after an update).</summary>
+    public void ShowWhatsNew() => WhatsNewWindow.TryShow(this, AppVersion.Short);
 
     // Ctrl+, opens Settings, Ctrl+1..5 the top-level pages in pane order; each key shows in the item's tooltip.
     private void AddNavigationShortcuts()
@@ -66,10 +84,15 @@ public sealed partial class MainWindow : Window
             Add(comma, settings, "Ctrl+,");
     }
 
-    /// <summary>Shows the welcome flow over the window once the device check has finished.</summary>
+    /// <summary>Opens the welcome window once the device check has finished. The main window stays usable.</summary>
     public void ShowWelcome()
     {
-        if (Welcome.Visibility == Visibility.Visible) return;
+        _whatsNewPending = false;
+        if (_welcome is not null)
+        {
+            _welcome.Activate();
+            return;
+        }
         if (AppServices.Support is null)
         {
             void Ready()
@@ -80,8 +103,9 @@ public sealed partial class MainWindow : Window
             AppServices.SupportChanged += Ready;
             return;
         }
-        Welcome.Visibility = Visibility.Visible;
-        _ = Welcome.StartAsync();
+        _welcome = new WelcomeWindow(this);
+        _welcome.Closed += (_, _) => _welcome = null;
+        _welcome.Activate();
     }
 
     public void ShowAndActivate()
@@ -90,6 +114,12 @@ public sealed partial class MainWindow : Window
         if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
             presenter.Restore();
         Activate();
+        if (_whatsNewPending)
+        {
+            _whatsNewPending = false;
+            MarkWhatsNewSeen();
+            DispatcherQueue.TryEnqueue(ShowWhatsNew);
+        }
     }
 
     public void ShowPage(string tag)

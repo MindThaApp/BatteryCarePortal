@@ -13,6 +13,64 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
         LayoutHelper.AlignToStart(Column);
         Loaded += (_, _) => ShowStoredValue();
+        ShowAbout();
+    }
+
+    private const string IssuesUrl = "https://github.com/MindThaApp/BatteryCarePortal/issues";
+    private const string PrivacyUrl = "https://github.com/MindThaApp/BatteryCarePortal/blob/main/docs/privacy-policy.md";
+
+    private void ShowAbout()
+    {
+        string version = AppVersion.Short;
+        AboutName.Text = Strings.Get("AppName");
+        AboutVersion.Text = string.Format(Strings.Get("SettingsAboutVersion"), version.Length > 0 ? version : "?");
+        AboutLicence.Text = Strings.Get("SettingsAboutLicence");
+        CopyVersionButton.Content = Strings.Get("SettingsAboutCopy");
+        WhatsNewButton.Content = Strings.Get("SettingsAboutWhatsNew");
+        FeedbackButton.Content = Strings.Get("SettingsAboutFeedback");
+        PrivacyButton.Content = Strings.Get("SettingsAboutPrivacy");
+        DataFolderButton.Content = Strings.Get("SettingsAboutDataFolder");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CopyVersionButton, Strings.Get("SettingsAboutCopyName"));
+    }
+
+    private void OnCopyVersion(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var data = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            data.SetText($"{Strings.Get("AppName")} {AppVersion.Short}");
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+        }
+        catch (Exception ex) { ShowAboutFailure(ex); }
+    }
+
+    private void OnWhatsNew(object sender, RoutedEventArgs e) => App.Instance?.ShowWhatsNew();
+
+    private async void OnFeedback(object sender, RoutedEventArgs e) => await OpenLinkAsync(IssuesUrl);
+
+    private async void OnPrivacy(object sender, RoutedEventArgs e) => await OpenLinkAsync(PrivacyUrl);
+
+    private async Task OpenLinkAsync(string url)
+    {
+        try { await Windows.System.Launcher.LaunchUriAsync(new Uri(url)); }
+        catch (Exception ex) { ShowAboutFailure(ex); }
+    }
+
+    // Read only: Explorer opens the folder; the app changes nothing in it.
+    private void OnOpenDataFolder(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { ArgumentList = { AppServices.StateFolder }, UseShellExecute = false });
+        }
+        catch (Exception ex) { ShowAboutFailure(ex); }
+    }
+
+    private void ShowAboutFailure(Exception ex)
+    {
+        StatusInfo.Severity = InfoBarSeverity.Warning;
+        StatusInfo.Message = string.Format(Strings.Get("SettingsAboutFailed"), ex.Message);
+        StatusInfo.IsOpen = true;
     }
 
     private void ShowStoredValue()

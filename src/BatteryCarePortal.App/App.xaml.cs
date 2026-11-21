@@ -52,6 +52,9 @@ public partial class App : Application
         else if (activation.Kind != ExtendedActivationKind.StartupTask) ShowMainWindow();
     }
 
+    /// <summary>Shows the main window on a page (the Show me links in What's new).</summary>
+    public void OpenPage(string page) => ShowPage(page);
+
     private void ShowPage(string page)
     {
         if (!_exiting) _mainWindow?.ShowPage(page);
@@ -160,6 +163,8 @@ public partial class App : Application
     }
 
     public void ShowMainWindow() => _mainWindow?.ShowAndActivate();
+
+    public void ShowWhatsNew() => _mainWindow?.ShowWhatsNew();
 
     public void ShowWelcome()
     {

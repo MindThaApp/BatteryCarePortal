@@ -1,0 +1,25 @@
+{
+  "version": "0.4.0",
+  "cards": [
+    {
+      "title": "Make it look like yours",
+      "text": "Pick the theme, accent colour, window material, corner style, density and motion in Settings. Changes show straight away.",
+      "page": "Settings"
+    },
+    {
+      "title": "A new tray pop-up",
+      "text": "Click the tray icon for tiles with your battery at a glance. Use Edit to choose and reorder the tiles, and right-click the icon for a quick menu with the charge limit.",
+      "page": "Overview"
+    },
+    {
+      "title": "Keyboard shortcuts",
+      "text": "Ctrl+1 to Ctrl+5 jump between the pages, and Ctrl+, opens Settings. Hover a page in the list to see its key.",
+      "page": "Overview"
+    },
+    {
+      "title": "Better for screen readers",
+      "text": "Buttons, tiles and the battery ring now have clear names, so a screen reader says what each one does.",
+      "page": "Settings"
+    }
+  ]
+}

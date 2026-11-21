@@ -144,6 +144,26 @@
                 </StackPanel>
             </Border>
             <HyperlinkButton x:Name="WelcomeLink" x:Uid="SettingsWelcomeAgain" Click="OnShowWelcome" />
+
+            <Border Padding="20" CornerRadius="{ThemeResource BcpCardRadius}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock x:Uid="SettingsAboutTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <TextBlock x:Name="AboutName" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="AboutVersion" VerticalAlignment="Center" IsTextSelectionEnabled="True" />
+                        <Button x:Name="CopyVersionButton" Click="OnCopyVersion" />
+                    </StackPanel>
+                    <TextBlock x:Name="AboutLicence" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="WhatsNewButton" Click="OnWhatsNew" />
+                        <Button x:Name="FeedbackButton" Click="OnFeedback" />
+                        <Button x:Name="PrivacyButton" Click="OnPrivacy" />
+                        <Button x:Name="DataFolderButton" Click="OnOpenDataFolder" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

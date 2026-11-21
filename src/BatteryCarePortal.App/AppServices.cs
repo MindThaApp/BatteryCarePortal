@@ -32,7 +32,7 @@ internal static class AppServices
 
     public static BatteryInfoService Battery { get; } = BatteryInfoService.CreateDefault();
 
-    private static string StateFolder =>
+    public static string StateFolder =>
         AppStateFolder.Resolve(Windows.Storage.ApplicationData.Current.LocalFolder.Path, BatteryEnvironment.IsFakeBatteryEnabled);
 
     /// <summary>Samples go into the state folder (the simulated one in fake mode), kept for the history window of the tier.</summary>
