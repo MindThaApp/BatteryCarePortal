@@ -14,6 +14,7 @@ public partial class App : Application
     private Icon? _trayGlyph;
     private MainWindow? _mainWindow;
     private TrayFlyoutWindow? _flyout;
+    private ToggleMenuFlyoutItem? _limitItem;
     private bool _exiting;
     private bool _limitOffNoticeShown;
 
@@ -59,10 +60,14 @@ public partial class App : Application
     private void CreateTrayIcon()
     {
         var menu = new MenuFlyout();
-        var open = new MenuFlyoutItem { Text = Strings.Get("TrayOpen") };
+        _limitItem = new ToggleMenuFlyoutItem { Text = Strings.Get("FlyoutLimitTitle"), IsEnabled = false };
+        _limitItem.Click += (_, _) => _flyout?.ToggleLimit();
+        var open = new MenuFlyoutItem { Text = Strings.Get("TrayOpenApp") };
         open.Click += (_, _) => ShowMainWindow();
-        var quit = new MenuFlyoutItem { Text = Strings.Get("TrayQuit") };
+        var quit = new MenuFlyoutItem { Text = Strings.Get("TrayExit") };
         quit.Click += (_, _) => ExitApplication();
+        menu.Items.Add(_limitItem);
+        menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(open);
         menu.Items.Add(quit);
 
@@ -86,6 +91,11 @@ public partial class App : Application
             }
         };
         _trayIcon.ForceCreate();
+        if (_flyout is not null)
+        {
+            _flyout.TrayIconId = _trayIcon.TrayIcon.Id;
+            _flyout.TrayIconWindow = _trayIcon.TrayIcon.MessageWindow.Handle;
+        }
     }
 
     // The user puts the limit back from the Charging page; the app never raises an administrator prompt by itself.
@@ -115,6 +125,11 @@ public partial class App : Application
             ? Strings.Get("AppName")
             : string.Format(Strings.Get(snapshot.IsCharging ? "TrayTipCharging" : "TrayTipLevel"), percent);
         _trayIcon.ToolTipText = quick;
+        if (_limitItem is not null)
+        {
+            _limitItem.IsEnabled = AppServices.Charge is not null && AppServices.Support is { ChargeLimitAvailable: true };
+            _limitItem.IsChecked = limit is int active && active < 100;
+        }
         _ = UpdateTooltipAsync(snapshot);
     }
 

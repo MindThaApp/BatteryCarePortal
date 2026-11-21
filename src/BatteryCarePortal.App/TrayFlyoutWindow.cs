@@ -1,68 +1,148 @@
-using Microsoft.UI;
+using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Portal.Core.Theming;
+using Portal.Core.Tray;
 using Windows.Graphics;
 
 namespace BatteryCarePortal;
 
-/// <summary>The tray flyout: a small borderless window pinned to the bottom-right of the work area. Holds the flyout panel; it is sized to the panel so larger text is not clipped.</summary>
+/// <summary>
+/// The tray flyout: a borderless tool window that opens from the tray icon toward the screen interior on the icon's monitor.
+/// It takes focus on open, closes on Esc and, 100 ms after losing focus, unless the user is editing the tiles.
+/// </summary>
 public sealed class TrayFlyoutWindow : Window
 {
-    private const int Width = 360;
-    private const int MinHeight = 200;
-    private DateTime _hiddenAt = DateTime.MinValue;
-    private readonly TrayFlyoutPanel _panel = new() { Width = Width };
+    private const int FocusLossGraceMs = 100;
+    private const int ReopenGuardMs = 400;
+    private readonly TrayFlyoutPanel _panel = new();
+    private readonly DispatcherQueueTimer _grace;
+    private readonly IntPtr _hwnd;
+    private DateTime _lostFocusAt = DateTime.MinValue;
+    private RectInt32 _placed;
+    private bool _solid;
+    private bool _roundedWindow = true;
+    private TrayNative.Target _target;
+
+    /// <summary>Identifies the tray icon so the pop-up can open next to it.</summary>
+    public Guid TrayIconId { get; set; }
+    public IntPtr TrayIconWindow { get; set; }
 
     public TrayFlyoutWindow()
     {
         Content = _panel;
+        _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        _grace = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _grace.Interval = TimeSpan.FromMilliseconds(FocusLossGraceMs);
+        _grace.IsRepeating = false;
+        _grace.Tick += (_, _) => { if (!_panel.IsEditing) HideFlyout(); };
+
         _panel.ContentChanged += () => { if (_panel.IsShown) Fit(); };
+        _panel.CloseRequested += HideFlyout;
         _panel.OpenRequested += () =>
         {
-            AppWindow.Hide();
+            HideFlyout();
             App.Instance?.ShowMainWindow();
         };
-        SystemBackdrop = new Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop();
+
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.IsResizable = false;
             presenter.IsMaximizable = false;
             presenter.IsMinimizable = false;
             presenter.IsAlwaysOnTop = true;
-            presenter.SetBorderAndTitleBar(true, false);
+            presenter.SetBorderAndTitleBar(false, false);
         }
         AppWindow.IsShownInSwitchers = false;
+        ApplyBackdrop();
+
         Activated += (_, e) =>
         {
             if (e.WindowActivationState == WindowActivationState.Deactivated)
             {
-                AppWindow.Hide();
-                _panel.IsShown = false;
-                _hiddenAt = DateTime.UtcNow;
+                _lostFocusAt = DateTime.UtcNow;
+                _grace.Start();
             }
+            else _grace.Stop();
         };
     }
 
+    // Acrylic, then Mica Base Alt, then a solid pane.
+    private void ApplyBackdrop()
+    {
+        try
+        {
+            if (DesktopAcrylicController.IsSupported()) { SystemBackdrop = new DesktopAcrylicBackdrop(); _solid = false; return; }
+            if (MicaController.IsSupported()) { SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt }; _solid = false; return; }
+        }
+        catch (Exception) { }
+        SystemBackdrop = null;
+        _solid = true;
+    }
+
+    private static bool IsHighContrast()
+    {
+        try { return new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast; }
+        catch (Exception) { return false; }
+    }
+
+    public void ToggleLimit() => _panel.ToggleLimitFromMenu();
+
     public void Toggle()
     {
-        // The tray click that deactivated the flyout also lands here; do not reopen it straight away.
-        if (AppWindow.IsVisible || (DateTime.UtcNow - _hiddenAt).TotalMilliseconds < 300) { AppWindow.Hide(); _panel.IsShown = false; return; }
+        if (AppWindow.IsVisible) { HideFlyout(); return; }
+        // The tray click that took the focus away also lands here; do not reopen it straight away.
+        if ((DateTime.UtcNow - _lostFocusAt).TotalMilliseconds < ReopenGuardMs) return;
+
+        AppearanceSettings appearance;
+        try { appearance = AppServices.Settings.Load().Appearance; }
+        catch (Exception) { appearance = new AppearanceSettings(); }
+        bool highContrast = IsHighContrast();
+        _roundedWindow = appearance.Corners != CornerChoice.Square;
+        TrayNative.SetWindowCorners(_hwnd, _roundedWindow);
+        _panel.ApplyAppearance(appearance, solid: _solid || highContrast);
+        if (highContrast) SystemBackdrop = null;
+        else if (SystemBackdrop is null && !_solid) ApplyBackdrop();
+
+        _panel.PrepareToShow();
         _panel.IsShown = true;
         _panel.Refresh();
+        _placed = default;
         Fit();
         AppWindow.Show();
         Activate();
+        DispatcherQueue.TryEnqueue(_panel.FocusFirst);
     }
 
-    // Pinned to the bottom-right of the work area; as tall as the content needs (up to the work area), so 200% text still fits.
+    private void HideFlyout()
+    {
+        _grace.Stop();
+        AppWindow.Hide();
+        _panel.IsShown = false;
+    }
+
+    // Size to the content (default 380 DIP, up to 560, scaled with text size), capped to the work area, then placed by the pure maths.
     private void Fit()
     {
-        RectInt32 work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-        double scale = Content.XamlRoot?.RasterizationScale ?? 1.0;
-        _panel.Measure(new Windows.Foundation.Size(Width, double.PositiveInfinity));
-        double heightDip = Math.Max(MinHeight, _panel.DesiredSize.Height);
-        int w = (int)(Width * scale), h = (int)Math.Min(heightDip * scale, work.Height - 24);
-        AppWindow.MoveAndResize(new RectInt32(work.X + work.Width - w - 12, work.Y + work.Height - h - 12, w, h));
+        TrayNative.Target target = TrayNative.Locate(TrayIconId, TrayIconWindow);
+        double scale = target.Scale;
+        int gap = (int)Math.Round(8 * scale);
+        double textScale = 1;
+        try { textScale = Math.Max(1, new Windows.UI.ViewManagement.UISettings().TextScaleFactor); } catch (Exception) { }
+        double roomWidth = (target.Work.Width - 2 * gap) / scale;
+        double roomHeight = (target.Work.Height - 2 * gap) / scale;
+
+        double widthDip = TrayPlacement.WidthDip(TrayPlacement.DefaultWidthDip * textScale, roomWidth);
+        _panel.Width = widthDip;
+        _panel.Measure(new Windows.Foundation.Size(widthDip, double.PositiveInfinity));
+        double heightDip = TrayPlacement.HeightDip(Math.Max(120, Math.Ceiling(_panel.DesiredSize.Height)), roomHeight);
+
+        PxRect r = TrayPlacement.Place(target.Anchor, target.Work, (int)Math.Round(widthDip * scale), (int)Math.Round(heightDip * scale), gap);
+        var next = new RectInt32(r.Left, r.Top, r.Width, r.Height);
+        if (next.X == _placed.X && next.Y == _placed.Y && next.Width == _placed.Width && next.Height == _placed.Height) return;
+        _placed = next;
+        AppWindow.MoveAndResize(next);
     }
 }

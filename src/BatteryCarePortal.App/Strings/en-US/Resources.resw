@@ -315,4 +315,28 @@
   <data name="HeatLess.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Lower the temperature limit</value></data>
   <data name="HeatMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Raise the temperature limit</value></data>
   <data name="HeatMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Raise the temperature limit</value></data>
+  <data name="TrayOpenApp" xml:space="preserve"><value>Open app</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="TrayEditWidgets" xml:space="preserve"><value>Edit widgets</value></data>
+  <data name="TrayDoneEditing" xml:space="preserve"><value>Done editing</value></data>
+  <data name="TrayTileBattery" xml:space="preserve"><value>Battery</value></data>
+  <data name="TrayTileTopUp" xml:space="preserve"><value>Top up</value></data>
+  <data name="TrayTileHeat" xml:space="preserve"><value>Heat protection</value></data>
+  <data name="TrayTileHealth" xml:space="preserve"><value>Battery health</value></data>
+  <data name="TrayStateCharging" xml:space="preserve"><value>Charging</value></data>
+  <data name="TrayStatePlugged" xml:space="preserve"><value>Plugged in</value></data>
+  <data name="TrayStateBattery" xml:space="preserve"><value>On battery</value></data>
+  <data name="TrayHeaderHolding" xml:space="preserve"><value>Holding at {0}% · charge limit on</value></data>
+  <data name="TrayHeaderCharging" xml:space="preserve"><value>Charging to {0}% · charge limit on</value></data>
+  <data name="TrayHeaderOn" xml:space="preserve"><value>{0} · charge limit on</value></data>
+  <data name="TrayHeaderOff" xml:space="preserve"><value>{0} · charge limit off</value></data>
+  <data name="TrayHeaderTopUp" xml:space="preserve"><value>{0} · top-up running</value></data>
+  <data name="TrayValueOff" xml:space="preserve"><value>Off</value></data>
+  <data name="TrayTopUpRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="TrayTopUpReady" xml:space="preserve"><value>Ready</value></data>
+  <data name="TrayHeatOn" xml:space="preserve"><value>Protection on</value></data>
+  <data name="TrayHeatOff" xml:space="preserve"><value>Protection off</value></data>
+  <data name="TrayHeatHot" xml:space="preserve"><value>Too warm</value></data>
+  <data name="TrayHealthCycles" xml:space="preserve"><value>{0} charge cycles</value></data>
+  <data name="TrayShowTile" xml:space="preserve"><value>Show {0}</value></data>
 </root>
