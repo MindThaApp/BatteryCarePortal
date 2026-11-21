@@ -22,7 +22,7 @@ public sealed class BatteryRing : UserControl
     private readonly Rectangle _glyphCap = new() { Width = 3, Height = 8, RadiusX = 1, RadiusY = 1 };
     private readonly Rectangle _glyphFill = new() { Height = 14, RadiusX = 1.5, RadiusY = 1.5 };
     private readonly Line _glyphTick = new() { StrokeThickness = 2, Visibility = Visibility.Collapsed };
-    private readonly TextBlock _text = new() { HorizontalAlignment = HorizontalAlignment.Center, FontSize = 22 };
+    private readonly TextBlock _text = new() { HorizontalAlignment = HorizontalAlignment.Center, FontSize = 20 };
 
     private int? _percent;
     private int? _limit;

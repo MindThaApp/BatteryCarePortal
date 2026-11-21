@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -25,6 +25,7 @@ public sealed partial class HeatProtectionPage : Page
         WhatTitle.Text = Strings.Get("HeatWhatTitle");
         NotActiveText.Text = Strings.Get("HeatNotActive");
         Scale.SizeChanged += (_, _) => DrawScale();
+        ActualThemeChanged += (_, _) => DrawScale();
         Loaded += (_, _) =>
         {
             AppServices.Battery.SnapshotChanged += OnSnapshotChanged;
@@ -114,9 +115,8 @@ public sealed partial class HeatProtectionPage : Page
         double w = Scale.ActualWidth;
         if (m is null || m.TemperatureC is null || w < 100) return;
 
-        bool dark = ActualTheme == ElementTheme.Dark;
-        var hot = new SolidColorBrush(dark ? Color.FromArgb(255, 255, 168, 105) : Color.FromArgb(255, 169, 72, 11));
-        var hotSoft = new SolidColorBrush(dark ? Color.FromArgb(255, 71, 44, 25) : Color.FromArgb(255, 251, 230, 212));
+        var hot = (Brush)Resources["HeatHotBrush"];
+        var hotSoft = (Brush)Resources["HeatHotSoftBrush"];
         Brush accent = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
         Brush track = (Brush)Application.Current.Resources["ControlStrongStrokeColorDefaultBrush"];
         Brush text = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
@@ -139,7 +139,7 @@ public sealed partial class HeatProtectionPage : Page
         AddLabel(string.Format(Strings.Get("HeatScaleNow"), BatteryFormat.Temperature(m.TemperatureC)), now, 0, text, center: true);
         AddLabel(string.Format(Strings.Get("HeatScaleThreshold"), BatteryFormat.Temperature(m.ThresholdC)), limit + 4, clash ? 44 : 0, text, center: false);
         foreach (int t in new[] { 20, 30, 40, 50, 60 })
-            AddLabel(t == 60 ? "60 °C" : t.ToString(), pad + span * HeatProtectionModel.ScaleFraction(t), 66, text, center: true, small: true);
+            AddLabel(t == 60 ? "60 °C" : t.ToString(), pad + span * HeatProtectionModel.ScaleFraction(t), 66, text, center: true);
 
         AutomationProperties.SetName(Scale, string.Format(Strings.Get("HeatScaleAria"),
             BatteryFormat.Temperature(m.TemperatureC), BatteryFormat.Temperature(m.ThresholdC)));
@@ -152,9 +152,9 @@ public sealed partial class HeatProtectionPage : Page
         Scale.Children.Add(element);
     }
 
-    private void AddLabel(string content, double x, double y, Brush brush, bool center, bool small = false)
+    private void AddLabel(string content, double x, double y, Brush brush, bool center)
     {
-        var label = new TextBlock { Text = content, Foreground = brush, FontSize = small ? 11 : 12 };
+        var label = new TextBlock { Text = content, Foreground = brush, FontSize = 12 };
         label.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         Add(label, center ? x - label.DesiredSize.Width / 2 : x, y);
     }

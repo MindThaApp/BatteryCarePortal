@@ -309,4 +309,10 @@
   <data name="AppearanceMotionCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Motion</value></data>
   <data name="SettingsAppearanceReset.Content" xml:space="preserve"><value>Reset appearance</value></data>
   <data name="SettingsAppearanceFailed" xml:space="preserve"><value>Could not save the appearance: {0}</value></data>
+  <data name="ChargeValueSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Charge limit</value></data>
+  <data name="ChargeValueCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Charge limit</value></data>
+  <data name="HeatLess.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Lower the temperature limit</value></data>
+  <data name="HeatLess.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Lower the temperature limit</value></data>
+  <data name="HeatMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Raise the temperature limit</value></data>
+  <data name="HeatMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Raise the temperature limit</value></data>
 </root>
