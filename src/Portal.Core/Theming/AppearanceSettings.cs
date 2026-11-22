@@ -12,6 +12,21 @@ public enum DensityChoice { Standard = 0, Compact = 1 }
 
 public enum MotionChoice { FollowWindows = 0, Reduced = 1, Off = 2 }
 
+public enum TextSizeChoice { Standard = 0, Larger = 1, Largest = 2 }
+
+public static class TextSize
+{
+    /// <summary>The in-app step on top of Windows text scaling: 100, 115 or 130 percent.</summary>
+    public static double Factor(TextSizeChoice choice) => choice switch
+    {
+        TextSizeChoice.Larger => 1.15,
+        TextSizeChoice.Largest => 1.30,
+        _ => 1.0,
+    };
+
+    public static double Scale(double fontSize, TextSizeChoice choice) => Math.Round(fontSize * Factor(choice), 1);
+}
+
 /// <summary>
 /// How the app looks. The defaults are the design guide's: system theme, Windows accent, Mica, rounded corners,
 /// standard density, motion follows Windows. A value this build does not know falls back to its default.
@@ -24,10 +39,12 @@ public sealed class AppearanceSettings
     public CornerChoice Corners { get; set; }
     public DensityChoice Density { get; set; }
     public MotionChoice Motion { get; set; }
+    public TextSizeChoice TextSize { get; set; }
 
     public bool IsDefault =>
         Theme == ThemeChoice.System && Accent == AccentChoice.Windows && Material == MaterialChoice.Mica &&
-        Corners == CornerChoice.Rounded && Density == DensityChoice.Standard && Motion == MotionChoice.FollowWindows;
+        Corners == CornerChoice.Rounded && Density == DensityChoice.Standard && Motion == MotionChoice.FollowWindows &&
+        TextSize == TextSizeChoice.Standard;
 
     public void Reset()
     {
@@ -37,6 +54,7 @@ public sealed class AppearanceSettings
         Corners = CornerChoice.Rounded;
         Density = DensityChoice.Standard;
         Motion = MotionChoice.FollowWindows;
+        TextSize = TextSizeChoice.Standard;
     }
 
     public AppearanceSettings Normalize()
@@ -47,6 +65,7 @@ public sealed class AppearanceSettings
         if (!Enum.IsDefined(Corners)) Corners = CornerChoice.Rounded;
         if (!Enum.IsDefined(Density)) Density = DensityChoice.Standard;
         if (!Enum.IsDefined(Motion)) Motion = MotionChoice.FollowWindows;
+        if (!Enum.IsDefined(TextSize)) TextSize = TextSizeChoice.Standard;
         return this;
     }
 }

@@ -16,6 +16,7 @@ public class AppearanceSettingsTests
         Assert.Equal(CornerChoice.Rounded, a.Corners);
         Assert.Equal(DensityChoice.Standard, a.Density);
         Assert.Equal(MotionChoice.FollowWindows, a.Motion);
+        Assert.Equal(TextSizeChoice.Standard, a.TextSize);
         Assert.True(a.IsDefault);
     }
 
@@ -25,7 +26,7 @@ public class AppearanceSettingsTests
         var a = new AppearanceSettings
         {
             Theme = (ThemeChoice)99, Accent = (AccentChoice)(-1), Material = (MaterialChoice)7,
-            Corners = (CornerChoice)42, Density = (DensityChoice)5, Motion = (MotionChoice)9,
+            Corners = (CornerChoice)42, Density = (DensityChoice)5, Motion = (MotionChoice)9, TextSize = (TextSizeChoice)8,
         }.Normalize();
         Assert.True(a.IsDefault);
     }
@@ -53,6 +54,7 @@ public class AppearanceSettingsTests
                 s.Appearance.Corners = CornerChoice.ExtraRound;
                 s.Appearance.Density = DensityChoice.Compact;
                 s.Appearance.Motion = MotionChoice.Off;
+                s.Appearance.TextSize = TextSizeChoice.Largest;
             });
             AppearanceSettings a = new BatterySettingsStore(folder).Load().Appearance;
             Assert.Equal(ThemeChoice.Dark, a.Theme);
@@ -61,11 +63,24 @@ public class AppearanceSettingsTests
             Assert.Equal(CornerChoice.ExtraRound, a.Corners);
             Assert.Equal(DensityChoice.Compact, a.Density);
             Assert.Equal(MotionChoice.Off, a.Motion);
+            Assert.Equal(TextSizeChoice.Largest, a.TextSize);
         }
         finally
         {
             Directory.Delete(folder, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Text_size_steps_scale_the_font_and_reset_clears_them()
+    {
+        Assert.Equal(12, TextSize.Scale(12, TextSizeChoice.Standard));
+        Assert.Equal(13.8, TextSize.Scale(12, TextSizeChoice.Larger));
+        Assert.Equal(15.6, TextSize.Scale(12, TextSizeChoice.Largest));
+        var a = new AppearanceSettings { TextSize = TextSizeChoice.Larger };
+        Assert.False(a.IsDefault);
+        a.Reset();
+        Assert.True(a.IsDefault);
     }
 
     [Theory]

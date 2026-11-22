@@ -109,6 +109,7 @@ public sealed class TrayFlyoutWindow : Window
         _panel.PrepareToShow();
         _panel.IsShown = true;
         _panel.Refresh();
+        _panel.ApplyTextSize();
         _placed = default;
         Fit();
         AppWindow.Show();
@@ -131,6 +132,7 @@ public sealed class TrayFlyoutWindow : Window
         int gap = (int)Math.Round(8 * scale);
         double textScale = 1;
         try { textScale = Math.Max(1, new Windows.UI.ViewManagement.UISettings().TextScaleFactor); } catch (Exception) { }
+        textScale *= TextSize.Factor(_panel.TextSizeStep);
         double roomWidth = (target.Work.Width - 2 * gap) / scale;
         double roomHeight = (target.Work.Height - 2 * gap) / scale;
 

@@ -172,6 +172,11 @@ public sealed partial class TrayFlyoutPanel : UserControl
 
     // ---- appearance, layout, edit mode ----
 
+    public TextSizeChoice TextSizeStep { get; private set; }
+
+    /// <summary>Applies the in-app text size to the tiles now on screen; call after the tiles are built.</summary>
+    public void ApplyTextSize() => AppAppearance.ScaleText(this, TextSizeStep);
+
     /// <summary>Theme follows the Appearance setting; the pane is 82 % over a backdrop and solid in high contrast or without one.</summary>
     public void ApplyAppearance(AppearanceSettings appearance, bool solid)
     {
@@ -181,6 +186,7 @@ public sealed partial class TrayFlyoutPanel : UserControl
             ThemeChoice.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default,
         };
+        TextSizeStep = appearance.TextSize;
         PaneFill.Opacity = solid ? 1 : 0.82;
         double radius = appearance.Corners == CornerChoice.Square ? 0 : 8;
         PaneRoot.CornerRadius = new CornerRadius(radius);

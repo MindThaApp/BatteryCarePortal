@@ -109,6 +109,22 @@
                         </ComboBox>
                     </Grid>
                 </Border>
+                <Border Padding="16,12" CornerRadius="{ThemeResource BcpCardRadius}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Uid="AppearanceTextSizeTitle" />
+                            <TextBlock x:Uid="AppearanceTextSizeDesc" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <ComboBox x:Name="TextSizeCombo" x:Uid="AppearanceTextSizeCombo" Grid.Column="1" MinWidth="160" SelectionChanged="OnAppearanceChanged">
+                            <ComboBoxItem x:Uid="AppearanceTextSizeStandard" Tag="0" />
+                            <ComboBoxItem x:Uid="AppearanceTextSizeLarger" Tag="1" />
+                            <ComboBoxItem x:Uid="AppearanceTextSizeLargest" Tag="2" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
                 <Button x:Name="ResetAppearanceButton" x:Uid="SettingsAppearanceReset" Click="OnResetAppearance" />
             </StackPanel>
 

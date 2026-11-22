@@ -95,6 +95,7 @@ public sealed partial class SettingsPage : Page
         CornersCombo.SelectedIndex = (int)a.Corners;
         DensityCombo.SelectedIndex = (int)a.Density;
         MotionCombo.SelectedIndex = (int)a.Motion;
+        TextSizeCombo.SelectedIndex = (int)a.TextSize;
     }
 
     private static int Choice(ComboBox box) => box.SelectedItem is ComboBoxItem { Tag: string tag } && int.TryParse(tag, out int v) ? v : 0;
@@ -110,6 +111,7 @@ public sealed partial class SettingsPage : Page
             a.Corners = (Portal.Core.Theming.CornerChoice)Choice(CornersCombo);
             a.Density = (Portal.Core.Theming.DensityChoice)Choice(DensityCombo);
             a.Motion = (Portal.Core.Theming.MotionChoice)Choice(MotionCombo);
+            a.TextSize = (Portal.Core.Theming.TextSizeChoice)Choice(TextSizeCombo);
         });
     }
 

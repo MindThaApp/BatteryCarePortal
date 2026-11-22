@@ -1,7 +1,9 @@
 using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using System.Runtime.CompilerServices;
 using Portal.Core.Theming;
 using Portal.Core.UI;
 using Windows.UI;
@@ -9,7 +11,7 @@ using Windows.UI;
 namespace BatteryCarePortal;
 
 /// <summary>
-/// Applies the saved appearance (theme, accent, material, corners, density, motion) to the main window and the app resources.
+/// Applies the saved appearance (theme, accent, material, corners, density, motion, text size) to the main window and the app resources.
 /// Everything is applied live; nothing here writes a file. High contrast keeps the system colours and a solid window.
 /// </summary>
 internal static class AppAppearance
@@ -33,12 +35,17 @@ internal static class AppAppearance
     private static AppearanceSettings _current = new();
     private static ResourceDictionary? _density;
     private static bool _flipping;
+    private static bool _textWalkQueued;
+    private static readonly ConditionalWeakTable<TextBlock, TextBase> TextBases = new();
+
+    private sealed class TextBase { public double Base; public double Applied; }
     private static readonly List<(Window Window, FrameworkElement Root)> Extras = new();
 
     /// <summary>Gives a secondary window (welcome, What's new) the same theme, material and corners as the main window.</summary>
     public static void AttachExtra(Window window, FrameworkElement root)
     {
         Extras.Add((window, root));
+        HookTextSize(root);
         root.ActualThemeChanged += (_, _) => { if (!_flipping && _current.Accent != AccentChoice.Windows) Apply(_current); };
         window.Closed += (_, _) => Extras.RemoveAll(e => e.Window == window);
         ApplyExtra(window, root, _current, IsHighContrast());
@@ -62,6 +69,7 @@ internal static class AppAppearance
     {
         _window = window;
         _root = root;
+        HookTextSize(root);
         root.ActualThemeChanged += (_, _) => { if (!_flipping && _current.Accent != AccentChoice.Windows) Apply(_current); };
         Apply(settings, refresh: false);
     }
@@ -94,6 +102,48 @@ internal static class AppAppearance
         };
 
         if (refresh) ReResolveThemeResources();
+        ScaleAllText();
+    }
+
+    // WinUI has no layout transform, so the in-app text step is applied as a local FontSize on every TextBlock in the open windows.
+    // The size each TextBlock had before is remembered, so Standard puts it back. Text in pop-ups (combo drop-downs, dialogs) is not covered.
+    private static void HookTextSize(FrameworkElement root) => root.LayoutUpdated += (_, _) =>
+    {
+        if (_textWalkQueued || _current.TextSize == TextSizeChoice.Standard) return;
+        _textWalkQueued = true;
+        root.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            _textWalkQueued = false;
+            ScaleText(root, _current.TextSize);
+        });
+    };
+
+    private static void ScaleAllText()
+    {
+        if (_root is not null) ScaleText(_root, _current.TextSize);
+        foreach ((Window _, FrameworkElement r) in Extras.ToArray()) ScaleText(r, _current.TextSize);
+    }
+
+    /// <summary>Sets the font size of every TextBlock under <paramref name="element"/> to its own base size times the text-size step.</summary>
+    public static void ScaleText(DependencyObject element, TextSizeChoice choice)
+    {
+        if (element is TextBlock tb)
+        {
+            if (!TextBases.TryGetValue(tb, out TextBase? b))
+            {
+                b = new TextBase { Base = tb.FontSize, Applied = tb.FontSize };
+                TextBases.Add(tb, b);
+            }
+            else if (Math.Abs(tb.FontSize - b.Applied) > 0.01)
+            {
+                b.Base = tb.FontSize;
+            }
+            double wanted = TextSize.Scale(b.Base, choice);
+            if (Math.Abs(tb.FontSize - wanted) > 0.01) tb.FontSize = wanted;
+            b.Applied = wanted;
+        }
+        int count = VisualTreeHelper.GetChildrenCount(element);
+        for (int i = 0; i < count; i++) ScaleText(VisualTreeHelper.GetChild(element, i), choice);
     }
 
     private static bool IsDark()

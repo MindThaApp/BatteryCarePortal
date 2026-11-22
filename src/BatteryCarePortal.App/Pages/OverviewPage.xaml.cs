@@ -172,7 +172,12 @@ public sealed partial class OverviewPage : Page
         try
         {
             // WriteReport creates a new file and never overwrites: a taken name gets " (2)", " (3)" and so on.
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "BatteryCarePortal-diagnostics.txt");
+            // With simulated battery data (tests and demos) the report stays inside the app's simulated folder, never in Documents.
+            string folder = BatteryEnvironment.IsFakeBatteryEnabled
+                ? Path.Combine(AppServices.StateFolder, "reports")
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, "BatteryCarePortal-diagnostics.txt");
             string saved = await Task.Run(() => BatteryDiagnostics.WriteReport(path));
             ShowInfo(InfoBarSeverity.Success, string.Format(Strings.Get("SupportReportSaved"), saved));
         }

@@ -321,6 +321,12 @@
   <data name="AppearanceDensityTitle.Text" xml:space="preserve"><value>Density</value></data>
   <data name="AppearanceDensityDesc.Text" xml:space="preserve"><value>Compact fits more on screen.</value></data>
   <data name="AppearanceDensityCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Density</value></data>
+  <data name="AppearanceTextSizeStandard.Content" xml:space="preserve"><value>Standard (100%)</value></data>
+  <data name="AppearanceTextSizeLarger.Content" xml:space="preserve"><value>Larger (115%)</value></data>
+  <data name="AppearanceTextSizeLargest.Content" xml:space="preserve"><value>Largest (130%)</value></data>
+  <data name="AppearanceTextSizeTitle.Text" xml:space="preserve"><value>Text size</value></data>
+  <data name="AppearanceTextSizeDesc.Text" xml:space="preserve"><value>Adds a step on top of the Windows text size setting.</value></data>
+  <data name="AppearanceTextSizeCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Text size</value></data>
   <data name="AppearanceMotionFollowWindows.Content" xml:space="preserve"><value>Follow Windows</value></data>
   <data name="AppearanceMotionReduced.Content" xml:space="preserve"><value>Reduced</value></data>
   <data name="AppearanceMotionOff.Content" xml:space="preserve"><value>Off</value></data>
