@@ -404,14 +404,13 @@ public sealed partial class WelcomePanel : UserControl
         if (!_busy) Finished?.Invoke();
     }
 
-    // Only non-firmware recommendations: the three reminders on and crash reports on. The charge limit and Start with Windows stay the user's own choice.
+    // Only non-firmware recommendations: the three reminders on. Crash reports keep the tick box as the user left it
+    // (on by default), and the charge limit and Start with Windows stay the user's own choice.
     private void OnRecommended(object sender, RoutedEventArgs e)
     {
         if (_busy) return;
         NotifyLimitSwitch.IsOn = NotifyPlugInSwitch.IsOn = NotifyTopUpSwitch.IsOn = true;
         SaveNotifications();
-        SetCrashTickQuietly(true);
-        SaveCrashReports();
         Finished?.Invoke();
     }
 
