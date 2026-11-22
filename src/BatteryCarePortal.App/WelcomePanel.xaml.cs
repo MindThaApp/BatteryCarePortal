@@ -316,7 +316,10 @@ public sealed partial class WelcomePanel : UserControl
     // in one row, Back/Next get their own right-aligned row above Skip/Recommended.
     private void UpdateFooterLayout()
     {
-        double available = Footer.ActualWidth - Footer.Padding.Left - Footer.Padding.Right;
+        // The window's width, not Footer.ActualWidth: an element wider than its slot is arranged at its desired width and
+        // clipped, so its own ActualWidth would always say everything fits.
+        double windowWidth = XamlRoot?.Size.Width ?? Footer.ActualWidth;
+        double available = Math.Min(windowWidth, Footer.ActualWidth) - Footer.Padding.Left - Footer.Padding.Right;
         if (available <= 0) return;
         FooterLeft.Orientation = Orientation.Horizontal;
         FooterLeft.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
