@@ -76,9 +76,9 @@ public sealed class BatteryRing : UserControl
     private static readonly Windows.UI.ViewManagement.UISettings Ui = new();
 
     // High contrast: every stroke is the system text colour, so the ring never depends on theme accent colours.
-    private static Brush ThemeBrush(string key, Brush fallback) =>
+    private Brush ThemeBrush(string key, Brush fallback) =>
         Access.HighContrast ? new SolidColorBrush(Ui.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground))
-        : Application.Current.Resources.TryGetValue(key, out object? o) && o is Brush b ? b : fallback;
+        : ThemeResources.Brush(this, key, fallback);
 
     private void Redraw()
     {

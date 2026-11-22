@@ -189,6 +189,8 @@ public sealed partial class WelcomePanel : UserControl
         int previous = _visiblePage;
         _visiblePage = _index;
         SwitchPages(previous, _index);
+        // Programmatic focus draws no focus visual; otherwise the step's ScrollViewer takes initial focus and shows a heavy rectangle.
+        NextButton.Focus(FocusState.Programmatic);
         UpdateFooterLayout();
         UpdateHeroMode();
         ApplyCaptureScale();

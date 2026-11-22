@@ -86,7 +86,7 @@ internal sealed class HistoryChartView : Grid
         Children.Add(element);
     }
 
-    private static Brush Secondary() => (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+    private Brush Secondary() => ThemeResources.Brush(this, "TextFillColorSecondaryBrush");
 
     private void Draw()
     {
@@ -95,8 +95,8 @@ internal sealed class HistoryChartView : Grid
         double w = _plot.ActualWidth;
         if (_data is not { } d || w < 40) return;
 
-        Brush grid = (Brush)Application.Current.Resources["ControlStrongStrokeColorDefaultBrush"];
-        Brush accent = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+        Brush grid = ThemeResources.Brush(this, "ControlStrongStrokeColorDefaultBrush");
+        Brush accent = ThemeResources.Brush(this, "AccentFillColorDefaultBrush");
         Brush text = Secondary();
         const double inset = 8;
         double h = PlotHeight - 2 * inset;

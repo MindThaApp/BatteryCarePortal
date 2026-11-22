@@ -117,10 +117,10 @@ public sealed partial class HeatProtectionPage : Page
 
         var hot = (Brush)Resources["HeatHotBrush"];
         var hotSoft = (Brush)Resources["HeatHotSoftBrush"];
-        Brush accent = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-        Brush track = (Brush)Application.Current.Resources["ControlStrongStrokeColorDefaultBrush"];
-        Brush text = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
-        Brush surface = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+        Brush accent = BatteryCarePortal.Controls.ThemeResources.Brush(this, "AccentFillColorDefaultBrush");
+        Brush track = BatteryCarePortal.Controls.ThemeResources.Brush(this, "ControlStrongStrokeColorDefaultBrush");
+        Brush text = BatteryCarePortal.Controls.ThemeResources.Brush(this, "TextFillColorSecondaryBrush");
+        Brush surface = BatteryCarePortal.Controls.ThemeResources.Brush(this, "CardBackgroundFillColorDefaultBrush");
 
         const double pad = 20, barY = 26, barH = 8;
         double span = w - 2 * pad;
