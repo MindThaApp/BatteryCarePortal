@@ -20,7 +20,6 @@ internal sealed class WelcomeWindow : Window
         Content = _panel;
         AppAppearance.AttachExtra(this, _panel);
         if (AppWindow.Presenter is OverlappedPresenter presenter) presenter.IsMaximizable = false;
-        WindowPlacement.CenterOn(this, owner, WidthDip, HeightDip);
         _panel.Finished += Close;
         Closed += (_, _) => StoreFlag();
 
@@ -31,6 +30,9 @@ internal sealed class WelcomeWindow : Window
             if (capture.Theme is not null) _panel.RequestedTheme = capture.Theme == "Dark" ? ElementTheme.Dark : ElementTheme.Light;
             if (capture.TextScale > 1.0) { AppAppearance.OverrideTextFactor(capture.TextScale); _panel.CaptureTextFactor = capture.TextScale; }
         }
+        // Taller for larger text, within the work area, so the words are not squeezed into a short strip.
+        double factor = WelcomePanel.EffectiveTextFactor(capture?.TextScale);
+        WindowPlacement.CenterOn(this, owner, WidthDip, (int)Math.Round(HeightDip * Math.Max(1.0, factor)), marginDip: 48);
         _ = _panel.StartAsync(capture is null ? 0 : capture.Step - 1);
     }
 

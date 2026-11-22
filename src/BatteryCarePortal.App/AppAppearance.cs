@@ -120,6 +120,7 @@ internal static class AppAppearance
 
     // Screenshot runs in simulated-battery mode may ask for any factor; null means the saved text-size step.
     private static double? _factorOverride;
+    public static double EffectiveTextFactor => CurrentFactor;
     private static double CurrentFactor => _factorOverride ?? TextSize.Factor(_current.TextSize);
 
     public static void OverrideTextFactor(double factor)

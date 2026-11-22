@@ -31,15 +31,13 @@
 
         <Grid x:Name="Pages">
             <!-- Step 1: why a charge limit helps, and this laptop -->
-            <ScrollViewer x:Name="Page0" VerticalScrollBarVisibility="Auto" IsTabStop="False" SizeChanged="OnPage0SizeChanged">
-                <Grid x:Name="Page0Content"><StackPanel Padding="32,24,32,8" Spacing="14" VerticalAlignment="Center">
-                    <Grid x:Name="Hero0" MinHeight="150">
+            <ScrollViewer x:Name="Page0" VerticalScrollBarVisibility="Auto" IsTabStop="True">
+                <Grid x:Name="Page0Content"><StackPanel Padding="32,24,32,16" Spacing="16" VerticalAlignment="Top">
+                    <Grid x:Name="Hero0" MinHeight="104">
                         <Border x:Name="Tint0" Opacity="0.14" CornerRadius="{ThemeResource BcpCardRadius}"
                                 Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         <Border CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
-                        <FontIcon Glyph="&#xE83F;" FontSize="80" Margin="16"
-                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                                  AutomationProperties.AccessibilityView="Raw" />
+                        <Viewbox x:Name="RingHost" Height="88" Margin="8" AutomationProperties.AccessibilityView="Raw" />
                     </Grid>
                     <TextBlock x:Name="TitleText" Style="{StaticResource WelcomeTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                     <TextBlock x:Name="BodyText" Style="{StaticResource WelcomeBodyStyle}" />
@@ -55,13 +53,13 @@
             </ScrollViewer>
 
             <!-- Step 2: pick a limit; nothing is applied until the button is pressed -->
-            <ScrollViewer x:Name="Page1" VerticalScrollBarVisibility="Auto" IsTabStop="False" Visibility="Collapsed">
-                <StackPanel Padding="32,24,32,8" Spacing="14">
-                    <Grid x:Name="Hero1" MinHeight="112">
+            <ScrollViewer x:Name="Page1" VerticalScrollBarVisibility="Auto" IsTabStop="True" Visibility="Collapsed">
+                <StackPanel Padding="32,24,32,16" Spacing="16">
+                    <Grid x:Name="Hero1" MinHeight="104">
                         <Border x:Name="Tint1" Opacity="0.14" CornerRadius="{ThemeResource BcpCardRadius}"
                                 Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         <Border CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
-                        <FontIcon Glyph="&#xE945;" FontSize="56" Margin="16"
+                        <FontIcon x:Name="Glyph1" Glyph="&#xE945;" FontSize="56" Margin="16"
                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                   AutomationProperties.AccessibilityView="Raw" />
                     </Grid>
@@ -99,9 +97,9 @@
             </ScrollViewer>
 
             <!-- Step 3: where the tray is, and your choices -->
-            <ScrollViewer x:Name="Page2" VerticalScrollBarVisibility="Auto" IsTabStop="False" Visibility="Collapsed">
-                <StackPanel Padding="32,20,32,8" Spacing="10">
-                    <Grid x:Name="Hero2" MinHeight="72">
+            <ScrollViewer x:Name="Page2" VerticalScrollBarVisibility="Auto" IsTabStop="True" Visibility="Collapsed">
+                <StackPanel Padding="32,24,32,16" Spacing="12">
+                    <Grid x:Name="Hero2" MinHeight="104">
                         <Border x:Name="Tint2" Opacity="0.14" CornerRadius="{ThemeResource BcpCardRadius}"
                                 Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         <Border CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
@@ -125,6 +123,33 @@
                     <TextBlock x:Name="TrayTitle" Style="{StaticResource WelcomeTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                     <TextBlock x:Name="TrayText" Style="{StaticResource WelcomeBodyStyle}" />
 
+                    <Border x:Name="CrashPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="CrashLine" TextWrapping="Wrap" />
+                                <HyperlinkButton x:Name="CrashLink" Padding="0" HorizontalAlignment="Left"
+                                                 AutomationProperties.Name="What's sent">
+                                    <FlyoutBase.AttachedFlyout>
+                                        <Flyout Placement="Bottom" ShouldConstrainToRootBounds="True">
+                                            <StackPanel Spacing="10" Width="340" Padding="4">
+                                                <TextBlock x:Name="CrashFlyoutTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashSentText" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashNotSentText" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashRetentionText" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                <HyperlinkButton x:Name="CrashPrivacyLink" Padding="0" HorizontalAlignment="Left" Click="OnCrashWhatsSent" />
+                                            </StackPanel>
+                                        </Flyout>
+                                    </FlyoutBase.AttachedFlyout>
+                                </HyperlinkButton>
+                            </StackPanel>
+                            <CheckBox x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
+                        </Grid>
+                    </Border>
+
                     <Border x:Name="StartupPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
@@ -142,32 +167,7 @@
                         </Grid>
                     </Border>
 
-                    <Border x:Name="CrashPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock x:Name="CrashLine" TextWrapping="Wrap" />
-                                <HyperlinkButton x:Name="CrashLink" Padding="0" HorizontalAlignment="Left"
-                                                 AutomationProperties.Name="What's sent">
-                                    <FlyoutBase.AttachedFlyout>
-                                        <Flyout>
-                                            <StackPanel Spacing="10" Width="340" Padding="4">
-                                                <TextBlock x:Name="CrashFlyoutTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="CrashSentText" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="CrashNotSentText" TextWrapping="Wrap" />
-                                                <TextBlock x:Name="CrashRetentionText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <HyperlinkButton x:Name="CrashPrivacyLink" Padding="0" HorizontalAlignment="Left" Click="OnCrashWhatsSent" />
-                                            </StackPanel>
-                                        </Flyout>
-                                    </FlyoutBase.AttachedFlyout>
-                                </HyperlinkButton>
-                            </StackPanel>
-                            <CheckBox x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
-                        </Grid>
-                    </Border>
+                    
 
                     <Border x:Name="NotifyPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
                         <Grid ColumnSpacing="12">
@@ -188,9 +188,21 @@
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
             </ScrollViewer>
+            <Grid x:Name="MoreCue" VerticalAlignment="Bottom" Height="56" IsHitTestVisible="False" Visibility="Collapsed">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="Transparent" Offset="0" />
+                        <GradientStop Color="{ThemeResource SolidBackgroundFillColorBase}" Offset="1" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,6">
+                    <FontIcon Glyph="&#xE70D;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="MoreText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Grid>
         </Grid>
 
-        <StackPanel x:Name="Dots" Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" />
+        <StackPanel x:Name="Dots" Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"><Grid Height="8" Width="8"><Border CornerRadius="4" Background="{ThemeResource TextFillColorSecondaryBrush}" /><Border CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" /></Grid> <Grid Height="8" Width="8"><Border CornerRadius="4" Background="{ThemeResource TextFillColorSecondaryBrush}" /><Border CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" /></Grid> <Grid Height="8" Width="8"><Border CornerRadius="4" Background="{ThemeResource TextFillColorSecondaryBrush}" /><Border CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}" Visibility="Collapsed" /></Grid></StackPanel>
 
         <Grid x:Name="Footer" Grid.Row="2" Padding="32,4,32,20" ColumnSpacing="8" RowSpacing="8" SizeChanged="OnFooterSizeChanged">
             <Grid.RowDefinitions>

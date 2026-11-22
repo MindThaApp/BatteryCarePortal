@@ -34,6 +34,7 @@ public sealed partial class WelcomePanel : UserControl
     private int? _preferredLimit;
     private StartupTaskState? _startupState;
     private readonly ScrollViewer[] _pages;
+    private readonly BatteryCarePortal.Controls.BatteryRing _ring;
 
     public event Action? Finished;
 
@@ -81,7 +82,12 @@ public sealed partial class WelcomePanel : UserControl
         TrayText.Text = Strings.Get("WelcomeTrayBody");
         AutomationProperties.SetName(TrayIllustration, Strings.Get("WelcomeTrayIllustration"));
         FreeText.Text = Strings.Get("WelcomeFreeLine");
-        BuildDots();
+        _ring = new BatteryCarePortal.Controls.BatteryRing();
+        RingHost.Child = _ring;
+        MoreText.Text = Strings.Get("WelcomeMoreBelow");
+        foreach (ScrollViewer page in _pages) page.ViewChanged += (_, _) => UpdateScrollCue();
+        Pages.SizeChanged += (_, _) => UpdateHeroMode();
+        Pages.LayoutUpdated += (_, _) => UpdateScrollCue();
         Footer.LayoutUpdated += (_, _) => UpdateFooterLayout();
         AddKey(Windows.System.VirtualKey.Enter, () => { if (!_busy) OnNext(this, new RoutedEventArgs()); }, skipWhenControlFocused: true);
         AddKey(Windows.System.VirtualKey.Escape, () => OnSkip(this, new RoutedEventArgs()), skipWhenControlFocused: false);
@@ -101,23 +107,16 @@ public sealed partial class WelcomePanel : UserControl
         KeyboardAccelerators.Add(accelerator);
     }
 
-    private void BuildDots()
-    {
-        for (int i = 0; i < PageCount; i++)
-            Dots.Children.Add(new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4) });
-    }
-
     private void UpdateDots()
     {
         for (int i = 0; i < Dots.Children.Count; i++)
-            if (Dots.Children[i] is Border dot)
+            if (Dots.Children[i] is Grid dot)
             {
                 dot.Width = i == _index ? 20 : 8;
-                dot.Background = (Brush)Application.Current.Resources[i == _index ? "AccentFillColorDefaultBrush" : "ControlStrongFillColorDefaultBrush"];
+                dot.Children[1].Visibility = i == _index ? Visibility.Visible : Visibility.Collapsed;
             }
         AutomationProperties.SetName(Dots, string.Format(Strings.Get("FirstRunStepOf"), _index + 1, PageCount));
     }
-
     /// <summary>Call once the device check has finished (<see cref="AppServices.Support"/> is not null). Step is zero-based.</summary>
     public async Task StartAsync(int initialStep = 0)
     {
@@ -127,6 +126,8 @@ public sealed partial class WelcomePanel : UserControl
         _index = Math.Clamp(initialStep, 0, PageCount - 1);
         _limitDone = false;
         _loading = true;
+        BatterySnapshot snap = AppServices.Battery.Current;
+        _ring.Set(snap.Percent, null, snap.IsCharging);
         BatterySettings settings = AppServices.Settings.Load();
         NotifySwitch.IsOn = settings.NotifyWhenLimitReached || settings.NotifyPlugIn || settings.NotifyTopUpFinished;
         CrashSwitch.IsChecked = settings.SendCrashReports;
@@ -189,6 +190,7 @@ public sealed partial class WelcomePanel : UserControl
         _visiblePage = _index;
         SwitchPages(previous, _index);
         UpdateFooterLayout();
+        UpdateHeroMode();
         ApplyCaptureScale();
     }
 
@@ -294,9 +296,32 @@ public sealed partial class WelcomePanel : UserControl
         }
     }
 
-    // Step 1 is short: its content sits in the middle of the page instead of leaving a gap above the footer.
-    private void OnPage0SizeChanged(object sender, SizeChangedEventArgs e) => Page0Content.MinHeight = e.NewSize.Height;
+    // Text factor the user effectively has: the app's text-size step (or the capture override) times Windows text scaling.
+    public static double EffectiveTextFactor(double? captureFactor)
+    {
+        double windows = 1;
+        try { windows = Math.Max(1, new Windows.UI.ViewManagement.UISettings().TextScaleFactor); } catch (Exception) { }
+        return (captureFactor ?? AppAppearance.EffectiveTextFactor) * windows;
+    }
 
+    // With large text or a short content area the hero shrinks to a thin strip so the words get the room.
+    private void UpdateHeroMode()
+    {
+        bool compact = EffectiveTextFactor(CaptureTextFactor) > 1.25 || Pages.ActualHeight < 280;
+        double height = compact ? 56 : 104;
+        Hero0.MinHeight = Hero1.MinHeight = Hero2.MinHeight = height;
+        RingHost.Height = compact ? 40 : 88;
+        Glyph1.FontSize = compact ? 28 : 56;
+    }
+
+    // A fade and a chevron at the bottom of the content while the open step can scroll further.
+    private void UpdateScrollCue()
+    {
+        if (_visiblePage < 0) return;
+        ScrollViewer page = _pages[_visiblePage];
+        bool more = page.ScrollableHeight - page.VerticalOffset > 4;
+        MoreCue.Visibility = more ? Visibility.Visible : Visibility.Collapsed;
+    }
     // Screenshot runs only: scale the text of the open step through the same walker the Text size setting uses.
     public double? CaptureTextFactor { get; set; }
 
