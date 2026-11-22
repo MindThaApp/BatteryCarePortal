@@ -82,7 +82,7 @@ Utilities & tools
 
 - Minimum: Windows 10 version 2004 (build 19041) or Windows 11, x64.
 - A laptop with a battery. Desktop PCs are not supported.
-- Charge limit changes on Lenovo IdeaPad and Yoga may ask for administrator approval.
+- On Dell and HP laptops (beta), each charge limit change asks for administrator approval. Lenovo IdeaPad and Yoga changes do not.
 
 ## Other fields
 
