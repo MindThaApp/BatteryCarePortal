@@ -361,7 +361,7 @@ public sealed class BatterySettingsStore
 
     private static BatterySettings Quiet()
     {
-        var settings = new BatterySettings { NotifyWhenLimitReached = false, NotifyPlugIn = false, NotifyTopUpFinished = false, RemindersEnabled = false };
+        var settings = new BatterySettings { NotifyWhenLimitReached = false, NotifyPlugIn = false, NotifyTopUpFinished = false, RemindersEnabled = false, SendCrashReports = false };
         return settings.Normalize();
     }
 }

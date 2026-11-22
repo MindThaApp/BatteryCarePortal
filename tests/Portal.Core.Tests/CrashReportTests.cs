@@ -100,7 +100,61 @@ public class CrashReportTests
     }
 
     [Fact]
-    public void CrashReportsAreOffByDefault() => Assert.False(new BatterySettings().SendCrashReports);
+    public void CrashReportsAreOnByDefault() => Assert.True(new BatterySettings().SendCrashReports);
+
+    [Fact]
+    public void FileWithoutAChoiceReadsAsOn() =>
+        Assert.True(System.Text.Json.JsonSerializer.Deserialize<BatterySettings>("""{"Limit":80}""")!.SendCrashReports);
+
+    [Fact]
+    public void ExplicitOffSurvivesSaveAndLoad()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "bcp-crash-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new BatterySettingsStore(folder);
+            store.Update(s => s.SendCrashReports = false);
+            Assert.False(new BatterySettingsStore(folder).Load().SendCrashReports);
+            store.Update(s => s.Limit = 70);
+            Assert.False(store.Load().SendCrashReports);
+        }
+        finally
+        {
+            if (Directory.Exists(folder)) Directory.Delete(folder, true);
+        }
+    }
+
+    [Theory]
+    [InlineData("""{"SendCrashReports":false}""", false)]
+    [InlineData("""{"SendCrashReports":true}""", true)]
+    [InlineData("""{"SendCrashReports":"yes"}""", false)]
+    [InlineData("""{"SendCrashReports":null}""", false)]
+    [InlineData("""{"SendCrashReports":1}""", false)]
+    public void StoredValueNeverOverridesAnOff(string json, bool expected) =>
+        Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<BatterySettings>(json)!.SendCrashReports);
+
+    [Fact]
+    public void FakeBatteryModeStillBlocksWithDefaultConsent() =>
+        Assert.False(CrashReportPolicy.MayReport("https://key@example.invalid/1", new BatterySettings().SendCrashReports,
+            CrashReportPolicy.IsBlocked(static _ => null, fakeBattery: true)));
+
+    [Fact]
+    public void BareAndQuotedFileNamesAreHidden()
+    {
+        string text = Redactor.Redact("Could not find file 'Tax 2025 return.pdf' or holiday.JPG, then Photo_01.png.")!;
+        Assert.DoesNotContain("Tax", text);
+        Assert.DoesNotContain("holiday", text);
+        Assert.DoesNotContain("Photo", text);
+        Assert.Contains("'<file>.pdf'", text);
+        Assert.Contains("<file>.JPG", text);
+    }
+
+    [Fact]
+    public void TypeNamesAndRedactedPlaceholdersStay()
+    {
+        const string text = "System.IO.IOException at <folder>\\<file>.pdf";
+        Assert.Equal(text, Redactor.Redact(text));
+    }
 
     [Theory]
     [InlineData("Store", "store")]

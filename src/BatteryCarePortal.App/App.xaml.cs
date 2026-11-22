@@ -31,7 +31,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        try { CrashReporting.Apply(AppServices.Settings.Load().SendCrashReports); } catch (Exception) { }
+        try { CrashReporting.Apply(AppServices.Settings.LoadLastGood().SendCrashReports); } catch (Exception) { }
         _mainWindow = new MainWindow();
         _flyout = new TrayFlyoutWindow();
         CreateTrayIcon();

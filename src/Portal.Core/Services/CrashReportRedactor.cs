@@ -28,6 +28,18 @@ public sealed class CrashReportRedactor
 
     private static readonly Regex ExtensionInText = new(@"\.[A-Za-z0-9]{1,8}(?=$|[\s,;)\]]|\.(?:\s|$))", RegexOptions.CultureInvariant);
 
+    private const string DocumentExtensions =
+        "pdf|docx?|xlsx?|pptx?|txt|rtf|csv|odt|ods|jpe?g|png|gif|bmp|heic|tiff?|webp|svg|mp3|mp4|mkv|avi|mov|wav|flac|zip|7z|rar|log|bak|tmp";
+
+    // A file name with no folder in front: quoted (spaces allowed), as in "Could not find file 'Tax 2025.pdf'", or a plain word.
+    private static readonly Regex QuotedFileName = new(
+        @"(?<quote>['""])(?<name>[^'""<>\\/\r\n]+?)\.(?<ext>" + DocumentExtensions + @")\k<quote>",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    private static readonly Regex BareFileName = new(
+        @"(?<![\w<%\\/.\-])[\w\-]+(?:\.[\w\-]+)*\.(?<ext>" + DocumentExtensions + @")(?![\w])",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     private readonly (string Prefix, string Token)[] _prefixes;
     private readonly string[] _keptRoots;
     private readonly Regex? _user;
@@ -59,6 +71,8 @@ public sealed class CrashReportRedactor
 
         string result = ReplacePrefixes(text);
         result = PathPattern.Replace(result, m => RedactPath(m.Value));
+        result = QuotedFileName.Replace(result, m => m.Groups["quote"].Value + FileToken + "." + m.Groups["ext"].Value + m.Groups["quote"].Value);
+        result = BareFileName.Replace(result, m => FileToken + "." + m.Groups["ext"].Value);
         // The machine name first: it may hold the user name ("JDOE-LAPTOP").
         if (_machine is not null) result = _machine.Replace(result, MachineToken);
         if (_user is not null) result = _user.Replace(result, UserToken);

@@ -52,8 +52,13 @@ public sealed class BatterySettings
     /// <summary>The app version for which What's new was last shown (or marked seen). Empty means never.</summary>
     public string WhatsNewSeenVersion { get; set; } = "";
 
-    /// <summary>"Send anonymous crash reports". Off until the user turns it on (welcome flow or Settings); nothing is sent without it.</summary>
-    public bool SendCrashReports { get; set; }
+    /// <summary>
+    /// "Send anonymous crash reports". On by default: a file without this value (new install, or an earlier build that never
+    /// saved a choice) reads as on. An explicit false (welcome flow or Settings) is saved and stays off. Any other stored value
+    /// reads as off, so a damaged entry never overrides a choice the user may have made.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(StrictBoolOffConverter))]
+    public bool SendCrashReports { get; set; } = true;
 
     public CalibrationProgress Calibration { get; set; } = new();
 
@@ -119,6 +124,25 @@ public sealed class BatterySettings
 
     public BatterySettings Clone() =>
         System.Text.Json.JsonSerializer.Deserialize<BatterySettings>(System.Text.Json.JsonSerializer.Serialize(this))!;
+}
+
+/// <summary>A boolean that reads true or false as written and anything else as false.</summary>
+public sealed class StrictBoolOffConverter : System.Text.Json.Serialization.JsonConverter<bool>
+{
+    public override bool Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case System.Text.Json.JsonTokenType.True: return true;
+            case System.Text.Json.JsonTokenType.False: return false;
+            default:
+                reader.Skip();
+                return false;
+        }
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, bool value, System.Text.Json.JsonSerializerOptions options) =>
+        writer.WriteBooleanValue(value);
 }
 
 public sealed class HeatProtectionSettings
