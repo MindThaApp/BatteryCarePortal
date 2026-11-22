@@ -12,15 +12,24 @@ Battery Care Portal keeps your data on your PC. It has no account, no ads and no
 
 All of this is kept in the app's own folder on your PC. It never leaves your PC, and removing the app removes it.
 
-## Crash reports (optional, off by default)
+## Crash reports (on by default)
 
-The app can send anonymous crash reports, but only if you turn it on, in the welcome flow or later in Settings. You can turn it off again at any time, and nothing is sent while it is off.
+Crash reports are on by default, so problems get found and fixed faster. You can turn them off at any time, in the welcome flow or later in Settings > Privacy. If you turn them off, they stay off and the app never asks again. Nothing is sent while they are off.
 
-- A report holds the error, where in the app it happened, the app version, and the Windows version.
-- Personal parts are removed before a report leaves your PC: your user name, your PC name, and file and folder names.
-- A report never holds battery serial numbers, device serial numbers, battery history or the contents of your files.
-- No IP address is stored with crash reports.
-- Reports are sent to Sentry, and stored in the EU (Frankfurt, Germany).
+What is sent:
+
+- The error, where in the app it happened, the app version, and the Windows version.
+
+What is never sent:
+
+- File names or paths, your user name, your PC name, your account name, or your IP address. These are removed on your PC before a report leaves it, and no IP address is stored.
+- Battery serial numbers, device serial numbers, battery history, or the contents of your files.
+
+How reports are handled:
+
+- Reports are kept for 90 days, then deleted.
+- They are processed by Sentry (the processor), and stored in the EU region (Frankfurt, Germany).
+- Reports are never sent from test or demo runs.
 
 ## What the app does not do
 
@@ -31,4 +40,4 @@ The app can send anonymous crash reports, but only if you turn it on, in the wel
 
 ## Contact
 
-Questions about this policy: [contact email to be added]
+Questions about this policy: mindthaapp@gmail.com

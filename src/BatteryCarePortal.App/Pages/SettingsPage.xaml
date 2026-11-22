@@ -157,6 +157,7 @@
                     <TextBlock x:Uid="SettingsCrashTitle" Style="{StaticResource SubtitleTextBlockStyle}" />
                     <ToggleSwitch x:Name="CrashSwitch" x:Uid="SettingsCrashSwitch" Toggled="OnCrashToggled" />
                     <TextBlock x:Uid="SettingsCrashNote" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <HyperlinkButton x:Uid="SettingsCrashWhatsSent" Padding="0" HorizontalAlignment="Left" Click="OnPrivacy" />
                 </StackPanel>
             </Border>
             <HyperlinkButton x:Name="WelcomeLink" x:Uid="SettingsWelcomeAgain" Click="OnShowWelcome" />
@@ -175,6 +176,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="WhatsNewButton" Click="OnWhatsNew" />
                         <Button x:Name="FeedbackButton" Click="OnFeedback" />
+                        <Button x:Name="EmailButton" Click="OnEmail" />
                         <Button x:Name="PrivacyButton" Click="OnPrivacy" />
                         <Button x:Name="DataFolderButton" Click="OnOpenDataFolder" />
                     </StackPanel>

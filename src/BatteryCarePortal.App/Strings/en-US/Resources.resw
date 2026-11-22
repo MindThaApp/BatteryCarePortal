@@ -117,11 +117,13 @@
   <data name="ChargeNoticeUseApp" xml:space="preserve"><value>Use the app's setting</value></data>
   <data name="ChargeNoticeKeepLaptop" xml:space="preserve"><value>Keep the laptop's setting</value></data>
   <data name="SettingsDeviceSupportTitle.Text" xml:space="preserve"><value>Device support</value></data>
-  <data name="SettingsCrashTitle.Text" xml:space="preserve"><value>Crash reports</value></data>
+  <data name="SettingsCrashTitle.Text" xml:space="preserve"><value>Privacy</value></data>
+  <data name="SettingsCrashWhatsSent.Content" xml:space="preserve"><value>What's sent</value></data>
+  <data name="CrashWhatsSent" xml:space="preserve"><value>What's sent</value></data>
   <data name="SettingsCrashSwitch.Header" xml:space="preserve"><value>Send anonymous crash reports</value></data>
   <data name="SettingsCrashSwitch.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="SettingsCrashSwitch.OffContent" xml:space="preserve"><value>Off</value></data>
-  <data name="SettingsCrashNote.Text" xml:space="preserve"><value>Off unless you turn it on. A report holds the error and where in the app it happened. It never holds your name, your PC name, file names, battery serial numbers or battery history.</value></data>
+  <data name="SettingsCrashNote.Text" xml:space="preserve"><value>On by default, and you can turn it off any time. A report holds the error and where in the app it happened. It never holds file names or paths, your name, your PC name, your IP address, battery serial numbers or battery history. Reports are kept for 90 days.</value></data>
   <data name="SettingsBetaSwitch.Header" xml:space="preserve"><value>Help test charge limit on other brands (beta)</value></data>
   <data name="SettingsBetaSwitch.OnContent" xml:space="preserve"><value>On</value></data>
   <data name="SettingsBetaSwitch.OffContent" xml:space="preserve"><value>Off</value></data>
@@ -269,7 +271,7 @@
   <data name="FirstRunNotifyPlugIn" xml:space="preserve"><value>Plug in on low battery</value></data>
   <data name="FirstRunNotifyTopUp" xml:space="preserve"><value>Top-up finished</value></data>
   <data name="FirstRunCrashTitle" xml:space="preserve"><value>Crash reports</value></data>
-  <data name="FirstRunCrashText" xml:space="preserve"><value>Help fix problems by sending anonymous crash reports. Off unless you turn it on.</value></data>
+  <data name="FirstRunCrashText" xml:space="preserve"><value>Send anonymous crash reports so problems get fixed faster. Nothing personal is sent, and you can untick this any time.</value></data>
   <data name="FirstRunCrashSwitch" xml:space="preserve"><value>Send anonymous crash reports</value></data>
   <data name="FirstRunFinishTitle" xml:space="preserve"><value>You are set</value></data>
   <data name="FirstRunFinishText" xml:space="preserve"><value>Find the app in the tray at any time. You can change everything in Settings, and Show the welcome again is there too.</value></data>
@@ -279,6 +281,7 @@
   <data name="SettingsAboutCopy" xml:space="preserve"><value>Copy</value></data>
   <data name="SettingsAboutCopyName" xml:space="preserve"><value>Copy version</value></data>
   <data name="SettingsAboutWhatsNew" xml:space="preserve"><value>What&apos;s new</value></data>
+  <data name="SettingsAboutEmail" xml:space="preserve"><value>Email us</value></data>
   <data name="SettingsAboutFeedback" xml:space="preserve"><value>Send feedback</value></data>
   <data name="SettingsAboutPrivacy" xml:space="preserve"><value>Privacy policy</value></data>
   <data name="SettingsAboutDataFolder" xml:space="preserve"><value>Open data folder</value></data>

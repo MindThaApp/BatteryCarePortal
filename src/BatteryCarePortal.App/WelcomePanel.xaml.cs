@@ -39,7 +39,8 @@ public sealed partial class WelcomePanel : UserControl
         NotifyLimitSwitch.Header = Strings.Get("FirstRunNotifyLimit");
         NotifyPlugInSwitch.Header = Strings.Get("FirstRunNotifyPlugIn");
         NotifyTopUpSwitch.Header = Strings.Get("FirstRunNotifyTopUp");
-        CrashSwitch.Header = Strings.Get("FirstRunCrashSwitch");
+        CrashSwitch.Content = Strings.Get("FirstRunCrashSwitch");
+        CrashLink.Content = Strings.Get("CrashWhatsSent");
         StartupTitle.Text = Strings.Get("FirstRunStartupTitle");
         StartupText.Text = Strings.Get("FirstRunStartupText");
         NotifyTitle.Text = Strings.Get("FirstRunNotifyTitle");
@@ -105,7 +106,7 @@ public sealed partial class WelcomePanel : UserControl
         NotifyLimitSwitch.IsOn = settings.NotifyWhenLimitReached;
         NotifyPlugInSwitch.IsOn = settings.NotifyPlugIn;
         NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
-        CrashSwitch.IsOn = settings.SendCrashReports;
+        CrashSwitch.IsChecked = settings.SendCrashReports;
         await LoadStartupStateAsync();
         _loading = false;
 
@@ -273,6 +274,12 @@ public sealed partial class WelcomePanel : UserControl
         catch (Exception ex) { ShowPrefsResult(InfoBarSeverity.Error, ex.Message); }
     }
 
+    private async void OnCrashWhatsSent(object sender, RoutedEventArgs e)
+    {
+        try { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://github.com/MindThaApp/BatteryCarePortal/blob/main/docs/privacy-policy.md#crash-reports-on-by-default")); }
+        catch (Exception) { }
+    }
+
     private void OnCrashToggled(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
@@ -295,7 +302,7 @@ public sealed partial class WelcomePanel : UserControl
 
     private void SaveCrashReports()
     {
-        bool on = CrashSwitch.IsOn;
+        bool on = CrashSwitch.IsChecked == true;
         if (AppServices.Settings.Load().SendCrashReports == on) return;
         AppServices.Settings.Update(s => s.SendCrashReports = on);
         CrashReporting.Apply(on);

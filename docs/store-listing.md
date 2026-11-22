@@ -1,6 +1,6 @@
 # Microsoft Store listing: Battery Care Portal (en-US)
 
-Version 0.4.0. Character counts are exact for the text as written. Fill in the support email before submitting.
+Version 0.4.0. Character counts are exact for the text as written.
 
 ## Product name (max 200): 19
 
@@ -35,7 +35,7 @@ Built to be careful
 - Battery Care Portal looks after charging. Power Plan Manager, a separate app, looks after power plans and fans. The two apps detect each other so they do not clash.
 
 Privacy
-There is no account and there are no ads. Your battery history and settings stay on your PC. Crash reports are off unless you turn them on.
+There is no account and there are no ads. Your battery history and settings stay on your PC. Anonymous crash reports are on by default and can be turned off in Settings.
 
 Battery Care Portal is free, with all features included for now. It is for laptops with a battery.
 ```
@@ -88,7 +88,7 @@ Utilities & tools
 
 - Copyright and trademark info: © 2026 MindThaApp
 - Privacy policy URL: https://github.com/MindThaApp/BatteryCarePortal/blob/main/docs/privacy-policy.md
-- Support contact: <owner contact email>
+- Support contact: mindthaapp@gmail.com
 - Price: free
 
 ## Screenshot plan (8, 1366x768 or larger, PNG)

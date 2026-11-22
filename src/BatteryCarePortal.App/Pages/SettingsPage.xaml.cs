@@ -28,6 +28,7 @@ public sealed partial class SettingsPage : Page
         CopyVersionButton.Content = Strings.Get("SettingsAboutCopy");
         WhatsNewButton.Content = Strings.Get("SettingsAboutWhatsNew");
         FeedbackButton.Content = Strings.Get("SettingsAboutFeedback");
+        EmailButton.Content = Strings.Get("SettingsAboutEmail");
         PrivacyButton.Content = Strings.Get("SettingsAboutPrivacy");
         DataFolderButton.Content = Strings.Get("SettingsAboutDataFolder");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CopyVersionButton, Strings.Get("SettingsAboutCopyName"));
@@ -47,6 +48,8 @@ public sealed partial class SettingsPage : Page
     private void OnWhatsNew(object sender, RoutedEventArgs e) => App.Instance?.ShowWhatsNew();
 
     private async void OnFeedback(object sender, RoutedEventArgs e) => await OpenLinkAsync(IssuesUrl);
+
+    private async void OnEmail(object sender, RoutedEventArgs e) => await OpenLinkAsync("mailto:mindthaapp@gmail.com");
 
     private async void OnPrivacy(object sender, RoutedEventArgs e) => await OpenLinkAsync(PrivacyUrl);
 

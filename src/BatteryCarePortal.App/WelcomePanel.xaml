@@ -55,7 +55,8 @@
                         <StackPanel x:Name="CrashPanel" Spacing="4">
                             <TextBlock x:Name="CrashTitle" Style="{StaticResource BodyStrongTextBlockStyle}" />
                             <TextBlock x:Name="CrashText" TextWrapping="Wrap" />
-                            <ToggleSwitch x:Name="CrashSwitch" IsOn="False" Toggled="OnCrashToggled" />
+                            <CheckBox x:Name="CrashSwitch" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
+                            <HyperlinkButton x:Name="CrashLink" Padding="0" HorizontalAlignment="Left" Click="OnCrashWhatsSent" />
                         </StackPanel>
                         <InfoBar x:Name="PrefsInfo" IsOpen="False" IsClosable="False" />
                     </StackPanel>
