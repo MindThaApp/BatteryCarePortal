@@ -109,23 +109,35 @@ internal static class AppAppearance
     // The size each TextBlock had before is remembered, so Standard puts it back. Text in pop-ups (combo drop-downs, dialogs) is not covered.
     private static void HookTextSize(FrameworkElement root) => root.LayoutUpdated += (_, _) =>
     {
-        if (_textWalkQueued || _current.TextSize == TextSizeChoice.Standard) return;
+        if (_textWalkQueued || CurrentFactor == 1.0) return;
         _textWalkQueued = true;
         root.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
             _textWalkQueued = false;
-            ScaleText(root, _current.TextSize);
+            ScaleText(root, CurrentFactor);
         });
     };
 
-    private static void ScaleAllText()
+    // Screenshot runs in simulated-battery mode may ask for any factor; null means the saved text-size step.
+    private static double? _factorOverride;
+    private static double CurrentFactor => _factorOverride ?? TextSize.Factor(_current.TextSize);
+
+    public static void OverrideTextFactor(double factor)
     {
-        if (_root is not null) ScaleText(_root, _current.TextSize);
-        foreach ((Window _, FrameworkElement r) in Extras.ToArray()) ScaleText(r, _current.TextSize);
+        _factorOverride = factor;
+        ScaleAllText();
     }
 
+    private static void ScaleAllText()
+    {
+        if (_root is not null) ScaleText(_root, CurrentFactor);
+        foreach ((Window _, FrameworkElement r) in Extras.ToArray()) ScaleText(r, CurrentFactor);
+    }
+
+    public static void ScaleText(DependencyObject element, TextSizeChoice choice) => ScaleText(element, TextSize.Factor(choice));
+
     /// <summary>Sets the font size of every TextBlock under <paramref name="element"/> to its own base size times the text-size step.</summary>
-    public static void ScaleText(DependencyObject element, TextSizeChoice choice)
+    private static void ScaleText(DependencyObject element, double factor)
     {
         if (element is TextBlock tb)
         {
@@ -138,12 +150,12 @@ internal static class AppAppearance
             {
                 b.Base = tb.FontSize;
             }
-            double wanted = TextSize.Scale(b.Base, choice);
+            double wanted = Math.Round(b.Base * factor, 1);
             if (Math.Abs(tb.FontSize - wanted) > 0.01) tb.FontSize = wanted;
             b.Applied = wanted;
         }
         int count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++) ScaleText(VisualTreeHelper.GetChild(element, i), choice);
+        for (int i = 0; i < count; i++) ScaleText(VisualTreeHelper.GetChild(element, i), factor);
     }
 
     private static bool IsDark()

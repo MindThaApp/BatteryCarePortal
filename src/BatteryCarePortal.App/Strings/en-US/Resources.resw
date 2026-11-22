@@ -232,7 +232,24 @@
   <data name="PpmGet.Content" xml:space="preserve"><value>Get Power Plan Manager</value></data>
   <data name="PpmOpenFailed" xml:space="preserve"><value>Power Plan Manager could not be opened. {0}</value></data>
   <data name="SettingsWelcomeAgain.Content" xml:space="preserve"><value>Show the welcome again</value></data>
-  <data name="FirstRunSkip" xml:space="preserve"><value>Skip for now</value></data>
+  <data name="WelcomeHelloTitle" xml:space="preserve"><value>Hello, and welcome to Battery Care Portal</value></data>
+  <data name="WelcomeWhyBody" xml:space="preserve"><value>Keeping a battery below full for most of the day slows its wear, so it can serve you for longer. Nothing changes until you choose it.</value></data>
+  <data name="WelcomeLimitTitle" xml:space="preserve"><value>Pick a charge limit</value></data>
+  <data name="WelcomeLimitTitleOff" xml:space="preserve"><value>About the charge limit</value></data>
+  <data name="WelcomeLimitBody" xml:space="preserve"><value>80% is a good everyday choice: the battery stays below full and there is still plenty to use. You can change it any time, and top up to 100% when you need the extra.</value></data>
+  <data name="WelcomeLimitBodyOff" xml:space="preserve"><value>There is no limit to pick on this laptop right now. The app still shows your battery and sends reminders.</value></data>
+  <data name="WelcomeLimitValue" xml:space="preserve"><value>{0}%</value></data>
+  <data name="WelcomeLimitValueCaption" xml:space="preserve"><value>The limit this app would use. Nothing is set until you press the button.</value></data>
+  <data name="WelcomeLimitUnavailableTitle" xml:space="preserve"><value>Why there is no button</value></data>
+  <data name="WelcomeTrayTitle" xml:space="preserve"><value>Find us in the tray, and make it yours</value></data>
+  <data name="WelcomeTrayBody" xml:space="preserve"><value>The battery icon sits in the corner of the taskbar, next to the clock. Click it for a quick look, or right-click for the menu. If you do not see it, open the arrow for hidden icons.</value></data>
+  <data name="WelcomeTrayIllustration" xml:space="preserve"><value>Illustration of the taskbar corner with the Battery Care Portal icon next to the clock</value></data>
+  <data name="WelcomeCrashLine" xml:space="preserve"><value>Send crash reports so problems get fixed fast. They never include your files or your name.</value></data>
+  <data name="WelcomeCrashLinkName" xml:space="preserve"><value>What's sent in crash reports</value></data>
+  <data name="WelcomeCrashSent" xml:space="preserve"><value>Sent: a technical report of what went wrong, with the app and Windows versions.</value></data>
+  <data name="WelcomeCrashNotSent" xml:space="preserve"><value>Never sent: your files, file names or folders, your name or account, or your IP address.</value></data>
+  <data name="WelcomeCrashRetention" xml:space="preserve"><value>Reports are kept for 90 days. Untick the box to turn this off, now or later in Settings.</value></data>
+  <data name="WelcomeCrashPrivacy" xml:space="preserve"><value>Read the privacy page</value></data>  <data name="FirstRunSkip" xml:space="preserve"><value>Skip for now</value></data>
   <data name="FirstRunRecommended" xml:space="preserve"><value>Start with recommended settings</value></data>
   <data name="FirstRunWindowTitle" xml:space="preserve"><value>Welcome to Battery Care Portal</value></data>
   <data name="FirstRunPrefsTitle" xml:space="preserve"><value>Make it yours</value></data>

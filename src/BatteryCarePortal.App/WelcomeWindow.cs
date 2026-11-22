@@ -1,5 +1,6 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Portal.Core.Battery;
 
 namespace BatteryCarePortal;
 
@@ -22,7 +23,15 @@ internal sealed class WelcomeWindow : Window
         WindowPlacement.CenterOn(this, owner, WidthDip, HeightDip);
         _panel.Finished += Close;
         Closed += (_, _) => StoreFlag();
-        _ = _panel.StartAsync();
+
+        // Screenshot runs only: simulated battery plus a flag file; reads, never writes.
+        WelcomeCaptureOptions? capture = WelcomeCapture.Read(AppServices.StateFolder, BatteryEnvironment.IsFakeBatteryEnabled);
+        if (capture is not null)
+        {
+            if (capture.Theme is not null) _panel.RequestedTheme = capture.Theme == "Dark" ? ElementTheme.Dark : ElementTheme.Light;
+            if (capture.TextScale > 1.0) AppAppearance.OverrideTextFactor(capture.TextScale);
+        }
+        _ = _panel.StartAsync(capture is null ? 0 : capture.Step - 1);
     }
 
     private static void StoreFlag()
