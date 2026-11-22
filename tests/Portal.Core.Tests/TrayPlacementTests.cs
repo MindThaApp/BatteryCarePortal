@@ -109,4 +109,26 @@ public class TrayPlacementTests
         Assert.Equal("battery,heat,limit,topup,health", layout.Serialize());
         Assert.False(layout.Move("battery", -1, shown));
     }
+
+    [Fact]
+    public void TileViewport_ends_between_whole_rows()
+    {
+        double[] rows = { 100, 100, 100 };
+        // pad 2 + (100+10) + (100+10) = 222 fits; a third row would reach 332
+        Assert.Equal(222, TrayPlacement.TileViewportDip(300, rows, 10, 2, 6));
+        Assert.Equal(112, TrayPlacement.TileViewportDip(221, rows, 10, 2, 6));
+    }
+
+    [Fact]
+    public void TileViewport_uses_the_full_content_when_everything_fits()
+    {
+        Assert.Equal(2 + 6 + 200 + 10, TrayPlacement.TileViewportDip(500, new double[] { 100, 100 }, 10, 2, 6));
+        Assert.Equal(8, TrayPlacement.TileViewportDip(500, Array.Empty<double>(), 10, 2, 6));
+    }
+
+    [Fact]
+    public void TileViewport_keeps_the_available_height_when_not_even_one_row_fits()
+    {
+        Assert.Equal(80, TrayPlacement.TileViewportDip(80, new double[] { 100, 100 }, 10, 2, 6));
+    }
 }

@@ -137,7 +137,15 @@ public sealed class TrayFlyoutWindow : Window
         double widthDip = TrayPlacement.WidthDip(TrayPlacement.DefaultWidthDip * textScale, roomWidth);
         _panel.Width = widthDip;
         _panel.Measure(new Windows.Foundation.Size(widthDip, double.PositiveInfinity));
-        double heightDip = TrayPlacement.HeightDip(Math.Max(120, Math.Ceiling(_panel.DesiredSize.Height)), roomHeight);
+        double naturalDip = Math.Max(120, Math.Ceiling(_panel.DesiredSize.Height));
+        double heightDip = TrayPlacement.HeightDip(naturalDip, roomHeight);
+        if (naturalDip > roomHeight)
+        {
+            // Header and footer stay pinned; the tile area ends after the last whole row that fits.
+            var m = _panel.MeasureTileRows();
+            double pinned = _panel.DesiredSize.Height - m.ScrollHeight;
+            heightDip = Math.Min(roomHeight, pinned + TrayPlacement.TileViewportDip(roomHeight - pinned, m.Rows, m.Gap, m.PadTop, m.PadBottom));
+        }
 
         PxRect r = TrayPlacement.Place(target.Anchor, target.Work, (int)Math.Round(widthDip * scale), (int)Math.Round(heightDip * scale), gap);
         var next = new RectInt32(r.Left, r.Top, r.Width, r.Height);

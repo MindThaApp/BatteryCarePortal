@@ -246,6 +246,18 @@ public sealed partial class TrayFlyoutPanel : UserControl
         ContentChanged?.Invoke();
     }
 
+    /// <summary>After a Measure: the height of each tile row, so the pop-up can cut the scroll area between whole rows.</summary>
+    public (IReadOnlyList<double> Rows, double Gap, double PadTop, double PadBottom, double ScrollHeight) MeasureTileRows()
+    {
+        var rows = new double[TileGrid.RowDefinitions.Count];
+        foreach (UIElement child in TileGrid.Children)
+        {
+            int r = Grid.GetRow((FrameworkElement)child);
+            if (r >= 0 && r < rows.Length) rows[r] = Math.Max(rows[r], child.DesiredSize.Height);
+        }
+        return (rows, TileGrid.RowSpacing, TileGrid.Padding.Top, TileGrid.Padding.Bottom, TileScroll.DesiredSize.Height);
+    }
+
     private void OnEditToggle(object sender, RoutedEventArgs e) => SetEditing(!IsEditing);
 
     private void SetEditing(bool on)

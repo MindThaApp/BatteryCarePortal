@@ -57,4 +57,24 @@ public static class TrayPlacement
 
     /// <summary>Height in DIP: the content's natural height, capped to the room the work area leaves.</summary>
     public static double HeightDip(double naturalDip, double roomDip) => Math.Max(1, Math.Min(naturalDip, roomDip));
+
+    /// <summary>
+    /// Height in DIP for the scrolling tile area when it does not all fit: ends after the last whole tile row and one row gap,
+    /// so the cut falls between tiles. All rows fit gives the full content height. When not even the first row fits the
+    /// available height is used as is.
+    /// </summary>
+    public static double TileViewportDip(double availableDip, IReadOnlyList<double> rowHeightsDip, double rowGapDip, double padTopDip, double padBottomDip)
+    {
+        double full = padTopDip + padBottomDip + rowHeightsDip.Sum() + Math.Max(0, rowHeightsDip.Count - 1) * rowGapDip;
+        if (rowHeightsDip.Count == 0 || full <= availableDip) return Math.Min(full, Math.Max(1, availableDip));
+        double used = padTopDip;
+        double best = 0;
+        foreach (double row in rowHeightsDip)
+        {
+            used += row + rowGapDip;
+            if (used > availableDip) break;
+            best = used;
+        }
+        return best > 0 ? best : Math.Max(1, availableDip);
+    }
 }
