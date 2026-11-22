@@ -248,7 +248,7 @@
   <data name="WelcomeCrashLinkName" xml:space="preserve"><value>What's sent in crash reports</value></data>
   <data name="WelcomeCrashSent" xml:space="preserve"><value>Sent: a technical report of what went wrong, with the app and Windows versions.</value></data>
   <data name="WelcomeCrashNotSent" xml:space="preserve"><value>Never sent: your files, file names or folders, your name or account, or your IP address.</value></data>
-  <data name="WelcomeCrashRetention" xml:space="preserve"><value>Reports are kept for 90 days. Untick the box to turn this off, now or later in Settings.</value></data>
+  <data name="WelcomeCrashRetention" xml:space="preserve"><value>Reports are kept for 90 days. Turn this off with the switch, now or later in Settings.</value></data>
   <data name="WelcomeCrashPrivacy" xml:space="preserve"><value>Read the privacy page</value></data>  <data name="WelcomeStartupText" xml:space="preserve"><value>Open in the tray when you sign in. Off unless you turn it on.</value></data>
   <data name="WelcomeRemindersTitle" xml:space="preserve"><value>Reminders</value></data>
   <data name="WelcomeRemindersText" xml:space="preserve"><value>Limit reached, plug in on low battery, top-up finished. Choose which in Settings.</value></data>
@@ -292,7 +292,7 @@
   <data name="FirstRunNotifyPlugIn" xml:space="preserve"><value>Plug in on low battery</value></data>
   <data name="FirstRunNotifyTopUp" xml:space="preserve"><value>Top-up finished</value></data>
   <data name="FirstRunCrashTitle" xml:space="preserve"><value>Crash reports</value></data>
-  <data name="FirstRunCrashText" xml:space="preserve"><value>Send anonymous crash reports so problems get fixed faster. Nothing personal is sent, and you can untick this any time.</value></data>
+  <data name="FirstRunCrashText" xml:space="preserve"><value>Send anonymous crash reports so problems get fixed faster. Nothing personal is sent, and you can turn this off any time.</value></data>
   <data name="FirstRunCrashSwitch" xml:space="preserve"><value>Send anonymous crash reports</value></data>
   <data name="FirstRunFinishTitle" xml:space="preserve"><value>You are set</value></data>
   <data name="FirstRunFinishText" xml:space="preserve"><value>Find the app in the tray at any time. You can change everything in Settings, and Show the welcome again is there too.</value></data>

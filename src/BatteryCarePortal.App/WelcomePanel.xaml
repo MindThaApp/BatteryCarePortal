@@ -75,7 +75,7 @@
                             </StackPanel>
                             <TextBlock x:Name="LimitText" TextWrapping="Wrap" />
                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Button x:Name="ActionButton" Style="{StaticResource AccentButtonStyle}" Click="OnAction" />
+                                <Button x:Name="ActionButton" Click="OnAction" />
                                 <ProgressRing x:Name="BusyRing" IsActive="False" Width="20" Height="20" />
                             </StackPanel>
                             <InfoBar x:Name="ResultInfo" IsOpen="False" IsClosable="False" />
@@ -146,7 +146,7 @@
                                     </FlyoutBase.AttachedFlyout>
                                 </HyperlinkButton>
                             </StackPanel>
-                            <CheckBox x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
+                            <ToggleSwitch x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsOn="True" OnContent="" OffContent="" Toggled="OnCrashToggled" />
                         </Grid>
                     </Border>
 

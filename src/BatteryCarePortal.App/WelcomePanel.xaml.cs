@@ -130,7 +130,7 @@ public sealed partial class WelcomePanel : UserControl
         _ring.Set(snap.Percent, null, snap.IsCharging);
         BatterySettings settings = AppServices.Settings.Load();
         NotifySwitch.IsOn = settings.NotifyWhenLimitReached || settings.NotifyPlugIn || settings.NotifyTopUpFinished;
-        CrashSwitch.IsChecked = settings.SendCrashReports;
+        CrashSwitch.IsOn = settings.SendCrashReports;
         await LoadStartupStateAsync();
         _loading = false;
 
@@ -310,7 +310,8 @@ public sealed partial class WelcomePanel : UserControl
         bool compact = EffectiveTextFactor(CaptureTextFactor) > 1.25 || Pages.ActualHeight < 280;
         double height = compact ? 56 : 104;
         Hero0.MinHeight = Hero1.MinHeight = Hero2.MinHeight = height;
-        RingHost.Height = compact ? 40 : 88;
+        RingHost.Height = 88;
+        RingHost.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         Glyph1.FontSize = compact ? 28 : 56;
     }
 
@@ -458,7 +459,7 @@ public sealed partial class WelcomePanel : UserControl
     private void SetCrashTickQuietly(bool on)
     {
         _loading = true;
-        try { CrashSwitch.IsChecked = on; } finally { _loading = false; }
+        try { CrashSwitch.IsOn = on; } finally { _loading = false; }
     }
 
     // Only an explicit switch on opts in; an already-on task is left alone.
@@ -525,7 +526,7 @@ public sealed partial class WelcomePanel : UserControl
 
     private void SaveCrashReports()
     {
-        bool on = CrashSwitch.IsChecked == true;
+        bool on = CrashSwitch.IsOn;
         if (AppServices.Settings.Load().SendCrashReports == on) return;
         AppServices.Settings.Update(s => s.SendCrashReports = on);
         CrashReporting.Apply(on);
