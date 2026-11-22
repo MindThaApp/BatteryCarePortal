@@ -31,13 +31,13 @@
 
         <Grid x:Name="Pages">
             <!-- Step 1: why a charge limit helps, and this laptop -->
-            <ScrollViewer x:Name="Page0" VerticalScrollBarVisibility="Auto" IsTabStop="False">
-                <StackPanel Padding="32,24,32,8" Spacing="14">
-                    <Grid x:Name="Hero0" MinHeight="112">
+            <ScrollViewer x:Name="Page0" VerticalScrollBarVisibility="Auto" IsTabStop="False" SizeChanged="OnPage0SizeChanged">
+                <Grid x:Name="Page0Content"><StackPanel Padding="32,24,32,8" Spacing="14" VerticalAlignment="Center">
+                    <Grid x:Name="Hero0" MinHeight="150">
                         <Border x:Name="Tint0" Opacity="0.14" CornerRadius="{ThemeResource BcpCardRadius}"
                                 Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         <Border CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
-                        <FontIcon Glyph="&#xE83F;" FontSize="56" Margin="16"
+                        <FontIcon Glyph="&#xE83F;" FontSize="80" Margin="16"
                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                   AutomationProperties.AccessibilityView="Raw" />
                     </Grid>
@@ -51,7 +51,7 @@
                             <TextBlock x:Name="DetailText" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                </StackPanel></Grid>
             </ScrollViewer>
 
             <!-- Step 2: pick a limit; nothing is applied until the button is pressed -->
@@ -100,12 +100,12 @@
 
             <!-- Step 3: where the tray is, and your choices -->
             <ScrollViewer x:Name="Page2" VerticalScrollBarVisibility="Auto" IsTabStop="False" Visibility="Collapsed">
-                <StackPanel Padding="32,24,32,8" Spacing="14">
-                    <Grid x:Name="Hero2" MinHeight="112">
+                <StackPanel Padding="32,20,32,8" Spacing="10">
+                    <Grid x:Name="Hero2" MinHeight="72">
                         <Border x:Name="Tint2" Opacity="0.14" CornerRadius="{ThemeResource BcpCardRadius}"
                                 Background="{ThemeResource AccentFillColorDefaultBrush}" />
                         <Border CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
-                        <Border x:Name="TrayIllustration" Margin="16" Padding="12,8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        <Border x:Name="TrayIllustration" Margin="12" Padding="12,8" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 CornerRadius="{ThemeResource BcpCardRadius}" BorderThickness="1"
                                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
@@ -125,34 +125,53 @@
                     <TextBlock x:Name="TrayTitle" Style="{StaticResource WelcomeTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                     <TextBlock x:Name="TrayText" Style="{StaticResource WelcomeBodyStyle}" />
 
-                    <Border Style="{StaticResource WelcomeCardStyle}">
-                        <StackPanel Spacing="10">
-                            <StackPanel x:Name="StartupPanel" Spacing="2">
-                                <ToggleSwitch x:Name="StartupSwitch" Toggled="OnStartupToggled" />
+                    <Border x:Name="StartupPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="StartupTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
                                 <TextBlock x:Name="StartupText" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock x:Name="StartupDetail" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                            <StackPanel x:Name="NotifyPanel" Spacing="2">
+                            <ToggleSwitch x:Name="StartupSwitch" Grid.Column="1" MinWidth="0" OnContent="" OffContent="" Toggled="OnStartupToggled" />
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="CrashPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="CrashLine" TextWrapping="Wrap" />
+                                <HyperlinkButton x:Name="CrashLink" Padding="0" HorizontalAlignment="Left"
+                                                 AutomationProperties.Name="What's sent" />
+                            </StackPanel>
+                            <CheckBox x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="NotifyPanel" Style="{StaticResource WelcomeCardStyle}" Padding="16,10">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
                                 <TextBlock x:Name="NotifyTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
                                 <TextBlock x:Name="NotifyText" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <ToggleSwitch x:Name="NotifyLimitSwitch" Toggled="OnNotifyToggled" />
-                                <ToggleSwitch x:Name="NotifyPlugInSwitch" Toggled="OnNotifyToggled" />
-                                <ToggleSwitch x:Name="NotifyTopUpSwitch" Toggled="OnNotifyToggled" />
                             </StackPanel>
-                            <StackPanel x:Name="CrashPanel" Spacing="0">
-                                <CheckBox x:Name="CrashSwitch" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled">
-                                    <TextBlock x:Name="CrashLine" TextWrapping="Wrap" />
-                                </CheckBox>
-                                <HyperlinkButton x:Name="CrashLink" Padding="0" Margin="32,0,0,0" HorizontalAlignment="Left">
-                                    
-                                </HyperlinkButton>
-                            </StackPanel>
-                            <InfoBar x:Name="PrefsInfo" IsOpen="False" IsClosable="False" />
-                        </StackPanel>
+                            <ToggleSwitch x:Name="NotifySwitch" Grid.Column="1" MinWidth="0" OnContent="" OffContent="" Toggled="OnNotifyToggled" />
+                        </Grid>
                     </Border>
+                    <InfoBar x:Name="PrefsInfo" IsOpen="False" IsClosable="False" />
                     <TextBlock x:Name="FreeText" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>

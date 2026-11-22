@@ -29,7 +29,7 @@ internal sealed class WelcomeWindow : Window
         if (capture is not null)
         {
             if (capture.Theme is not null) _panel.RequestedTheme = capture.Theme == "Dark" ? ElementTheme.Dark : ElementTheme.Light;
-            if (capture.TextScale > 1.0) AppAppearance.OverrideTextFactor(capture.TextScale);
+            if (capture.TextScale > 1.0) { AppAppearance.OverrideTextFactor(capture.TextScale); _panel.CaptureTextFactor = capture.TextScale; }
         }
         _ = _panel.StartAsync(capture is null ? 0 : capture.Step - 1);
     }

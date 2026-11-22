@@ -137,7 +137,7 @@ internal static class AppAppearance
     public static void ScaleText(DependencyObject element, TextSizeChoice choice) => ScaleText(element, TextSize.Factor(choice));
 
     /// <summary>Sets the font size of every TextBlock under <paramref name="element"/> to its own base size times the text-size step.</summary>
-    private static void ScaleText(DependencyObject element, double factor)
+    public static void ScaleText(DependencyObject element, double factor)
     {
         if (element is TextBlock tb)
         {

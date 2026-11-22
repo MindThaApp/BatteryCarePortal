@@ -52,19 +52,17 @@ public sealed partial class WelcomePanel : UserControl
         BackButton.Content = Strings.Get("FirstRunBack");
         SkipButton.Content = Strings.Get("FirstRunSkip");
         RecommendedButton.Content = Strings.Get("FirstRunRecommended");
-        StartupSwitch.Header = Strings.Get("FirstRunStartupSwitch");
-        NotifyLimitSwitch.Header = Strings.Get("FirstRunNotifyLimit");
-        NotifyPlugInSwitch.Header = Strings.Get("FirstRunNotifyPlugIn");
-        NotifyTopUpSwitch.Header = Strings.Get("FirstRunNotifyTopUp");
+        StartupTitle.Text = Strings.Get("FirstRunStartupSwitch");
+        AutomationProperties.SetName(StartupSwitch, StartupTitle.Text);
+        AutomationProperties.SetName(NotifySwitch, Strings.Get("WelcomeRemindersTitle"));
         CrashLine.Text = Strings.Get("WelcomeCrashLine");
         AutomationProperties.SetName(CrashSwitch, CrashLine.Text);
         CrashLink.Content = Strings.Get("CrashWhatsSent");
-        AutomationProperties.SetName(CrashLink, Strings.Get("WelcomeCrashLinkName"));
         FlyoutBase.SetAttachedFlyout(CrashLink, BuildCrashFlyout());
         CrashLink.Click += (_, _) => FlyoutBase.ShowAttachedFlyout(CrashLink);
-        StartupText.Text = Strings.Get("FirstRunStartupText");
-        NotifyTitle.Text = Strings.Get("FirstRunNotifyTitle");
-        NotifyText.Text = Strings.Get("FirstRunNotifyText");
+        StartupText.Text = Strings.Get("WelcomeStartupText");
+        NotifyTitle.Text = Strings.Get("WelcomeRemindersTitle");
+        NotifyText.Text = Strings.Get("WelcomeRemindersText");
         TitleText.Text = Strings.Get("WelcomeHelloTitle");
         BodyText.Text = Strings.Get("WelcomeWhyBody");
         DeviceTitle.Text = Strings.Get("FirstRunCheckTitle");
@@ -77,7 +75,7 @@ public sealed partial class WelcomePanel : UserControl
         TrayTitle.Text = Strings.Get("WelcomeTrayTitle");
         TrayText.Text = Strings.Get("WelcomeTrayBody");
         AutomationProperties.SetName(TrayIllustration, Strings.Get("WelcomeTrayIllustration"));
-        FreeText.Text = Strings.Get("FirstRunFreeText");
+        FreeText.Text = Strings.Get("WelcomeFreeLine");
         BuildDots();
         AddKey(Windows.System.VirtualKey.Enter, () => { if (!_busy) OnNext(this, new RoutedEventArgs()); }, skipWhenControlFocused: true);
         AddKey(Windows.System.VirtualKey.Escape, () => OnSkip(this, new RoutedEventArgs()), skipWhenControlFocused: false);
@@ -124,9 +122,7 @@ public sealed partial class WelcomePanel : UserControl
         _limitDone = false;
         _loading = true;
         BatterySettings settings = AppServices.Settings.Load();
-        NotifyLimitSwitch.IsOn = settings.NotifyWhenLimitReached;
-        NotifyPlugInSwitch.IsOn = settings.NotifyPlugIn;
-        NotifyTopUpSwitch.IsOn = settings.NotifyTopUpFinished;
+        NotifySwitch.IsOn = settings.NotifyWhenLimitReached || settings.NotifyPlugIn || settings.NotifyTopUpFinished;
         CrashSwitch.IsChecked = settings.SendCrashReports;
         await LoadStartupStateAsync();
         _loading = false;
@@ -187,6 +183,7 @@ public sealed partial class WelcomePanel : UserControl
         _visiblePage = _index;
         SwitchPages(previous, _index);
         UpdateFooterLayout();
+        ApplyCaptureScale();
     }
 
     private enum PageMotion { None, FadeQuick, Fade, SlideAndFade }
@@ -305,6 +302,19 @@ public sealed partial class WelcomePanel : UserControl
         panel.Children.Add(privacy);
         return new Flyout { Content = panel };
     }
+    // Step 1 is short: its content sits in the middle of the page instead of leaving a gap above the footer.
+    private void OnPage0SizeChanged(object sender, SizeChangedEventArgs e) => Page0Content.MinHeight = e.NewSize.Height;
+
+    // Screenshot runs only: scale the text of the open step through the same walker the Text size setting uses.
+    public double? CaptureTextFactor { get; set; }
+
+    private void ApplyCaptureScale()
+    {
+        if (CaptureTextFactor is not double f) return;
+        AppAppearance.ScaleText(this, f);
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => AppAppearance.ScaleText(this, f));
+    }
+
     private void OnFooterSizeChanged(object sender, SizeChangedEventArgs e) => UpdateFooterLayout();
 
     // The left and right button groups share one row; when they no longer fit (large text) they stack, left group first.
@@ -409,7 +419,7 @@ public sealed partial class WelcomePanel : UserControl
     private void OnRecommended(object sender, RoutedEventArgs e)
     {
         if (_busy) return;
-        NotifyLimitSwitch.IsOn = NotifyPlugInSwitch.IsOn = NotifyTopUpSwitch.IsOn = true;
+        NotifySwitch.IsOn = true;
         SaveNotifications();
         Finished?.Invoke();
     }
@@ -471,7 +481,7 @@ public sealed partial class WelcomePanel : UserControl
 
     private void SaveNotifications()
     {
-        bool limit = NotifyLimitSwitch.IsOn, plugIn = NotifyPlugInSwitch.IsOn, topUp = NotifyTopUpSwitch.IsOn;
+        bool limit = NotifySwitch.IsOn, plugIn = limit, topUp = limit;
         BatterySettings current = AppServices.Settings.Load();
         if (current.NotifyWhenLimitReached == limit && current.NotifyPlugIn == plugIn && current.NotifyTopUpFinished == topUp) return;
         AppServices.Settings.Update(s =>

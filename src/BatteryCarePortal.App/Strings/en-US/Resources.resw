@@ -241,15 +241,18 @@
   <data name="WelcomeLimitValue" xml:space="preserve"><value>{0}%</value></data>
   <data name="WelcomeLimitValueCaption" xml:space="preserve"><value>The limit this app would use. Nothing is set until you press the button.</value></data>
   <data name="WelcomeLimitUnavailableTitle" xml:space="preserve"><value>Why there is no button</value></data>
-  <data name="WelcomeTrayTitle" xml:space="preserve"><value>Find us in the tray, and make it yours</value></data>
-  <data name="WelcomeTrayBody" xml:space="preserve"><value>The battery icon sits in the corner of the taskbar, next to the clock. Click it for a quick look, or right-click for the menu. If you do not see it, open the arrow for hidden icons.</value></data>
+  <data name="WelcomeTrayTitle" xml:space="preserve"><value>Find us in the tray</value></data>
+  <data name="WelcomeTrayBody" xml:space="preserve"><value>The battery icon sits by the clock. Click it for a quick look, right-click for the menu.</value></data>
   <data name="WelcomeTrayIllustration" xml:space="preserve"><value>Illustration of the taskbar corner with the Battery Care Portal icon next to the clock</value></data>
   <data name="WelcomeCrashLine" xml:space="preserve"><value>Send crash reports so problems get fixed fast. They never include your files or your name.</value></data>
   <data name="WelcomeCrashLinkName" xml:space="preserve"><value>What's sent in crash reports</value></data>
   <data name="WelcomeCrashSent" xml:space="preserve"><value>Sent: a technical report of what went wrong, with the app and Windows versions.</value></data>
   <data name="WelcomeCrashNotSent" xml:space="preserve"><value>Never sent: your files, file names or folders, your name or account, or your IP address.</value></data>
   <data name="WelcomeCrashRetention" xml:space="preserve"><value>Reports are kept for 90 days. Untick the box to turn this off, now or later in Settings.</value></data>
-  <data name="WelcomeCrashPrivacy" xml:space="preserve"><value>Read the privacy page</value></data>  <data name="FirstRunSkip" xml:space="preserve"><value>Skip for now</value></data>
+  <data name="WelcomeCrashPrivacy" xml:space="preserve"><value>Read the privacy page</value></data>  <data name="WelcomeStartupText" xml:space="preserve"><value>Open in the tray when you sign in. Off unless you turn it on.</value></data>
+  <data name="WelcomeRemindersTitle" xml:space="preserve"><value>Reminders</value></data>
+  <data name="WelcomeRemindersText" xml:space="preserve"><value>Limit reached, plug in on low battery, top-up finished. Choose which in Settings.</value></data>
+  <data name="WelcomeFreeLine" xml:space="preserve"><value>Everything in the app is free.</value></data>  <data name="FirstRunSkip" xml:space="preserve"><value>Skip for now</value></data>
   <data name="FirstRunRecommended" xml:space="preserve"><value>Start with recommended settings</value></data>
   <data name="FirstRunWindowTitle" xml:space="preserve"><value>Welcome to Battery Care Portal</value></data>
   <data name="FirstRunPrefsTitle" xml:space="preserve"><value>Make it yours</value></data>
