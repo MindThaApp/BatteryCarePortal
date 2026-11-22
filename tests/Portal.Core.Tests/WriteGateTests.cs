@@ -443,14 +443,11 @@ public class BatterySettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Update_reads_a_briefly_locked_file_again_instead_of_replacing_it()
+    public void Update_reads_a_briefly_locked_file_again_instead_of_replacing_it()
     {
         new BatterySettingsStore(_folder).Update(s => s.NotifyWhenLimitReached = false);
         var locked = new FileStream(SettingsPath, FileMode.Open, FileAccess.Read, FileShare.None);
-        Task release = Task.Run(async () => { await Task.Delay(30); locked.Dispose(); });
-
-        BatterySettings saved = new BatterySettingsStore(_folder).Update(s => s.NotifyPlugIn = false);
-        await release;
+        BatterySettings saved = new BatterySettingsStore(_folder, sleep: _ => locked.Dispose()).Update(s => s.NotifyPlugIn = false);
         Assert.False(saved.NotifyWhenLimitReached);
         Assert.False(saved.NotifyPlugIn);
         Assert.Single(Directory.GetFiles(_folder));

@@ -276,10 +276,12 @@ public sealed class BatterySettingsStore
 
     private readonly object _gate;
     private readonly TimeProvider _time;
+    private readonly Action<TimeSpan> _sleep;
     private BatterySettings? _lastGood;
 
-    public BatterySettingsStore(string folder, TimeProvider? time = null)
+    public BatterySettingsStore(string folder, TimeProvider? time = null, Action<TimeSpan>? sleep = null)
     {
+        _sleep = sleep ?? Thread.Sleep;
         Path = System.IO.Path.Combine(folder, FileName);
         _gate = AppStateFileLock.For(Path);
         _time = time ?? TimeProvider.System;
@@ -334,7 +336,7 @@ public sealed class BatterySettingsStore
             AtomicJsonFile.ReadStatus status = Read(out BatterySettings? settings);
             if (status == AtomicJsonFile.ReadStatus.Unreadable)
             {
-                Thread.Sleep(RetryDelay);
+                _sleep(RetryDelay);
                 status = Read(out settings);
             }
             if (status == AtomicJsonFile.ReadStatus.Unreadable) AtomicJsonFile.RenameAside(Path, _time.GetUtcNow());
