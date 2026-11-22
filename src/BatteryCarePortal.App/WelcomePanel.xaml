@@ -151,7 +151,19 @@
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock x:Name="CrashLine" TextWrapping="Wrap" />
                                 <HyperlinkButton x:Name="CrashLink" Padding="0" HorizontalAlignment="Left"
-                                                 AutomationProperties.Name="What's sent" />
+                                                 AutomationProperties.Name="What's sent">
+                                    <FlyoutBase.AttachedFlyout>
+                                        <Flyout>
+                                            <StackPanel Spacing="10" Width="340" Padding="4">
+                                                <TextBlock x:Name="CrashFlyoutTitle" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashSentText" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashNotSentText" TextWrapping="Wrap" />
+                                                <TextBlock x:Name="CrashRetentionText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <HyperlinkButton x:Name="CrashPrivacyLink" Padding="0" HorizontalAlignment="Left" Click="OnCrashWhatsSent" />
+                                            </StackPanel>
+                                        </Flyout>
+                                    </FlyoutBase.AttachedFlyout>
+                                </HyperlinkButton>
                             </StackPanel>
                             <CheckBox x:Name="CrashSwitch" Grid.Column="1" MinWidth="0" IsChecked="True" Checked="OnCrashToggled" Unchecked="OnCrashToggled" />
                         </Grid>

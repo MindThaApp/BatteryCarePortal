@@ -58,7 +58,12 @@ public sealed partial class WelcomePanel : UserControl
         CrashLine.Text = Strings.Get("WelcomeCrashLine");
         AutomationProperties.SetName(CrashSwitch, CrashLine.Text);
         CrashLink.Content = Strings.Get("CrashWhatsSent");
-        FlyoutBase.SetAttachedFlyout(CrashLink, BuildCrashFlyout());
+        CrashFlyoutTitle.Text = Strings.Get("CrashWhatsSent");
+        CrashSentText.Text = Strings.Get("WelcomeCrashSent");
+        CrashNotSentText.Text = Strings.Get("WelcomeCrashNotSent");
+        CrashRetentionText.Text = Strings.Get("WelcomeCrashRetention");
+        CrashPrivacyLink.Content = Strings.Get("WelcomeCrashPrivacy");
+        AutomationProperties.SetName(CrashPrivacyLink, Strings.Get("WelcomeCrashPrivacy"));
         CrashLink.Click += (_, _) => FlyoutBase.ShowAttachedFlyout(CrashLink);
         StartupText.Text = Strings.Get("WelcomeStartupText");
         NotifyTitle.Text = Strings.Get("WelcomeRemindersTitle");
@@ -77,6 +82,7 @@ public sealed partial class WelcomePanel : UserControl
         AutomationProperties.SetName(TrayIllustration, Strings.Get("WelcomeTrayIllustration"));
         FreeText.Text = Strings.Get("WelcomeFreeLine");
         BuildDots();
+        Footer.LayoutUpdated += (_, _) => UpdateFooterLayout();
         AddKey(Windows.System.VirtualKey.Enter, () => { if (!_busy) OnNext(this, new RoutedEventArgs()); }, skipWhenControlFocused: true);
         AddKey(Windows.System.VirtualKey.Escape, () => OnSkip(this, new RoutedEventArgs()), skipWhenControlFocused: false);
     }
@@ -288,20 +294,6 @@ public sealed partial class WelcomePanel : UserControl
         }
     }
 
-    private Flyout BuildCrashFlyout()
-    {
-        var privacy = new HyperlinkButton { Content = Strings.Get("WelcomeCrashPrivacy"), Padding = new Thickness(0) };
-        LayoutHelper.AlignToStart(privacy);
-        AutomationProperties.SetName(privacy, Strings.Get("WelcomeCrashPrivacy"));
-        privacy.Click += OnCrashWhatsSent;
-        var panel = new StackPanel { Spacing = 8, MaxWidth = 360 };
-        panel.Children.Add(new TextBlock { Text = Strings.Get("CrashWhatsSent"), Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(new TextBlock { Text = Strings.Get("WelcomeCrashSent"), TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(new TextBlock { Text = Strings.Get("WelcomeCrashNotSent"), TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(new TextBlock { Text = Strings.Get("WelcomeCrashRetention"), TextWrapping = TextWrapping.Wrap, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
-        panel.Children.Add(privacy);
-        return new Flyout { Content = panel };
-    }
     // Step 1 is short: its content sits in the middle of the page instead of leaving a gap above the footer.
     private void OnPage0SizeChanged(object sender, SizeChangedEventArgs e) => Page0Content.MinHeight = e.NewSize.Height;
 
@@ -317,7 +309,11 @@ public sealed partial class WelcomePanel : UserControl
 
     private void OnFooterSizeChanged(object sender, SizeChangedEventArgs e) => UpdateFooterLayout();
 
-    // The left and right button groups share one row; when they no longer fit (large text) they stack, left group first.
+    private string _footerSignature = string.Empty;
+    private bool _leftVertical;
+
+    // Re-checked on every layout pass, so it follows text scaling and step changes: when both button groups no longer fit
+    // in one row, Back/Next get their own right-aligned row above Skip/Recommended.
     private void UpdateFooterLayout()
     {
         double available = Footer.ActualWidth - Footer.Padding.Left - Footer.Padding.Right;
@@ -326,16 +322,23 @@ public sealed partial class WelcomePanel : UserControl
         FooterLeft.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         FooterRight.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         double left = FooterLeft.DesiredSize.Width, right = FooterRight.DesiredSize.Width;
+        string signature = $"{available:F0}|{left:F0}|{right:F0}";
+        if (signature == _footerSignature)
+        {
+            if (_leftVertical) FooterLeft.Orientation = Orientation.Vertical;
+            return;
+        }
+        _footerSignature = signature;
         bool stack = left + right + Footer.ColumnSpacing > available;
-        Grid.SetRow(FooterLeft, 0);
         Grid.SetColumn(FooterLeft, 0);
         Grid.SetColumnSpan(FooterLeft, stack ? 3 : 1);
-        Grid.SetRow(FooterRight, stack ? 1 : 0);
+        Grid.SetRow(FooterLeft, stack ? 1 : 0);
+        Grid.SetRow(FooterRight, 0);
         Grid.SetColumn(FooterRight, stack ? 0 : 2);
         Grid.SetColumnSpan(FooterRight, stack ? 3 : 1);
-        if (stack && left > available) FooterLeft.Orientation = Orientation.Vertical;
+        _leftVertical = stack && left > available;
+        if (_leftVertical) FooterLeft.Orientation = Orientation.Vertical;
     }
-
     private void UpdateEnabled() => BackButton.IsEnabled = NextButton.IsEnabled = SkipButton.IsEnabled = RecommendedButton.IsEnabled = ActionButton.IsEnabled = !_busy;
 
     private void ShowResult(InfoBarSeverity severity, string message)
