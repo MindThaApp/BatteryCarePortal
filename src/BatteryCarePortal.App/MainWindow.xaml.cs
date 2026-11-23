@@ -24,6 +24,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        AppIcon.Apply(this);
         InitializeComponent();
         try { AppAppearance.Attach(this, Root, AppServices.Settings.Load().Appearance); } catch (Exception) { }
         AddNavigationShortcuts();

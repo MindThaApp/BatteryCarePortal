@@ -15,6 +15,7 @@ internal sealed class WhatsNewWindow : Window
 
     private WhatsNewWindow(Window owner, WhatsNewRelease release)
     {
+        AppIcon.Apply(this);
         Title = Strings.Get("WhatsNewTitle");
         var cards = new StackPanel { Spacing = 8 };
         foreach (WhatsNewCard card in release.Cards) cards.Children.Add(BuildCard(card));

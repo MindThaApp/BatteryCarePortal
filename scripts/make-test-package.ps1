@@ -52,6 +52,34 @@ Copy-Item $built.FullName $msix -Force
 & $signtool sign /fd SHA256 /f $pfx /p $password $msix 2>&1 | Select-String 'Successfully|error'
 if ($LASTEXITCODE -ne 0) { throw "signing failed ($LASTEXITCODE)" }
 
+# Start and the taskbar need every Square44x44Logo size indexed in resources.pri, in plain, unplated and lightunplated forms;
+# without them Windows draws the logo on an accent plate or shows the generic icon in the taskbar hover preview.
+$makepri = Join-Path (Split-Path $signtool -Parent) 'makepri.exe'
+$check = Join-Path ([IO.Path]::GetTempPath()) ('bcp-pri-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory $check | Out-Null
+try {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [IO.Compression.ZipFile]::OpenRead($msix)
+    try {
+        $entry = $zip.Entries | Where-Object { $_.FullName -eq 'resources.pri' }
+        if (-not $entry) { throw 'resources.pri is missing from the package' }
+        [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, (Join-Path $check 'resources.pri'))
+    }
+    finally { $zip.Dispose() }
+    $xml = Join-Path $check 'pri.xml'
+    & $makepri dump /if (Join-Path $check 'resources.pri') /of $xml /o | Out-Null
+    $dump = Get-Content $xml -Raw
+    $missing = foreach ($s in 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256) {
+        foreach ($form in '', '_altform-unplated', '_altform-lightunplated') {
+            $name = "Square44x44Logo.targetsize-$s$form.png"
+            if (-not $dump.Contains($name)) { $name }
+        }
+    }
+    if ($missing) { throw "resources.pri does not index: $($missing -join ', ')" }
+    'resources.pri indexes all Square44x44Logo sizes (plain, unplated, lightunplated)'
+}
+finally { Remove-Item $check -Recurse -Force }
+
 $cer = Join-Path $OutDir 'BatteryCarePortalTest.cer'
 $pub = New-Object Security.Cryptography.X509Certificates.X509Certificate2($pfx, $password)
 [IO.File]::WriteAllBytes($cer, $pub.Export('Cert'))

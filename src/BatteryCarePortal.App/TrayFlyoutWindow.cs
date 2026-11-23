@@ -32,6 +32,7 @@ public sealed class TrayFlyoutWindow : Window
 
     public TrayFlyoutWindow()
     {
+        AppIcon.Apply(this);
         Content = _panel;
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         _grace = DispatcherQueue.GetForCurrentThread().CreateTimer();

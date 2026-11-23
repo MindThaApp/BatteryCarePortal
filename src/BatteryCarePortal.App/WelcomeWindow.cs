@@ -16,6 +16,7 @@ internal sealed class WelcomeWindow : Window
 
     public WelcomeWindow(Window owner)
     {
+        AppIcon.Apply(this);
         Title = Strings.Get("FirstRunWindowTitle");
         Content = _panel;
         AppAppearance.AttachExtra(this, _panel);

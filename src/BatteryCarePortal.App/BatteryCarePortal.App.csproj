@@ -72,7 +72,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="WhatsNew\*.json" LogicalName="WhatsNew.%(Filename)%(Extension)" />
-    <Content Include="Assets\**\*.png">
+    <Content Include="Assets\**\*.png;Assets\batterycareportal.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
