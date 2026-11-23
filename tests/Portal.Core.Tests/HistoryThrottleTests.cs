@@ -4,6 +4,8 @@ using Xunit;
 
 namespace Portal.Core.Tests;
 
+// Shares the mutable FeatureTiers.EverythingFree switch with the other tests in this collection.
+[Collection("FeatureTiers")]
 public class HistoryThrottleTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "bcp-throttle-test-" + Guid.NewGuid().ToString("N"));

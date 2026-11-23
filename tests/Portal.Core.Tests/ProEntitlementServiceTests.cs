@@ -3,6 +3,8 @@ using Xunit;
 
 namespace Portal.Core.Tests;
 
+// Shares the mutable FeatureTiers.EverythingFree switch with the other tests in this collection.
+[Collection("FeatureTiers")]
 public sealed class ProEntitlementServiceTests
 {
     private static readonly DateTimeOffset Now = new(2027, 3, 1, 12, 0, 0, TimeSpan.Zero);

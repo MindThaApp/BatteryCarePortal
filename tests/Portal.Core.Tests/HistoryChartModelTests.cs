@@ -4,6 +4,8 @@ using Xunit;
 
 namespace Portal.Core.Tests;
 
+// Shares the mutable FeatureTiers.EverythingFree switch with the other tests in this collection.
+[Collection("FeatureTiers")]
 public class HistoryChartModelTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 18, 12, 0, 0, TimeSpan.Zero);
