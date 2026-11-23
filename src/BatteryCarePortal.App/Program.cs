@@ -34,7 +34,7 @@ public static class Program
         }
 
         AppActivationArguments activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-        AllowSetForegroundWindow(mainInstance.ProcessId);
+        if (!TestMode.Quiet) AllowSetForegroundWindow(mainInstance.ProcessId);
         // Redirect off the STA thread; awaiting it here would block without pumping COM.
         Task.Run(() => mainInstance.RedirectActivationToAsync(activation).AsTask()).Wait();
         return true;

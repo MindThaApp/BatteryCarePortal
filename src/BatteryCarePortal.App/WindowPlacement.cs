@@ -20,7 +20,8 @@ internal static class WindowPlacement
             if (dpi > 0) scale = dpi / 96.0;
         }
         catch (Exception) { }
-        RectInt32 work = DisplayArea.GetFromWindowId(owner.AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
+        RectInt32 work = (TestMode.Quiet ? TestMode.SecondaryWorkArea() : null)
+            ?? DisplayArea.GetFromWindowId(owner.AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
         int width = Math.Min((int)Math.Round(widthDip * scale), work.Width);
         int height = Math.Min((int)Math.Round(heightDip * scale), work.Height - (int)Math.Round(marginDip * scale));
         window.AppWindow.MoveAndResize(new RectInt32(work.X + (work.Width - width) / 2, work.Y + (work.Height - height) / 2, width, height));

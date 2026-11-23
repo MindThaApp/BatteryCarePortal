@@ -113,6 +113,11 @@ public sealed class TrayFlyoutWindow : Window
         _panel.ApplyTextSize();
         _placed = default;
         Fit();
+        if (TestMode.Quiet)
+        {
+            if (TestMode.SecondaryWorkArea() is not null) AppWindow.Show(false);
+            return;
+        }
         AppWindow.Show();
         Activate();
         DispatcherQueue.TryEnqueue(_panel.FocusFirst);
@@ -154,6 +159,11 @@ public sealed class TrayFlyoutWindow : Window
         var next = new RectInt32(r.Left, r.Top, r.Width, r.Height);
         if (next.X == _placed.X && next.Y == _placed.Y && next.Width == _placed.Width && next.Height == _placed.Height) return;
         _placed = next;
+        if (TestMode.Quiet)
+        {
+            TestMode.MoveToSecondary(this, next.Width, next.Height);
+            return;
+        }
         AppWindow.MoveAndResize(next);
     }
 }

@@ -91,7 +91,7 @@ public sealed partial class MainWindow : Window
         _whatsNewPending = false;
         if (_welcome is not null)
         {
-            _welcome.Activate();
+            TestMode.Present(_welcome);
             return;
         }
         if (AppServices.Support is null)
@@ -106,15 +106,23 @@ public sealed partial class MainWindow : Window
         }
         _welcome = new WelcomeWindow(this);
         _welcome.Closed += (_, _) => _welcome = null;
-        _welcome.Activate();
+        TestMode.Present(_welcome);
     }
 
     public void ShowAndActivate()
     {
-        AppWindow.Show();
-        if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
-            presenter.Restore();
-        Activate();
+        if (TestMode.Quiet)
+        {
+            if (!TestMode.MoveToSecondary(this)) return;
+            AppWindow.Show(false);
+        }
+        else
+        {
+            AppWindow.Show();
+            if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
+                presenter.Restore();
+            Activate();
+        }
         if (_whatsNewPending)
         {
             _whatsNewPending = false;
